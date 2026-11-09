@@ -98,6 +98,24 @@ miesc score full_audit.json --badge svg -o security-badge.svg
 miesc score full_audit.json --fail-under 80
 ```
 
+### Formal Verification & Proof-of-Concept
+
+`miesc verify` runs formal-verification provers (Halmos, Kontrol, SMTChecker,
+Certora) and, when a property is violated, can turn the prover's counterexample
+into a **Foundry PoC scaffold** — the concrete inputs laid into a typed, ready-to-
+finish test.
+
+```bash
+# Run the provers against a contract
+miesc verify MyContract.sol
+
+# Emit one Foundry PoC scaffold per counterexample into ./pocs/
+miesc verify MyContract.sol --poc ./pocs
+
+# ...and confirm each scaffold compiles with forge (skipped if forge is absent)
+miesc verify MyContract.sol --poc ./pocs --poc-check
+```
+
 ## 4. The 9 Defense Layers
 
 MIESC analyzes contracts through **9 specialized defense layers**:

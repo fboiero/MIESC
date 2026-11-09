@@ -1,0 +1,112 @@
+{
+ "aggregate": {
+  "tp": 137,
+  "fp": 480,
+  "fn": 6,
+  "precision": 0.222,
+  "recall": 0.958,
+  "f1": 0.3605,
+  "contracts_evaluated": 143,
+  "total_time_s": 737.0,
+  "avg_time_per_contract_s": 5.15
+ },
+ "per_category": {
+  "access_control": {
+   "tp": 18,
+   "fp": 47,
+   "fn": 0,
+   "precision": 0.2769,
+   "recall": 1.0,
+   "f1": 0.4337
+  },
+  "arithmetic": {
+   "tp": 15,
+   "fp": 128,
+   "fn": 0,
+   "precision": 0.1049,
+   "recall": 1.0,
+   "f1": 0.1899
+  },
+  "unchecked_low_level_calls": {
+   "tp": 52,
+   "fp": 64,
+   "fn": 0,
+   "precision": 0.4483,
+   "recall": 1.0,
+   "f1": 0.619
+  },
+  "reentrancy": {
+   "tp": 31,
+   "fp": 109,
+   "fn": 0,
+   "precision": 0.2214,
+   "recall": 1.0,
+   "f1": 0.3626
+  },
+  "denial_of_service": {
+   "tp": 6,
+   "fp": 46,
+   "fn": 0,
+   "precision": 0.1154,
+   "recall": 1.0,
+   "f1": 0.2069
+  },
+  "bad_randomness": {
+   "tp": 8,
+   "fp": 46,
+   "fn": 0,
+   "precision": 0.1481,
+   "recall": 1.0,
+   "f1": 0.2581
+  },
+  "time_manipulation": {
+   "tp": 5,
+   "fp": 35,
+   "fn": 0,
+   "precision": 0.125,
+   "recall": 1.0,
+   "f1": 0.2222
+  },
+  "front_running": {
+   "tp": 2,
+   "fp": 5,
+   "fn": 2,
+   "recall": 0.5,
+   "precision": 0.2857,
+   "f1": 0.3636
+  },
+  "other": {
+   "tp": 0,
+   "fp": 0,
+   "fn": 3,
+   "precision": 0.0,
+   "recall": 0.0,
+   "f1": 0.0
+  },
+  "short_addresses": {
+   "tp": 0,
+   "fp": 0,
+   "fn": 1,
+   "precision": 0.0,
+   "recall": 0.0,
+   "f1": 0.0
+  }
+ },
+ "tools_used": [
+  "slither",
+  "aderyn",
+  "solhint",
+  "fouranalyzer",
+  "smartbugs_ml",
+  "smartbugs_detector"
+ ],
+ "version": "5.4.1",
+ "timestamp": "2026-05-09T17:25:42",
+ "correction": {
+  "date": "2026-10-16",
+  "from": "paper1_smartbugs_eval_layers_1_6_7.json (aggregate.fp=481)",
+  "change": "aggregate.fp 481 -> 480 to match the per_category sum and the stored precision",
+  "reason": "see paper/ribci-cyted-2026/ERRATA.md#e-1 (aggregate scalar was off by one; code forces global==per-category)",
+  "headline_impact": "none; precision rounds to 22.2% for both 480 and 481; recall 95.8%, F1 36.0% unchanged"
+ }
+}

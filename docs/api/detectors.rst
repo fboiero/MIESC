@@ -27,6 +27,10 @@ Specialized detectors for DeFi vulnerabilities:
 - Price manipulation
 - Liquidation issues
 - MEV vulnerabilities
+- Rounding errors in fixed-point math chains (divide before multiply)
+- Fee-on-transfer / rebasing token accounting
+- EIP-4626 signature compliance
+- Unrefunded excess payment (business logic)
 
 .. automodule:: miesc.detectors.defi_detectors
    :members:

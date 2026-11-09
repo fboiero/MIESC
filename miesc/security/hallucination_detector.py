@@ -35,6 +35,42 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 logger = logging.getLogger(__name__)
 
 
+# Textual confidence labels LLMs commonly emit instead of a number.
+_CONFIDENCE_LABELS = {
+    "critical": 0.95,
+    "very_high": 0.9,
+    "high": 0.85,
+    "medium": 0.6,
+    "moderate": 0.6,
+    "low": 0.35,
+    "very_low": 0.2,
+    "info": 0.2,
+    "informational": 0.2,
+}
+
+
+def _coerce_confidence(value: Any, default: float) -> float:
+    """Best-effort coercion of an untrusted ``confidence`` field to a float.
+
+    LLM findings routinely carry a textual confidence ("high") or a numeric
+    string ("0.8"); a bare ``float(value)`` raises ``ValueError`` on the former
+    and crashes the whole validation run. Numbers pass through (clamped to
+    [0, 1]); numeric strings parse; known labels map to a representative value;
+    anything unrecognized falls back to ``default``.
+    """
+    if isinstance(value, bool):  # bool is an int subclass — treat as default
+        return default
+    if isinstance(value, (int, float)):
+        return max(0.0, min(1.0, float(value)))
+    if isinstance(value, str):
+        text = value.strip()
+        try:
+            return max(0.0, min(1.0, float(text)))
+        except ValueError:
+            return _CONFIDENCE_LABELS.get(text.lower().replace(" ", "_"), default)
+    return default
+
+
 class ValidationStatus(Enum):
     """Status of hallucination validation."""
 
@@ -227,7 +263,7 @@ class HallucinationDetector:
     ) -> ValidationResult:
         """Validate a single finding."""
         vuln_type = self._normalize_type(finding.get("type", "") or finding.get("category", ""))
-        original_confidence = float(finding.get("confidence", 0.75))
+        original_confidence = _coerce_confidence(finding.get("confidence", 0.75), 0.75)
         reasons = []
         sources = []
 
@@ -377,7 +413,7 @@ class HallucinationDetector:
         anomalies = []
 
         # Check for suspiciously high confidence with vague description
-        confidence = float(finding.get("confidence", 0.75))
+        confidence = _coerce_confidence(finding.get("confidence", 0.75), 0.75)
         description = str(finding.get("description", ""))
 
         if confidence > 0.9 and len(description) < 50:
@@ -506,7 +542,7 @@ def cross_validate_finding(
         if results
         else ValidationResult(
             status=ValidationStatus.UNVALIDATED,
-            original_confidence=float(finding.get("confidence", 0.5)),
+            original_confidence=_coerce_confidence(finding.get("confidence", 0.5), 0.5),
             adjusted_confidence=0.3,
             reasons=["Validation failed"],
         )

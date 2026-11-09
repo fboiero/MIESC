@@ -1,0 +1,363 @@
+[
+ {
+  "type": "logic_error",
+  "title": "Shared Uniswap Position - claim() Collects All Users' Burned Tokens",
+  "severity": "Critical",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-06-vultisig_tqfhafln/repo/src/ILOPool.sol",
+   "line": 0,
+   "function": "claim"
+  },
+  "description": "All ILO participants share a single Uniswap V3 position keyed by (address(this), TICK_LOWER, TICK_UPPER). When pool.burn() is called, it increments tokensOwed0/tokensOwed1 for this shared position. When pool.collect() is called with type(uint128).max, it collects ALL accumulated tokensOwed from ALL previous burns by any user. This means the first user to call claim() after multiple burns will collect tokens belonging to other users.",
+  "message": "First claimant drains tokens meant for all other investors. Later claimants receive 0 tokens despite having valid burned liquidity. Complete loss of funds for all but the first claimer.",
+  "recommendation": "Track tokensOwed per user position internally. After burn(), calculate the delta in tokensOwed and attribute only that delta to the claiming user. Alternatively, use a separate Uniswap V3 position per user or collect immediately after each burn and track per-user owed amounts.",
+  "exploit_scenario": "1. Alice burns 100 liquidity \u2192 tokensOwed[this] += 100 tokens. 2. Bob burns 100 liquidity \u2192 tokensOwed[this] += 100 more tokens. 3. Alice calls collect(type(uint128).max) \u2192 receives 200 tokens (both Alice's and Bob's). 4. Bob calls collect() \u2192 receives 0 tokens. Bob loses all funds.",
+  "swc_id": "",
+  "file": "ILOPool.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "access_control",
+  "title": "maxCapPerUser Bypass via NFT Transfer",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-06-vultisig_tqfhafln/repo/src/ILOPool.sol",
+   "line": 0,
+   "function": "buy"
+  },
+  "description": "The buy() function checks if the recipient already has an NFT using balanceOf(recipient). If the balance is 0, a new NFT is minted. An investor can buy up to maxCapPerUser, transfer their NFT to another address, then call buy() again with themselves as recipient. Since their balance is now 0, a NEW NFT is minted with a fresh _position (raiseAmount=0), allowing them to buy another maxCapPerUser worth. This can be repeated to exceed maxCapPerUser multiple times and potentially exceed hardCap.",
+  "message": "Single investor can exceed maxCapPerUser investment limit. If hardCap is not reached by others, a single whale can dominate the ILO. Also breaks the fairness guarantees of the whitelist system.",
+  "recommendation": "Track total invested amount per address separately from the NFT position, using a mapping(address => uint256) investedPerAddress. Check and update this mapping in buy() regardless of NFT ownership.",
+  "exploit_scenario": "1. Alice is whitelisted. Alice calls buy(maxCapPerUser, alice). Alice has NFT #1 with raiseAmount=maxCapPerUser. 2. Alice transfers NFT #1 to Bob (or any address). 3. Alice calls buy(maxCapPerUser, alice) again. balanceOf(alice)==0, so NFT #2 is minted with fresh position. 4. Alice now has invested 2x maxCapPerUser. Repeat as needed up to hardCap.",
+  "swc_id": "",
+  "file": "ILOPool.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Zero Liquidity Delta After Share Multiplication Not Checked",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-06-vultisig_tqfhafln/repo/src/ILOPool.sol",
+   "line": 0,
+   "function": "buy"
+  },
+  "description": "In buy(), the check require(liquidityDelta > 0, 'ZA') occurs BEFORE the shares multiplication: liquidityDelta = uint128(FullMath.mulDiv(liquidityDelta, _vestingConfigs[0].shares, BPS)). If _vestingConfigs[0].shares is small relative to BPS, the mulDiv can round down to 0, allowing a position to be created with 0 liquidity. The investor's raiseAmount is still incremented and tokens are transferred in, but no liquidity is recorded. The user cannot claim any tokens back (post-launch), and cannot get a refund unless refund is triggered.",
+  "message": "Investor funds locked with no corresponding liquidity. Funds are stuck if launch succeeds (no liquidity to claim), or only refundable if refund is triggered. Protocol accounting is corrupted.",
+  "recommendation": "Move the require(liquidityDelta > 0) check AFTER the shares multiplication: liquidityDelta = uint128(FullMath.mulDiv(liquidityDelta, _vestingConfigs[0].shares, BPS)); require(liquidityDelta > 0, 'ZA');",
+  "exploit_scenario": "1. Set _vestingConfigs[0].shares to a very small value (e.g., 1 out of BPS=10000). 2. Small raiseAmount produces small liquidityDelta (e.g., 9999). 3. mulDiv(9999, 1, 10000) = 0. 4. liquidityDelta becomes 0, position.liquidity += 0. 5. User paid raiseAmount but has 0 claimable liquidity.",
+  "swc_id": "",
+  "file": "ILOPool.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Project Vesting Liquidity Overallocation - Total Shares Can Exceed 100%",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-06-vultisig_tqfhafln/repo/src/ILOPool.sol",
+   "line": 0,
+   "function": "launch"
+  },
+  "description": "In launch(), project vesting positions are allocated based on the TOTAL liquidity added to Uniswap: liquidityShares = mulDiv(liquidity, projectConfig.shares, BPS). However, investor positions were also given shares of the same liquidity pool during buy(). If the sum of investor shares (_vestingConfigs[0].shares) plus all project shares exceeds BPS, the total allocated liquidity exceeds what was actually added to Uniswap. When users try to burn/claim their liquidity, the pool won't have enough liquidity to satisfy all claims.",
+  "message": "Later claimants cannot burn their liquidity as the pool has insufficient liquidity. The pool runs out of liquidity before all vested positions are claimed, causing loss of funds for last claimants.",
+  "recommendation": "In _validateSharesAndVests(), enforce that the sum of ALL shares across ALL vestingConfigs (including index 0) equals exactly BPS. Add: require(totalShares == BPS, 'Invalid shares');",
+  "exploit_scenario": "1. investorShares = 6000 (60%), projectShares = 6000 (60%), total = 120%. 2. Total liquidity added = 1000. 3. Investors get 600 liquidity, project gets 600 liquidity = 1200 total allocated. 4. Only 1000 actual liquidity in pool. 5. First 1000 units claimed successfully, remaining 200 units fail on burn().",
+  "swc_id": "",
+  "file": "ILOPool.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "reentrancy",
+  "title": "claim() Uses ownerOf() After State Changes - Potential Reentrancy via ERC20 Callback",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-06-vultisig_tqfhafln/repo/src/ILOPool.sol",
+   "line": 0,
+   "function": "claim"
+  },
+  "description": "In claim(), after updating position.liquidity and feeGrowth state, the function calls TransferHelper.safeTransfer(_cachedPoolKey.token0, ownerOf(tokenId), amount0). If token0 or token1 is an ERC777 or has a callback mechanism, the recipient can re-enter claim(). While position.liquidity is already decremented (protecting against double-claim of principal), the feeGrowthInside values are updated but collect() has already been called \u2014 a re-entrant call would find the same feeGrowthInside values as the pool but potentially stale tokensOwed, and could attempt another burn+collect cycle.",
+  "message": "Depending on token implementation, could result in double fee collection or inconsistent state. The risk is amplified by the shared position issue.",
+  "recommendation": "Add a nonReentrant modifier to claim(). Use OpenZeppelin's ReentrancyGuard. Also consider transferring to a local variable cached before state changes rather than calling ownerOf() multiple times.",
+  "exploit_scenario": "1. Token0 is ERC777 with hooks. 2. User calls claim(). 3. pool.burn() and pool.collect() execute. 4. safeTransfer to ownerOf triggers tokensReceived hook. 5. Hook re-enters claim(). 6. _claimableLiquidity returns 0 (position.liquidity already decremented), so no double principal claim. But fee accounting could be manipulated.",
+  "swc_id": "",
+  "file": "ILOPool.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "claimRefund() Does Not Reset _refundTriggered - State Inconsistency",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-06-vultisig_tqfhafln/repo/src/ILOPool.sol",
+   "line": 0,
+   "function": "claimRefund"
+  },
+  "description": "The refundable modifier sets _refundTriggered = true on first call. After _refundTriggered is true, subsequent calls to refundable skip the checks entirely. The claimRefund() deletes the position and burns the NFT. However, the _refundTriggered flag remains true permanently. This is by design for refunds, but consider: if _refundProject() is called in launch() transferring SALE_TOKEN out, and THEN refund is triggered (impossible if launchSucceeded), there's no issue. BUT: claimProjectRefund() also uses refundable modifier AND OnlyManager, and calls _refundProject() which transfers the ENTIRE SALE_TOKEN balance. If launch() already called _refundProject(), there's nothing left to refund to the project \u2014 but this is just a no-op since balanceOf returns 0.",
+  "message": "Medium risk - the main concern is that after launch() calls _refundProject(), if somehow refund is triggered (edge case), users can still refund their RAISE_TOKEN but the project already got the SALE_TOKEN back during launch. This is actually correct behavior but worth noting.",
+  "recommendation": "Verify that _validateSharesAndVests enforces that launch cannot succeed if conditions for refund already exist. Add explicit documentation that _refundProject in launch() is intentional leftover sale token recovery.",
+  "exploit_scenario": "This is more of a design observation - the critical path is: launch() \u2192 _refundProject() drains SALE_TOKEN \u2192 _launchSucceeded = true. Refund cannot be triggered after this point due to the 'PL' check in refundable modifier.",
+  "swc_id": "",
+  "file": "ILOPool.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "oracle_manipulation",
+  "title": "Price Manipulation via Uniswap V3 Spot Price Check in launch()",
+  "severity": "Critical",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-06-vultisig_tqfhafln/repo/src/ILOManager.sol",
+   "line": 0,
+   "function": "launch()"
+  },
+  "description": "The launch() function checks that the current Uniswap V3 pool's sqrtPriceX96 (from slot0()) matches the project's initialPoolPriceX96. The slot0() price is the current spot price, which can be manipulated within a single transaction using a flash loan or large trade. An attacker can manipulate the pool price to match initialPoolPriceX96 exactly, then call launch() in the same transaction, launching all ILO pools at a manipulated price. Conversely, a malicious actor could prevent legitimate launches by sandwiching the launch() call to move the price away from initialPoolPriceX96.",
+  "message": "Attacker can trigger launch at a manipulated price, affecting the liquidity position pricing for all ILO pool investors. This could cause investors to receive liquidity positions at incorrect price ranges, leading to immediate loss of value. Alternatively, legitimate launches can be griefed indefinitely by keeping the pool price off the initial price.",
+  "recommendation": "Use a TWAP oracle instead of spot price for price validation. Read the time-weighted average price over a meaningful observation window (e.g., 30 minutes) from the Uniswap V3 pool's observe() function. Only allow launch if the TWAP is within an acceptable range of initialPoolPriceX96. Example: require that TWAP deviates less than 1% from initialPoolPriceX96.",
+  "exploit_scenario": "1. A project has initialPoolPriceX96 = X. 2. Attacker takes a flash loan of token0/token1. 3. Attacker trades in the Uniswap V3 pool to move sqrtPriceX96 to exactly X (or to prevent it from being X). 4. Calls launch() - price check passes (or fails for griefing). 5. Repays flash loan. All ILO pools launch at the manipulated price.",
+  "swc_id": "",
+  "file": "ILOManager.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "access_control",
+  "title": "Anyone Can Call launch() - No Access Control",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-06-vultisig_tqfhafln/repo/src/ILOManager.sol",
+   "line": 0,
+   "function": "launch()"
+  },
+  "description": "The launch() function has no access control modifier. Any address can call launch() for any project once block.timestamp > launchTime. While this may be intentional, combined with the spot price manipulation vector, it becomes critical. Even without manipulation, a permissionless launch means the timing cannot be controlled by the project admin, and launch can be triggered immediately after launchTime passes regardless of project readiness or market conditions.",
+  "message": "Any actor can force a project launch immediately after the launchTime passes. If the project admin wanted to delay or had specific launch conditions, those cannot be enforced. When combined with price manipulation, an attacker can force a launch at an unfavorable moment.",
+  "recommendation": "Consider restricting launch() to only be callable by the project admin (add onlyProjectAdmin modifier), or add an explicit 'launch approved' flag that the project admin must set. At minimum, document this as intentional and ensure the price check uses a TWAP.",
+  "exploit_scenario": "1. Project has launchTime T. 2. At T+1 seconds, any attacker calls launch(uniV3PoolAddress). 3. If sqrtPriceX96 matches (which attacker can manipulate), launch proceeds immediately, bypassing any project admin controls.",
+  "swc_id": "",
+  "file": "ILOManager.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "initProject() Allows Overwriting Existing Project via Pool Reuse Attack",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-06-vultisig_tqfhafln/repo/src/ILOManager.sol",
+   "line": 0,
+   "function": "initProject() / _cacheProject()"
+  },
+  "description": "In _cacheProject(), there is a check `require(_project.uniV3PoolAddress == address(0), 'RE')` that prevents re-initialization of an existing project. However, in _initUniV3PoolIfNecessary(), if a Uniswap V3 pool already exists with the same token pair and fee but was NOT initialized (sqrtPriceX96 == 0), the function will initialize it with the caller's provided price. This means two different callers can call initProject() with the same token pair/fee but different initialPoolPriceX96 values - the second call will fail at _cacheProject() due to the RE check, but only AFTER calling IUniswapV3Pool.initialize() which can only be called once. More critically: a malicious actor can front-run a legitimate initProject() call, calling it with the same parameters but a different initialPoolPriceX96, initializing the pool at a wrong price, making the legitimate project's initProject() fail with 'UV3P' since the price won't match.",
+  "message": "A malicious actor can grief project creation by front-running the initProject() transaction, initializing the Uniswap pool at a different price. The legitimate project admin's transaction will then fail because the existing pool price doesn't match their desired initialPoolPriceX96. The malicious actor can also create a project on the same pool address, locking out the legitimate creator.",
+  "recommendation": "This front-running issue is partially inherent to the design. Consider adding a commit-reveal scheme or using CREATE2 salts tied to the caller address to make pool addresses caller-specific. For the griefing scenario, document that project creators should verify pool state before calling initProject().",
+  "exploit_scenario": "1. Alice calls initProject() with tokenA/tokenB/fee=3000, price=P1. 2. Bob front-runs with same tokenA/tokenB/fee=3000, price=P2 (different). 3. Bob's transaction: _initUniV3PoolIfNecessary creates pool and initializes at P2, _cacheProject stores Bob as admin. 4. Alice's transaction: _initUniV3PoolIfNecessary finds existing pool with price P2 != P1, reverts with 'UV3P'. Alice cannot create her project.",
+  "swc_id": "",
+  "file": "ILOManager.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "access_control",
+  "title": "tx.origin Usage in Constructor Creates Ownership Vulnerability",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-06-vultisig_tqfhafln/repo/src/ILOManager.sol",
+   "line": 0,
+   "function": "constructor()"
+  },
+  "description": "The constructor uses `transferOwnership(tx.origin)` to set the owner. When a contract deploys ILOManager (e.g., a deployer/factory contract), tx.origin is the EOA that initiated the transaction, not the deploying contract. While this may be intentional (to allow the EOA deployer to own the manager), it creates a vulnerability if: (1) the contract is deployed via another contract as part of a complex deployment transaction, (2) tx.origin could be a phishing contract that tricks a user into deploying, (3) in future Ethereum upgrades (EIP-3074, account abstraction), tx.origin semantics may change. Additionally, if the deployer contract is expected to be the owner, this breaks that assumption.",
+  "message": "If ILOManager is deployed via a script or factory contract where tx.origin is not the intended administrator, ownership could be set to an unintended address. Additionally, if deployed by an account that is later compromised, the attacker gains full control over platform fees, implementation addresses, and fee takers.",
+  "recommendation": "Remove tx.origin usage from constructor. Instead, pass the initial owner as a constructor parameter: `constructor(address _initialOwner) { transferOwnership(_initialOwner); }`. Or rely solely on the initialize() function for ownership setup, using a two-step ownership transfer pattern.",
+  "exploit_scenario": "1. A deployment script uses a factory contract to deploy ILOManager. 2. tx.origin is the EOA running the script. 3. The factory contract (intended owner) does NOT own ILOManager. 4. The EOA (tx.origin) is the owner - if this EOA is a hot wallet or later compromised, attacker controls all admin functions.",
+  "swc_id": "",
+  "file": "ILOManager.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "setILOPoolImplementation() Can Break Active Projects - No Guard",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-06-vultisig_tqfhafln/repo/src/ILOManager.sol",
+   "line": 0,
+   "function": "setILOPoolImplementation()"
+  },
+  "description": "The ILO_POOL_IMPLEMENTATION address can be changed by the owner at any time with no restrictions. Since ILO pools are deployed as minimal proxies (clones) that point to the implementation at call time (for delegatecall), changing the implementation AFTER pools have been deployed means all existing ILO pools will suddenly use the new implementation's logic. If the new implementation has different storage layout or logic bugs, this affects ALL already-deployed pools. This is essentially a rug-pull vector: the owner can deploy a malicious implementation and upgrade all pools to drain funds.",
+  "message": "The contract owner can change the pool implementation at any time, affecting all existing ILO pools. A malicious owner (or compromised owner key) can deploy a backdoored implementation that allows draining all user funds from all active ILO pools simultaneously.",
+  "recommendation": "Minimal proxy (EIP-1167) clones are NOT upgradeable - they always delegatecall to the implementation at the address stored in bytecode at deployment time, which is fixed. So existing pools are NOT affected by changing ILO_POOL_IMPLEMENTATION. The change only affects FUTURE pools created after the change. However, document this clearly. The risk is that new pools created after a malicious implementation change would be compromised. Consider adding a timelock for implementation changes.",
+  "exploit_scenario": "1. Users deposit funds into ILO pools. 2. Owner (or attacker who compromised owner key) creates a malicious ILOPool implementation with a drain() function. 3. Owner calls setILOPoolImplementation(maliciousImpl). 4. All existing cloned pools now delegate to malicious implementation. 5. Attacker calls drain() on each pool, stealing all user funds.",
+  "swc_id": "",
+  "file": "ILOManager.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Missing launchTime Validation in initProject()",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-06-vultisig_tqfhafln/repo/src/ILOManager.sol",
+   "line": 0,
+   "function": "initProject()"
+  },
+  "description": "The initProject() function does not validate that params.launchTime is in the future (i.e., > block.timestamp). A project admin could set a launchTime in the past, which would mean: (1) the project can be launched immediately, (2) the refundDeadline (launchTime + DEFAULT_DEADLINE_OFFSET) would also be in the past or very soon, (3) ILO pool creation would immediately fail the time validation `params.end < _project.launchTime` if pools need to be created. However, if launchTime is in the past but still after block.timestamp for pool params, pools could be created with extremely short sale windows.",
+  "message": "A project with launchTime in the past or very near present can be launched immediately without any sale period, potentially bypassing intended sale mechanics. The refundDeadline would also immediately pass, allowing claimRefund() to be called immediately.",
+  "recommendation": "Add validation: `require(params.launchTime > block.timestamp, 'LT')` in initProject(). Also consider a minimum launch time offset to ensure sufficient time for ILO pool creation and user participation.",
+  "exploit_scenario": "1. Admin calls initProject() with launchTime = block.timestamp - 1. 2. refundDeadline = block.timestamp - 1 + 7 days (still valid in future). 3. Since launch() requires block.timestamp > launchTime, it can be called immediately. 4. If no ILO pools are initialized, launch() reverts with 'NP'. But if pools exist, they launch instantly. 5. Admin can call claimRefund() after 7 days without any users having had a meaningful chance to participate.",
+  "swc_id": "",
+  "file": "ILOManager.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "state_management",
+  "title": "claimRefund() Does Not Mark Project as Refunded - Potential Double Refund",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-06-vultisig_tqfhafln/repo/src/ILOManager.sol",
+   "line": 0,
+   "function": "claimRefund()"
+  },
+  "description": "The claimRefund() function iterates over all initialized ILO pools and calls claimProjectRefund() on each, but does NOT mark the project itself as having been refunded in the _cachedProject mapping. While individual ILO pools may internally track their refund state, the ILOManager-level state is never updated. If ILO pools don't properly guard against double refund calls, the project admin can call claimRefund() multiple times, draining tokens. Even if individual pools protect themselves, the lack of state update at the manager level is an architectural issue that creates implicit dependency on pool-level protection.",
+  "message": "If ILO pools do not properly prevent re-entrancy or double-claiming in their claimProjectRefund() function, the project admin can repeatedly call claimRefund() to drain all funds. This is a protocol-level invariant violation.",
+  "recommendation": "Add a `refunded` boolean flag to the Project struct. In claimRefund(), check that the project hasn't been refunded yet (`require(!_project.refunded, 'AR')`), then set `_project.refunded = true` before making external calls to prevent reentrancy. Apply checks-effects-interactions pattern.",
+  "exploit_scenario": "1. Project's refundDeadline has passed. 2. Admin calls claimRefund(uniV3Pool). 3. Each ILO pool's claimProjectRefund() is called. 4. Admin immediately calls claimRefund(uniV3Pool) again. 5. If pools don't track refund state, they send tokens again. 6. Admin can repeat until pools are drained.",
+  "swc_id": "",
+  "file": "ILOManager.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "RANGE Check in initILOPool() Only Validates Lower Bound, Not Upper Bound",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-06-vultisig_tqfhafln/repo/src/ILOManager.sol",
+   "line": 0,
+   "function": "initILOPool()"
+  },
+  "description": "In initILOPool(), the range validation is: `require(sqrtRatioLowerX96 < _project.initialPoolPriceX96 && sqrtRatioLowerX96 < sqrtRatioUpperX96, 'RANGE')`. This only validates that: (a) the lower tick is below the current price, and (b) the lower tick is below the upper tick. It does NOT validate that `sqrtRatioUpperX96 > _project.initialPoolPriceX96`. This means a pool can be created where the upper price bound is BELOW the current price, creating a fully out-of-range position on the wrong side. For an ILO, if the upper bound is below the initial price, the liquidity position would be 100% in the raise token from the start, which is incorrect behavior - the sale token would never be provided.",
+  "message": "Project admins can create ILO pools with invalid price ranges where the upper bound is below the initial pool price. This would result in ILO pools that accept raise token deposits but the liquidity position is already out of range, potentially causing incorrect token distributions or failed launches.",
+  "recommendation": "Add an additional check: `require(sqrtRatioUpperX96 > _project.initialPoolPriceX96, 'RANGE')` to ensure the current price is within the ILO's price range. The full check should be: `require(sqrtRatioLowerX96 < _project.initialPoolPriceX96 && _project.initialPoolPriceX96 < sqrtRatioUpperX96 && sqrtRatioLowerX96 < sqrtRatioUpperX96, 'RANGE')`.",
+  "exploit_scenario": "1. Project has initialPoolPriceX96 = 1000. 2. Admin calls initILOPool() with tickLower corresponding to sqrt=500, tickUpper corresponding to sqrt=800. 3. Check: 500 < 1000 (pass) and 500 < 800 (pass) - RANGE check passes. 4. But 800 < 1000 means the upper bound is below the current price. 5. The liquidity position is out of range on the lower side, meaning all liquidity is in raiseToken with no saleToken component.",
+  "swc_id": "",
+  "file": "ILOManager.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "oracle_manipulation",
+  "title": "Oracle Return Value Not Validated - Zero/Manipulated ETH Estimate Bypasses Cap",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-06-vultisig_tqfhafln/repo/hardhat-vultisig/contracts/Whitelist.sol",
+   "line": 0,
+   "function": "checkWhitelist"
+  },
+  "description": "The `checkWhitelist` function calls `IOracle(_oracle).peek(amount)` to estimate ETH value, but does not validate the return value. If the oracle returns 0 (due to manipulation, failure, or misconfiguration), the `estimatedETHAmount` will be 0, meaning `_contributed[to] += 0` \u2014 effectively allowing a whitelisted address to buy unlimited tokens without ever hitting the `_maxAddressCap` check. Additionally, the oracle address can be any contract set by the owner, and there's no validation that it returns reasonable values.",
+  "message": "A whitelisted buyer can purchase unlimited VULT tokens through the Uniswap pool without the per-address ETH cap being enforced if the oracle returns 0 or a very small value. This defeats the purpose of the contribution cap entirely.",
+  "recommendation": "Add a check that `estimatedETHAmount > 0` before proceeding: `require(estimatedETHAmount > 0, 'Invalid oracle response');`. Also consider using try/catch around the oracle call to handle reverts gracefully.",
+  "exploit_scenario": "1. Oracle is manipulated or misconfigured to return 0 for `peek(amount)`. 2. Whitelisted address calls Uniswap pool to buy large amount of VULT. 3. `checkWhitelist` is called from Vultisig._beforeTokenTransfer. 4. `estimatedETHAmount = 0`, so `_contributed[to] + 0 <= _maxAddressCap` always. 5. `_contributed[to] += 0` \u2014 no state change. 6. Attacker can repeat indefinitely, buying far more than 3 ETH worth of tokens.",
+  "swc_id": "",
+  "file": "Whitelist.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "reentrancy",
+  "title": "Reentrancy in receive() - ETH Refund Before State Finalization",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-06-vultisig_tqfhafln/repo/hardhat-vultisig/contracts/Whitelist.sol",
+   "line": 0,
+   "function": "receive"
+  },
+  "description": "The `receive()` function calls `_addWhitelistedAddress(_msgSender())` and then sends ETH back via `payable(_msgSender()).transfer(msg.value)`. While `transfer()` limits gas to 2300 which prevents complex reentrancy, if the contract is upgraded to use `.call{value:}` in the future, or if the caller is a contract that can execute logic in 2300 gas (e.g., just emitting an event or setting a flag), this pattern is problematic. More critically, the check-effects pattern is violated: the whitelist index is assigned BEFORE the ETH is returned. In this specific case with `transfer()`, the practical reentrancy risk is low, but the pattern is dangerous.",
+  "message": "Low immediate risk due to 2300 gas limit of `transfer()`, but the pattern is architecturally unsound. If the implementation changes or the contract is upgraded, this becomes exploitable.",
+  "recommendation": "Follow checks-effects-interactions pattern. Update state first, then send ETH: `_addWhitelistedAddress(_msgSender()); payable(_msgSender()).transfer(msg.value);` is technically already in this order. However, consider using ReentrancyGuard as a defensive measure, especially if `transfer` is ever changed to `call`.",
+  "exploit_scenario": "1. Attacker deploys a contract with a `receive()` fallback that calls back into `Whitelist.receive()`. 2. With `transfer()` this fails due to gas limit. 3. However, if code changes to `.call{value:}`, attacker could re-enter before state is settled.",
+  "swc_id": "",
+  "file": "Whitelist.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Blacklisted Addresses Can Still Be Whitelisted via addWhitelistedAddress/addBatchWhitelist",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-06-vultisig_tqfhafln/repo/hardhat-vultisig/contracts/Whitelist.sol",
+   "line": 0,
+   "function": "addWhitelistedAddress / addBatchWhitelist"
+  },
+  "description": "The owner can add a blacklisted address to the whitelist via `addWhitelistedAddress()` or `addBatchWhitelist()`. The `_addWhitelistedAddress()` internal function does not check if the address is blacklisted. As a result, a blacklisted address could have a valid `_whitelistIndex` while also being blacklisted. However, `checkWhitelist` does check `_isBlacklisted` separately, so the immediate impact is limited. The more serious concern is the reverse: `checkWhitelist` checks blacklist AFTER checking the locked state, meaning a blacklisted address could trigger the `Locked()` revert path instead of `Blacklisted()`, leaking information about the locked state. More critically, if a whitelisted address is later blacklisted, their whitelist slot is permanently consumed but never freed.",
+  "message": "Blacklisted addresses consume whitelist slots. If `_allowedWhitelistIndex` is used to gate access, a blacklisted address occupying a low index effectively wastes that slot. The whitelist count inflates without providing actual access.",
+  "recommendation": "Add a blacklist check in `_addWhitelistedAddress()`: `require(!_isBlacklisted[whitelisted], 'Address is blacklisted');`. Also consider clearing whitelist index when blacklisting an address.",
+  "exploit_scenario": "1. Owner accidentally adds malicious address to whitelist. 2. Owner then blacklists the address. 3. The whitelist slot (e.g., index 5) is permanently occupied. 4. If `_allowedWhitelistIndex = 10` and 10 legit users are needed, only 9 effective slots remain.",
+  "swc_id": "",
+  "file": "Whitelist.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "access_control",
+  "title": "Missing Oracle Address Validation - Uninitialized Oracle Causes DoS",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-06-vultisig_tqfhafln/repo/hardhat-vultisig/contracts/Whitelist.sol",
+   "line": 0,
+   "function": "checkWhitelist"
+  },
+  "description": "The `checkWhitelist` function calls `IOracle(_oracle).peek(amount)` without checking if `_oracle` is set (non-zero). If `_oracle` is the zero address (which it is by default until `setOracle()` is called), this call will revert, causing all token transfers through the Uniswap pool to fail. This creates a denial-of-service condition where legitimate whitelisted buyers cannot purchase tokens because the oracle hasn't been configured yet.",
+  "message": "All pool purchases revert if oracle is not set, creating a DoS. Additionally, if the oracle is set to a malicious contract, it can cause reverts or return manipulated values to bypass the cap or DOS legitimate users.",
+  "recommendation": "Add a check: `require(_oracle != address(0), 'Oracle not set');` at the beginning of the pool-transfer branch in `checkWhitelist`. Also add input validation in `setOracle()` to prevent setting zero address.",
+  "exploit_scenario": "1. Contract is deployed, oracle is not set (`_oracle = address(0)`). 2. Whitelist is unlocked and users are whitelisted. 3. Whitelisted user tries to buy VULT via Uniswap pool. 4. `checkWhitelist` is called, `IOracle(address(0)).peek(amount)` reverts. 5. User cannot buy tokens.",
+  "swc_id": "",
+  "file": "Whitelist.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Whitelisted Index 0 Ambiguity - Index 0 Means Both 'Not Whitelisted' and Potential Edge Case",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-06-vultisig_tqfhafln/repo/hardhat-vultisig/contracts/Whitelist.sol",
+   "line": 0,
+   "function": "checkWhitelist / _addWhitelistedAddress"
+  },
+  "description": "The system uses `_whitelistIndex[address] == 0` to mean 'not whitelisted'. The `_allowedWhitelistIndex` check is: `if (_allowedWhitelistIndex == 0 || _whitelistIndex[to] > _allowedWhitelistIndex) revert NotWhitelisted()`. When `_allowedWhitelistIndex == 0`, ALL addresses are rejected (including whitelisted ones). This means after deployment, even if users are whitelisted and the lock is removed, NO ONE can buy because `_allowedWhitelistIndex` starts at 0. The owner must call `setAllowedWhitelistIndex()` to enable purchases. While this may be intentional, it's a critical operational dependency that's not immediately obvious and could be missed, permanently locking out all buyers.",
+  "message": "If the owner forgets to set `_allowedWhitelistIndex` after unlocking, no whitelisted user can purchase tokens through the pool. The protocol appears functional but all buys revert with `NotWhitelisted`.",
+  "recommendation": "Either initialize `_allowedWhitelistIndex` to a non-zero value in the constructor, or change the logic to treat `_allowedWhitelistIndex == 0` as 'no limit' rather than 'none allowed'. Add documentation/events to make this dependency explicit.",
+  "exploit_scenario": "1. Owner whitelists 100 addresses. 2. Owner calls `setLocked(false)`. 3. Owner forgets to call `setAllowedWhitelistIndex(100)`. 4. All 100 whitelisted users try to buy VULT. 5. All revert with `NotWhitelisted` because `_allowedWhitelistIndex == 0`. 6. Launch fails silently.",
+  "swc_id": "",
+  "file": "Whitelist.sol",
+  "backend": "claude"
+ }
+]

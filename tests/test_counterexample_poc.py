@@ -10,9 +10,15 @@ import unittest
 from miesc.formal.counterexample_poc import (
     _format_value,
     _infer_type_and_name,
+    _safe_default,
+    _valid_literal,
     counterexample_to_foundry_test,
 )
-from miesc.formal.unified_report import Counterexample
+from miesc.formal.unified_report import (
+    Counterexample,
+    ProverVerdict,
+    UnifiedVerificationReport,
+)
 
 
 class TestTypeInference(unittest.TestCase):
@@ -99,6 +105,75 @@ class TestCounterexampleMethod(unittest.TestCase):
         out = cx.to_foundry_scaffold(contract_name="Bank")
         self.assertIn("contract BankCounterexamplePoC is Test", out)
         self.assertIn("uint256 amount = 7;", out)
+
+
+class TestCompileValidLiterals(unittest.TestCase):
+    def test_valid_values_pass_through(self):
+        self.assertEqual(_valid_literal("42", "uint256"), "42")
+        self.assertEqual(_valid_literal("0xdead", "uint256"), "0xdead")
+        self.assertEqual(_valid_literal("0xabcd", "address"), "address(0xabcd)")
+        self.assertEqual(_valid_literal("-5", "int256"), "-5")
+
+    def test_invalid_values_rejected(self):
+        # expressions, negatives-for-unsigned, garbage, bad hex -> not a literal
+        self.assertIsNone(_valid_literal("2**256 - 1", "uint256"))
+        self.assertIsNone(_valid_literal("-5", "uint256"))
+        self.assertIsNone(_valid_literal("nan", "uint256"))
+        self.assertIsNone(_valid_literal("0xGG", "address"))
+        self.assertIsNone(_valid_literal("", "uint256"))
+
+    def test_safe_defaults_are_valid(self):
+        self.assertEqual(_safe_default("uint256"), "0")
+        self.assertEqual(_safe_default("address"), "address(0)")
+        self.assertEqual(_safe_default("bool"), "false")
+        self.assertEqual(_safe_default("bytes32"), "bytes32(0)")
+        self.assertEqual(_safe_default("bytes"), 'hex""')
+
+    def test_format_value_falls_back_for_invalid(self):
+        self.assertEqual(_format_value("2**256 - 1", "uint256"), "0")
+        self.assertEqual(_format_value("-5", "uint256"), "0")
+        self.assertEqual(_format_value("0xGG", "address"), "address(0)")
+
+    def test_scaffold_stays_compile_valid_and_preserves_raw(self):
+        cx = Counterexample(prover="halmos", text="p_amount_uint256 = 2**256 - 1")
+        out = counterexample_to_foundry_test(cx)
+        # compile-valid: the assignment uses the safe default, not the raw expression
+        self.assertIn("uint256 amount = 0;", out)
+        self.assertNotIn("= 2**256 - 1;", out)
+        # but the prover value is preserved in a comment
+        self.assertIn("raw value not a literal: 2**256 - 1", out)
+
+
+class TestReportScaffolds(unittest.TestCase):
+    def _report(self, *counterexamples):
+        verdict = ProverVerdict(
+            prover="halmos", status="violated", counterexamples=list(counterexamples)
+        )
+        return UnifiedVerificationReport(contract="Vault.sol", provers=[verdict])
+
+    def test_one_scaffold_per_counterexample_unique_names(self):
+        report = self._report(
+            Counterexample(prover="halmos", text="p_a_uint256 = 1"),
+            Counterexample(prover="halmos", text="p_b_uint256 = 2"),
+        )
+        scaffolds = report.foundry_scaffolds(contract_name="Vault")
+        self.assertEqual(len(scaffolds), 2)
+        names = [f for f, _ in scaffolds]
+        self.assertEqual(len(set(names)), 2)  # unique filenames
+        self.assertTrue(all(f.endswith(".t.sol") for f in names))
+        self.assertIn("uint256 a = 1;", scaffolds[0][1])
+
+    def test_no_counterexamples_yields_no_scaffolds(self):
+        report = UnifiedVerificationReport(
+            contract="X.sol", provers=[ProverVerdict(prover="halmos", status="verified")]
+        )
+        self.assertEqual(report.foundry_scaffolds(), [])
+
+    def test_filename_sanitized_from_contract_name(self):
+        report = self._report(Counterexample(prover="halmos", text="x = 1"))
+        fname = report.foundry_scaffolds(contract_name="My/Weird Name.sol")[0][0]
+        self.assertNotIn("/", fname)
+        self.assertNotIn(" ", fname)
 
 
 if __name__ == "__main__":

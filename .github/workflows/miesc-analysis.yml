@@ -32,6 +32,13 @@ env:
   PYTHON_VERSION: '3.12'
   NODE_VERSION: '18'
 
+# Least-privilege token: read the code and comment on the PR. Without
+# pull-requests: write the "Comment on PR" step fails with
+# "Resource not accessible by integration".
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   # ---------------------------------------------------------------------------
   # Layer 1: Static Analysis (Fast - runs always)

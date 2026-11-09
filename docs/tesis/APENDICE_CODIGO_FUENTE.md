@@ -4,7 +4,7 @@
 
 ## E.1 Introducción
 
-Este apéndice presenta fragmentos representativos del código fuente de MIESC, ilustrando las decisiones de diseño e implementación discutidas en los capítulos anteriores. El código completo está disponible en el repositorio del proyecto bajo licencia MIT.
+Este apéndice presenta fragmentos representativos del código fuente de MIESC, ilustrando las decisiones de diseño e implementación discutidas en los capítulos anteriores. El código completo está disponible en el repositorio del proyecto bajo licencia AGPL-3.0.
 
 ---
 

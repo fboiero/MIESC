@@ -1540,6 +1540,215 @@ class TestNearPatternDetector:
 
 
 # ============================================================================
+# Vyper Adapter Tests
+# ============================================================================
+
+
+from miesc.adapters.vyper_adapter import (  # noqa: E402
+    BROKEN_REENTRANCY_LOCK_VERSIONS,
+    VyperAnalyzer,
+    VyperPatternDetector,
+    analyze_vyper_contract,
+)
+
+
+@pytest.fixture
+def sample_vyper_contract():
+    """Sample Vyper contract — deposit/withdraw with a correctly-placed nonreentrant guard."""
+    return """# @version 0.3.7
+
+owner: public(address)
+balances: public(HashMap[address, uint256])
+
+@external
+def __init__():
+    self.owner = msg.sender
+
+@external
+@payable
+def deposit():
+    self.balances[msg.sender] += msg.value
+
+@external
+@nonreentrant('lock')
+def withdraw(amount: uint256):
+    assert self.balances[msg.sender] >= amount
+    send(msg.sender, amount)
+    self.balances[msg.sender] -= amount
+"""
+
+
+@pytest.fixture
+def vulnerable_vyper_contract():
+    """Vyper contract with no @nonreentrant guard, selfdestruct, and a raw delegatecall."""
+    return """# @version 0.3.7
+
+owner: public(address)
+balances: public(HashMap[address, uint256])
+
+@external
+def __init__():
+    self.owner = msg.sender
+
+@external
+def withdraw(amount: uint256):
+    assert self.balances[msg.sender] >= amount
+    send(msg.sender, amount)
+    self.balances[msg.sender] -= amount
+
+@external
+def kill():
+    selfdestruct(self.owner)
+
+@external
+def sweep(target: address, data: Bytes[1024]):
+    raw_call(target, data, is_delegate_call=True)
+"""
+
+
+@pytest.fixture
+def broken_reentrancy_vyper_contract():
+    """Vyper contract compiled under a version with a documented broken @nonreentrant lock."""
+    return """# @version 0.3.0
+
+balances: public(HashMap[address, uint256])
+
+@external
+@nonreentrant('lock')
+def withdraw(amount: uint256):
+    assert self.balances[msg.sender] >= amount
+    send(msg.sender, amount)
+    self.balances[msg.sender] -= amount
+"""
+
+
+class TestVyperAnalyzer:
+    """Tests for VyperAnalyzer."""
+
+    def test_analyzer_properties(self):
+        analyzer = VyperAnalyzer()
+        assert analyzer.name == "vyper-analyzer"
+        assert analyzer.version == "1.0.0"
+        assert ".vy" in analyzer.supported_extensions
+
+    def test_can_analyze(self):
+        analyzer = VyperAnalyzer()
+        assert analyzer.can_analyze("contract.vy") is True
+        assert analyzer.can_analyze("contract.sol") is False
+
+    def test_parse_contract(self, sample_vyper_contract):
+        with tempfile.NamedTemporaryFile(suffix=".vy", mode="w", delete=False) as f:
+            f.write(sample_vyper_contract)
+            f.flush()
+
+            analyzer = VyperAnalyzer()
+            contract = analyzer.parse(f.name)
+
+            assert contract.compiler_version == "0.3.7"
+            names = {fn.name for fn in contract.functions}
+            assert {"__init__", "deposit", "withdraw"} <= names
+
+            withdraw = contract.get_function("withdraw")
+            assert withdraw.calls_external is True
+            assert withdraw.writes_state is True
+            assert withdraw.has_reentrancy_guard is True
+
+    def test_guarded_withdraw_not_flagged(self, sample_vyper_contract):
+        """A withdraw() with @nonreentrant should NOT trigger missing_reentrancy_guard."""
+        with tempfile.NamedTemporaryFile(suffix=".vy", mode="w", delete=False) as f:
+            f.write(sample_vyper_contract)
+            f.flush()
+
+            analyzer = VyperAnalyzer()
+            contract = analyzer.parse(f.name)
+            findings = analyzer.detect_vulnerabilities(contract)
+
+            assert not any(finding["type"] == "missing_reentrancy_guard" for finding in findings)
+
+    def test_detect_missing_reentrancy_guard(self, vulnerable_vyper_contract):
+        with tempfile.NamedTemporaryFile(suffix=".vy", mode="w", delete=False) as f:
+            f.write(vulnerable_vyper_contract)
+            f.flush()
+
+            analyzer = VyperAnalyzer()
+            contract = analyzer.parse(f.name)
+            findings = analyzer.detect_vulnerabilities(contract)
+
+            types = {finding["type"] for finding in findings}
+            assert "missing_reentrancy_guard" in types
+            assert "selfdestruct_usage" in types
+            assert "dangerous_delegatecall" in types
+
+    def test_detect_broken_reentrancy_lock_version(self, broken_reentrancy_vyper_contract):
+        with tempfile.NamedTemporaryFile(suffix=".vy", mode="w", delete=False) as f:
+            f.write(broken_reentrancy_vyper_contract)
+            f.flush()
+
+            analyzer = VyperAnalyzer()
+            contract = analyzer.parse(f.name)
+            findings = analyzer.detect_vulnerabilities(contract)
+
+            broken = [f for f in findings if f["type"] == "broken_reentrancy_lock_compiler"]
+            assert len(broken) == 1
+            assert broken[0]["severity"] == "Critical"
+
+    def test_safe_version_with_guard_not_flagged_as_broken(self, sample_vyper_contract):
+        """0.3.7 is not in the known-broken set, so no broken-lock finding should fire."""
+        with tempfile.NamedTemporaryFile(suffix=".vy", mode="w", delete=False) as f:
+            f.write(sample_vyper_contract)
+            f.flush()
+
+            analyzer = VyperAnalyzer()
+            contract = analyzer.parse(f.name)
+            findings = analyzer.detect_vulnerabilities(contract)
+
+            assert not any(
+                finding["type"] == "broken_reentrancy_lock_compiler" for finding in findings
+            )
+            assert "0.3.7" not in BROKEN_REENTRANCY_LOCK_VERSIONS
+
+    def test_full_analysis(self, sample_vyper_contract):
+        with tempfile.NamedTemporaryFile(suffix=".vy", mode="w", delete=False) as f:
+            f.write(sample_vyper_contract)
+            f.flush()
+
+            result = analyze_vyper_contract(f.name)
+            assert result["status"] == "success"
+            assert result["language"] == "vyper"
+
+
+class TestVyperPatternDetector:
+    """Tests for VyperPatternDetector."""
+
+    def test_extract_version(self):
+        detector = VyperPatternDetector()
+        assert detector.extract_version("# @version 0.3.7\n\nx: uint256\n") == "0.3.7"
+        assert detector.extract_version("# no pragma here\n") is None
+
+    def test_detect_selfdestruct(self):
+        detector = VyperPatternDetector()
+        matches = detector.detect_simple_patterns("selfdestruct(self.owner)", "t.vy")
+        assert any(m["vuln_type"].value == "selfdestruct_usage" for m in matches)
+
+    def test_detect_tx_origin(self):
+        detector = VyperPatternDetector()
+        matches = detector.detect_simple_patterns("assert tx.origin == self.owner", "t.vy")
+        assert any(m["vuln_type"].value == "tx_origin_auth" for m in matches)
+
+    def test_detect_unsafe_arithmetic(self):
+        detector = VyperPatternDetector()
+        matches = detector.detect_simple_patterns("x: uint256 = unsafe_add(a, b)", "t.vy")
+        assert any(m["vuln_type"].value == "unsafe_arithmetic" for m in matches)
+
+    def test_extract_functions_tracks_decorators(self, vulnerable_vyper_contract):
+        detector = VyperPatternDetector()
+        functions = detector.extract_functions(vulnerable_vyper_contract, "t.vy")
+        withdraw = next(f for f in functions if f.name == "withdraw")
+        assert "external" in withdraw.decorators
+        assert withdraw.has_reentrancy_guard is False
+
+
+# ============================================================================
 # Move Adapter Tests
 # ============================================================================
 

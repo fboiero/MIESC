@@ -1,6 +1,6 @@
 {
   "artifact": "paper2_patch_quality_by_transform",
-  "generated_at": "2026-07-02T02:06:00+00:00",
+  "generated_at": "2026-10-16T00:00:00+00:00",
   "source_artifact": "benchmarks/results/fix_eval_results.json",
   "scope": "Paper 2 remediation only; does not modify Paper 1 detection evidence.",
   "limitations": "Transform classes are derived from SmartBugs categories and current patcher behavior, not from per-finding AST diffs.",

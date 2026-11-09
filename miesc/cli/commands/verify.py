@@ -25,6 +25,189 @@ def _find_foundry_root(start: Path) -> Optional[Path]:
     return None
 
 
+# Human-readable note for the Compound-V2 cash-source discriminator, phrased as a
+# verification instruction (not a severity): tells a reviewer about to spend
+# prover/fuzzer time whether the inflation vector is live on this market.
+_INFLATION_SURFACE_NOTE = {
+    "open": (
+        "inflation surface: OPEN — exchange rate reads balanceOf(this); "
+        "verify a dead-shares seed or a zero initial collateral factor"
+    ),
+    "closed": (
+        "inflation surface: closed — cash is internally tracked, "
+        "a bare donation cannot move the rate"
+    ),
+    "unknown": "inflation surface: unknown — no recognizable getCash shape",
+}
+
+
+def _inflation_surface_note(inv: Dict[str, Any]) -> Optional[str]:
+    """One-line inflation-surface note for an economic invariant, or None.
+
+    Reads the `inflation_surface` annotation threaded through the invariant's
+    metadata by the cash-source discriminator; only Compound-V2 templates carry it.
+    """
+    surface = inv.get("metadata", {}).get("inflation_surface")
+    return _INFLATION_SURFACE_NOTE.get(surface) if surface else None
+
+
+def _emit_economic_invariants(
+    contract_path: str,
+    out_dir: Optional[str],
+    quiet: bool,
+) -> Dict[str, Any]:
+    """Synthesize economic/business-logic invariants for a contract and emit them.
+
+    Contract-driven (not finding-driven): reads the source, matches economic
+    invariant templates (share-price inflation, solvency, flash-loan resistance,
+    supply conservation) and emits CVL + Echidna + Foundry artifacts.
+
+    Fully offline — requires no prover/fuzzer. When Ollama is available the
+    synthesizer additionally augments with LLM invariants, but that is optional.
+
+    Returns a summary dict: {count, names, files}.
+    """
+    from miesc.adapters.invariant_synthesizer import InvariantFormat, InvariantSynthesizer
+
+    synth = InvariantSynthesizer()
+    result = synth.synthesize(
+        contract_path=contract_path,
+        formats=[
+            InvariantFormat.CERTORA,
+            InvariantFormat.ECHIDNA,
+            InvariantFormat.FOUNDRY,
+        ],
+        include_economic=True,
+        use_cache=False,
+    )
+
+    economic_categories = {"economic", "solvency", "accounting"}
+    invariants = [
+        inv for inv in result.get("invariants", []) if inv.get("category") in economic_categories
+    ]
+
+    names = [inv.get("name", "unnamed") for inv in invariants]
+    files: list[str] = []
+
+    if out_dir and invariants:
+        out = Path(out_dir)
+        out.mkdir(parents=True, exist_ok=True)
+        stem = Path(contract_path).stem
+
+        import json as _json
+
+        json_path = out / f"{stem}.economic-invariants.json"
+        json_path.write_text(
+            _json.dumps({"contract": contract_path, "invariants": invariants}, indent=2),
+            encoding="utf-8",
+        )
+        files.append(str(json_path))
+
+        cvl = ["// Auto-generated economic invariants (CANDIDATES — bind protocol state).", ""]
+        ech = ["// Auto-generated economic Echidna properties (CANDIDATES).", ""]
+        fnd = ["// Auto-generated economic Foundry invariants (CANDIDATES).", ""]
+        for inv in invariants:
+            header_lines = [
+                f"// [{inv.get('importance')}] {inv.get('name')}: {inv.get('natural_language')}"
+            ]
+            note = _inflation_surface_note(inv)
+            if note:
+                header_lines.append(f"//   ↳ {note}")
+            if inv.get("certora_spec"):
+                cvl += [*header_lines, inv["certora_spec"], ""]
+            if inv.get("echidna_property"):
+                ech += [*header_lines, inv["echidna_property"], ""]
+            if inv.get("foundry_test"):
+                fnd += [*header_lines, inv["foundry_test"], ""]
+
+        cvl_path = out / f"{stem}.economic.spec"
+        ech_path = out / f"{stem}.economic.echidna.sol"
+        fnd_path = out / f"{stem}.economic.invariants.t.sol"
+        cvl_path.write_text("\n".join(cvl), encoding="utf-8")
+        ech_path.write_text("\n".join(ech), encoding="utf-8")
+        fnd_path.write_text("\n".join(fnd), encoding="utf-8")
+        files += [str(cvl_path), str(ech_path), str(fnd_path)]
+
+    if not quiet:
+        if invariants:
+            console.print(f"\n[bold]Economic invariants:[/bold] {len(invariants)} generated")
+            for inv in invariants:
+                console.print(f"  • [{inv.get('importance')}] {inv.get('name')}")
+                note = _inflation_surface_note(inv)
+                if note:
+                    console.print(f"      ↳ {note}")
+            for f in files:
+                success(f"Wrote {f}")
+            if not out_dir:
+                info("Pass --invariants-out DIR to write CVL/Echidna/Foundry artifacts.")
+        else:
+            info("No economic invariant templates matched this contract.")
+
+    return {"count": len(invariants), "names": names, "files": files}
+
+
+def _fuzz_economic_invariants(
+    contract_path: str,
+    invariant_names: list[str],
+    test_limit: int,
+    timeout: int,
+    quiet: bool,
+) -> Dict[str, Any]:
+    """Run the selected economic invariants through Echidna end-to-end.
+
+    Generates a runnable harness (mock asset + driver functions + property),
+    runs Echidna, and maps falsified properties to MIESC findings. Gated behind
+    Echidna availability — gracefully skips (never fabricates) when absent.
+    """
+    from miesc.formal.economic_harness import run_economic_fuzz, supported_invariants
+
+    runnable = [n for n in invariant_names if n in supported_invariants()]
+    if not runnable:
+        if not quiet:
+            info(
+                "No fuzzable economic invariants for this contract "
+                f"(supported: {sorted(supported_invariants())})."
+            )
+        return {"status": "skipped", "findings": []}
+
+    if not quiet:
+        info(f"Fuzzing {len(runnable)} economic invariant(s) with Echidna...")
+
+    result = run_economic_fuzz(
+        contract_path,
+        runnable,
+        test_limit=test_limit,
+        timeout=timeout,
+    )
+
+    if not quiet:
+        status = result.get("status")
+        if status == "skipped":
+            warning(result.get("reason", "Economic fuzzing skipped."))
+        elif status == "error":
+            error(f"Economic fuzzing error: {result.get('reason')}")
+        elif status == "clean":
+            success(
+                "Economic invariants held under fuzzing "
+                f"({', '.join(result.get('properties', []))}) — no violations."
+            )
+        elif status == "detected":
+            console.print(
+                f"\n[bold red]Economic bug(s) detected via fuzzing:[/bold red] "
+                f"{len(result['findings'])}"
+            )
+            for f in result["findings"]:
+                console.print(
+                    f"  • [{f['severity']}] {f.get('invariant', f.get('property'))}: "
+                    f"{f.get('description', '')[:100]}"
+                )
+                seq = f.get("call_sequence") or []
+                for call in seq[:6]:
+                    console.print(f"      ↳ {call}")
+
+    return result
+
+
 @click.command()
 @click.argument("contract_path", type=click.Path(exists=True))
 @click.option(
@@ -68,6 +251,44 @@ def _find_foundry_root(start: Path) -> Optional[Path]:
     default=None,
     help="Write the unified verification report as SARIF 2.1.0 (GitHub code scanning).",
 )
+@click.option(
+    "--poc",
+    type=click.Path(),
+    default=None,
+    help="Write a Foundry PoC test scaffold per counterexample into this directory.",
+)
+@click.option(
+    "--poc-check",
+    is_flag=True,
+    help="With --poc: run 'forge build' on each scaffold to confirm it compiles "
+    "(best-effort; skipped when forge is not installed).",
+)
+@click.option(
+    "--economic-invariants",
+    is_flag=True,
+    help="Synthesize economic/business-logic invariants (ERC-4626 share-price "
+    "inflation, solvency, flash-loan resistance) from the contract and emit them. "
+    "Offline; no prover/fuzzer required.",
+)
+@click.option(
+    "--invariants-out",
+    type=click.Path(),
+    default=None,
+    help="With --economic-invariants: directory to write CVL/Echidna/Foundry artifacts.",
+)
+@click.option(
+    "--fuzz",
+    is_flag=True,
+    help="With --economic-invariants: run the generated economic invariants through "
+    "Echidna end-to-end (generate a harness, fuzz, report violations as findings). "
+    "Requires Echidna; gracefully skipped when absent.",
+)
+@click.option(
+    "--fuzz-test-limit",
+    type=int,
+    default=30000,
+    help="With --fuzz: Echidna test limit (default: 30000, ~1-3 min).",
+)
 @click.option("--quiet", "-q", is_flag=True, help="Minimal output")
 def verify(
     contract_path: str,
@@ -77,6 +298,12 @@ def verify(
     timeout: int,
     output: str | None,
     sarif: str | None,
+    poc: str | None,
+    poc_check: bool,
+    economic_invariants: bool,
+    invariants_out: str | None,
+    fuzz: bool,
+    fuzz_test_limit: int,
     quiet: bool,
 ) -> None:
     """Run formal-verification provers against a contract.
@@ -95,6 +322,32 @@ def verify(
     """
     if not quiet:
         print_banner()
+
+    # Economic / business-logic invariant synthesis (offline, prover-independent).
+    econ_summary: Optional[Dict[str, Any]] = None
+    econ_fuzz: Optional[Dict[str, Any]] = None
+    if economic_invariants:
+        try:
+            econ_summary = _emit_economic_invariants(contract_path, invariants_out, quiet)
+        except Exception as e:  # pragma: no cover - defensive
+            error(f"Economic invariant synthesis failed: {e}")
+            sys.exit(1)
+
+        # End-to-end: run the generated economic invariants through Echidna.
+        if fuzz:
+            try:
+                econ_fuzz = _fuzz_economic_invariants(
+                    contract_path,
+                    econ_summary.get("names", []),
+                    fuzz_test_limit,
+                    timeout,
+                    quiet,
+                )
+            except Exception as e:  # pragma: no cover - defensive
+                error(f"Economic fuzzing failed: {e}")
+                sys.exit(1)
+    elif fuzz:
+        warning("--fuzz has no effect without --economic-invariants.")
 
     try:
         from miesc.formal import SpecRunner
@@ -188,7 +441,13 @@ def verify(
             error("kontrol not installed; " "see https://docs.runtimeverification.com/kontrol")
             sys.exit(1)
 
+    # A fuzz-detected economic bug is a real failure.
+    econ_bug = bool(econ_fuzz and econ_fuzz.get("status") == "detected")
+
     if not results:
+        if econ_summary is not None:
+            # Economic invariant emission already did useful, prover-independent work.
+            sys.exit(1 if econ_bug else 0)
         warning("No provers were run (none installed for selected --tool).")
         sys.exit(0)
 
@@ -239,6 +498,27 @@ def verify(
         report.to_sarif(sarif)
         success(f"SARIF report written to {sarif}")
 
-    # Exit code: 1 if any prover reported failures
+    # Write a Foundry PoC test scaffold per counterexample
+    if poc:
+        scaffolds = report.foundry_scaffolds(contract_name)
+        poc_dir = Path(poc)
+        poc_dir.mkdir(parents=True, exist_ok=True)
+        for filename, solidity in scaffolds:
+            (poc_dir / filename).write_text(solidity, encoding="utf-8")
+        success(f"Wrote {len(scaffolds)} PoC scaffold(s) to {poc}")
+
+        # Optionally confirm each scaffold compiles with forge (best-effort)
+        if poc_check:
+            from miesc.formal.poc_check import check_scaffolds_compile
+
+            repo_dir = str(Path(contract_path).resolve().parent)
+            checks = check_scaffolds_compile(scaffolds, repo_dir, contract_path)
+            for c in checks:
+                icon = {"compiled": "✓", "failed": "✗", "skipped": "-"}.get(c["status"], "?")
+                console.print(f"    {icon} {c['filename']}: {c['status']}")
+    elif poc_check:
+        info("--poc-check has no effect without --poc.")
+
+    # Exit code: 1 if any prover reported failures or a fuzzed economic bug hit.
     any_failed = any(r.status == "failed" for r in results.values())
-    sys.exit(1 if any_failed else 0)
+    sys.exit(1 if (any_failed or econ_bug) else 0)

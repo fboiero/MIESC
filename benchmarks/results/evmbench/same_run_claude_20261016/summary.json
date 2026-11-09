@@ -1,0 +1,26 @@
+{
+ "model": "claude",
+ "audits": 40,
+ "lenient_all": [
+  106,
+  120
+ ],
+ "lenient_control_resistant": [
+  47,
+  60
+ ],
+ "official": {
+  "gpt-4o": [
+   25,
+   117
+  ],
+  "gpt-5": [
+   32,
+   117
+  ]
+ },
+ "judge_agreement": [
+  104,
+  117
+ ]
+}

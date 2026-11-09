@@ -31,7 +31,7 @@ If you discover a security vulnerability in MIESC, please report it responsibly.
 ### Scope
 
 In scope:
-- MIESC framework code (`src/`, `miesc/`)
+- MIESC framework code (`miesc/`)
 - Docker images (`docker/`)
 - GitHub Action (`action.yml`)
 - LLM prompt injection in security analysis pipeline

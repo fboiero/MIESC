@@ -105,7 +105,7 @@ OK gptscan: 4 findings in 49.7s
 | TOTAL    |    22 |
 +----------+-------+
 
-Tools executed: 12/29
+Tools executed: 12/50
 Report saved to results.json
 ```
 
@@ -123,11 +123,22 @@ Report saved to results.json
 
 **SmartBugs-curated** (143 contracts, 207 ground-truth vulnerabilities):
 
-| Metric | Slither alone | Mythril alone | MIESC Paper 1 reproducible profile | Evidence scope |
-|--------|:------------:|:-------------:|:---------------------------------:|:--------------|
-| Recall | 43.2% | 27.4% | **95.8%** | Full SmartBugs-curated corpus |
-| Precision | 8.3% | 6.1% | **22.1%** | Full SmartBugs-curated corpus |
-| F1-Score | 13.9% | 10.0% | **35.9%** | Full SmartBugs-curated corpus |
+A controlled, LLM-free ablation shows where the recall comes from — each layer
+adds detected contracts without losing any (all figures recomputed by
+`benchmarks/verify_paper_claims.py`):
+
+| Profile (LLM-free) | Recall | Contracts | Source artifact |
+|--------|:------:|:---------:|-----------------|
+| Static layer only | 82.5% | 118/143 | `paper1_ablation_l1_raw_20261015.json` |
+| + MIESC detectors | 93.0% | 133/143 | `paper1_ablation_l167_raw_20261015.json` |
+| + intelligence engine | 97.9% | 140/143 | `paper1_ablation_l167_intel_20261015.json` |
+| Reproducible profile (macOS) | **95.8%** | 137/143 | `paper1_smartbugs_eval_layers_1_6_7.json` |
+
+Precision on this legacy corpus is **22.2%** (36.0% F1) — the expected trade-off
+for a recall-first pre-audit triage tool.
+
+To re-run this profile on your own machine and compare it with the paper artifact,
+follow [REPRODUCE.md](./REPRODUCE.md) (about 15 minutes, no LLM or API key needed).
 
 The full-corpus SmartBugs result is the reproducible Paper 1 profile. A local
 Ollama follow-up on the remaining misses is reported in Paper 1 as 140/143
@@ -148,6 +159,23 @@ separately as an end-to-end integration smoke run, not as a corpus-wide claim.
 
 **Why recall matters more than precision for pre-audit triage**: High recall means fewer missed vulnerabilities. False positives are filtered in the triage step — missed vulnerabilities become exploits in production.
 
+**What you actually get, by setup** (EVMBench, 40 audits, high-severity findings; every
+number recomputed from `benchmarks/results/paper1_claims_matrix.json` by `make reproduce`):
+
+| Setup | Recall | Precision | F1 | Cost per audit |
+|---|:---:|:---:|:---:|---|
+| Static tools only (Slither, Aderyn, Solhint) | 18.3 % | 14.5 % | 16.2 % | $0 |
+| Local open-weight model (`qwen2.5-coder:32b` via Ollama) | 59.2 % | 30.1 % | 39.9 % | $0 |
+| Frontier API: GPT-4o (39 audits) | 73.7 % | 20.0 % | 31.5 % | paid |
+| Frontier API: GPT-5 | 77.5 % | 42.7 % | 55.0 % | paid |
+| Frontier API: Claude Sonnet 4.6 | 82.5 % | 34.0 % | 48.2 % | paid |
+| Ensemble (union of the providers above) | 92.5 % | — | — | paid |
+
+Read it as a trade: the free, fully local setup finds six in ten high-severity issues with
+the best precision of any single model; paying for a frontier API buys recall, not precision.
+On SmartBugs-curated (the academic corpus, LLM-free) the static profile alone reaches 143/143
+contracts at 22.4 % precision, see the table above.
+
 **Cost efficiency (EVMBench, 40 audits)**: detection does not require frontier prices. An open-weight model (DeepSeek-R1, MIT weights) reaches the best precision (88.5%) and F1 (78.7%) in the comparison at an estimated ~$0.08/audit — 15–69× cheaper than frontier APIs — while a fully-local 32B model reaches 59.2% recall at $0. Paying frontier prices buys higher single-run recall, not better precision/F1. See Paper 1 for the run-count-matched detail.
 
 ### Research Papers and Reproducible Claims
@@ -156,8 +184,8 @@ MIESC has two linked research tracks. Paper 1 evaluates detection and multi-laye
 
 | Paper | Focus | Main reproducible evidence | Artifacts |
 |-------|-------|----------------------------|-----------|
-| [Paper 1](./paper/miesc-paper.pdf) | Multi-layer smart contract security evaluation | SmartBugs: 95.8% recall on 143 contracts, with a local Ollama follow-up reported at 97.9%; DeFi exploits: 81.8% recall on 11 incidents; EVMBench ensemble: 111/120 high-severity findings, 92.5% recall | [Reproducibility](./paper/PAPER1_REPRODUCIBILITY.md), [claims matrix](./benchmarks/results/paper1_claims_matrix.json) |
-| [Paper 2](./paper/paper2-remediation.pdf) | Verifiable remediation artifacts | 123/143 fixes applied; 123/123 patched contracts compile standalone; 88/123 eliminate the original finding by re-scan; 121/123 pass bounded no-regression; 70/123 clean-HIGH under external Slither | [Reproducibility](./paper/PAPER2_REPRODUCIBILITY.md), [claims matrix](./benchmarks/results/paper2_claims_matrix.json), [experiment audit](./benchmarks/results/paper2_experiment_audit.json) |
+| [Paper 1](./paper/ribci-cyted-2026/paper1-camera-ready.pdf) | Multi-layer smart contract security evaluation | SmartBugs: 95.8% recall on 143 contracts, with a local Ollama follow-up reported at 97.9%; DeFi exploits: 81.8% recall on 11 incidents; EVMBench ensemble: 111/120 high-severity findings, 92.5% recall | [Reproducibility](./paper/PAPER1_REPRODUCIBILITY.md), [claims matrix](./benchmarks/results/paper1_claims_matrix.json) |
+| [Paper 2](./paper/ribci-cyted-2026/paper2-camera-ready.pdf) | Verifiable remediation artifacts | 123/143 fixes applied; 123/123 patched contracts compile standalone; 88/123 report fewer HIGH findings on re-scan; 121/123 pass bounded no-regression; 70/123 clean-HIGH under external Slither | [Reproducibility](./paper/PAPER2_REPRODUCIBILITY.md), [claims matrix](./benchmarks/results/paper2_claims_matrix.json), [experiment audit](./benchmarks/results/paper2_experiment_audit.json) |
 
 For research citation and review, the canonical current claims are the two paper PDFs, their reproducibility notes, and the `benchmarks/results/paper*_claims_matrix.json` files. The platform alignment plan maps these paper results into CLI, API, MCP, RAG, and remediation workflow requirements: [Paper learnings and platform alignment](./docs/roadmap/PAPER_LEARNINGS_PLATFORM_ALIGNMENT.md). RAG source selection and weighting are governed by the [RAG source policy](./docs/guides/RAG_SOURCE_POLICY.md). Older release notes, thesis drafts, and roadmap documents are kept for project history and may contain previous benchmark runs or version-specific metrics.
 
@@ -190,7 +218,7 @@ roadmap). The canonical layer definition lives in `miesc/cli/constants.py`.
 | **External security tools** | 13 | Slither, Mythril, Echidna, Foundry, Halmos, Aderyn, Semgrep |
 | **LLM analysis modules** | 6 | SmartLLM, GPTScan, PropertyGPT (via local Ollama) |
 | **Internal analyzers** | 16 | MEV detector, gas analyzer, threat model, clone detector |
-| **Total analysis modules** | **35** | Across 9 complementary techniques |
+| **Total analysis modules** | **35** | 13 + 6 + 16, across 9 techniques. The "50 tools" headline counts the full adapter/layer stack in `miesc/cli/constants.py`; `miesc doctor` shows how many are usable on your machine. |
 
 ### vs. SmartBugs 2.0 (closest competitor)
 
@@ -225,7 +253,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: fboiero/MIESC@v5
+      - uses: fboiero/MIESC@v6.0.0
         with:
           path: contracts/
           mode: scan
@@ -265,6 +293,17 @@ cd MIESC && pip install -e .[dev]
 ```
 
 Requirements: Python 3.12+. Slither installs automatically. Other tools are optional — MIESC uses whatever is available.
+
+Slither needs a `solc` that matches each contract's `pragma`. Install the versions you
+analyze once; MIESC picks the installed one that satisfies the pragma:
+
+```bash
+pip install solc-select
+solc-select install 0.4.26 0.5.17 0.6.12 0.7.6 0.8.20
+```
+
+To reproduce the paper numbers (Slither + Aderyn + Solhint + the built-in detectors), follow
+[REPRODUCE.md](./REPRODUCE.md).
 
 For a full researcher workstation with isolated Mythril, Manticore, Certora CLI, Wake, Semgrep, and formal-verification tooling:
 
@@ -320,7 +359,8 @@ miesc scan Bridge.sol             # Detects 7 bridge exploit patterns
 
 ## Docker
 
-The current release is **v6.0.0** (see [CHANGELOG](./CHANGELOG.md)). Release status,
+The latest published PyPI / GHCR release is **6.8.0**, matching the code on `main`
+(see [CHANGELOG](./CHANGELOG.md)). Release status,
 published artifact links, GHCR digest, and smoke-test commands from the most recent detailed
 release-status report (v5.4.2) are recorded in
 [MIESC 5.4.2 Release Status](./docs/policies/RELEASE_STATUS_5.4.2.md).
@@ -347,7 +387,7 @@ MIESC's LLM layers (Layer 5) use Ollama for local AI analysis. The recommended s
 # 1. Install and start Ollama on your HOST (not inside Docker)
 # Download from https://ollama.com
 ollama serve &
-ollama pull qwen2.5-coder:14b   # Best model for code analysis
+ollama pull qwen2.5-coder:14b   # Recommended: fast, ~9 GB (use :32b for higher audit quality)
 ollama pull deepseek-coder:6.7b  # Lighter alternative
 
 # 2. Scan with host Ollama (macOS)
@@ -494,7 +534,7 @@ miesc detectors list                         # List all available detectors
 # Pre-commit hook (.pre-commit-config.yaml)
 repos:
   - repo: https://github.com/fboiero/MIESC
-    rev: v6.0.0
+    rev: v6.8.0
     hooks:
       - id: miesc-quick
         args: ['--ci']
@@ -536,7 +576,9 @@ Add to your Claude Desktop `config.json`:
 }
 ```
 
-**Available MCP tools:** `miesc_quick_scan`, `miesc_deep_scan`, `miesc_deep_audit`, `miesc_run_tool`, `miesc_run_layer`, `miesc_analyze_defi`, `miesc_apply_fix`, `miesc_validate_remediation`, `miesc_remediation_evidence_bundle`, `miesc_list_tools`, `miesc_doctor`
+**Available MCP tools (22):** `miesc_quick_scan`, `miesc_deep_scan`, `miesc_deep_audit`, `miesc_profile_scan`, `miesc_run_tool`, `miesc_run_layer`, `miesc_analyze_defi`, `miesc_correlate`, `miesc_filter_fp`, `miesc_detect_exploit_chains`, `miesc_verify_finding`, `miesc_generate_report`, `miesc_map_compliance`, `miesc_remediate`, `miesc_apply_fix`, `miesc_validate_remediation`, `miesc_remediation_evidence_bundle`, `miesc_get_metrics`, `miesc_get_status`, `miesc_list_tools`, `miesc_get_tool_info`, `miesc_read_contract`.
+
+The server targets the MCP Python SDK 1.x; `pip install 'miesc[mcp]'` pins it. If `miesc-mcp` reports an incompatible SDK, run `pip install 'mcp[cli]<2'`.
 
 ### REST API Remediation
 
@@ -563,7 +605,7 @@ report = run_full_audit("contract.sol")
 ```bash
 pip install "miesc[django]"
 python -m miesc.api.rest --host 127.0.0.1 --port 8000
-python -m src.utils.web_dashboard --results analysis/results --output analysis/dashboard
+python -m miesc.utils.web_dashboard --results ./results --output ./dashboard
 ```
 
 The open core exposes local REST/MCP automation and static report generation.
@@ -616,9 +658,9 @@ Contract.sol
  Report Generator --> JSON / SARIF / PDF / HTML / Markdown
 ```
 
-MIESC uses a dual-package architecture:
-- `miesc/` - Public API (stable, pip-installable)
-- `src/` - Internal implementation (35 analysis modules, ML pipeline, RAG, report generation)
+All code lives in the single `miesc/` package (pip-installable): CLI, adapters for the 50
+tools, ML pipeline, RAG, remediation and report generation. Run `miesc doctor` to see which
+tools are usable on your machine.
 
 See [ARCHITECTURE.md](./docs/ARCHITECTURE.md) for the full technical design with Mermaid diagrams.
 
@@ -626,19 +668,65 @@ See [ARCHITECTURE.md](./docs/ARCHITECTURE.md) for the full technical design with
 
 ## Academic Validation
 
-MIESC was developed as a Master's thesis in Cyberdefense at [UNDEF-IUA](https://www.iua.edu.ar/) (Argentina). The current research claims are consolidated in [Paper 1](./paper/miesc-paper.pdf), [Paper 2](./paper/paper2-remediation.pdf), and their reproducibility artifacts:
+MIESC's research claims are consolidated in two companion papers for the IV
+Simposio Internacional de Blockchain y Ciberseguridad (RIBCi–CYTED 2026) and
+their reproducibility artifacts. MIESC began as a Master's thesis in Cyberdefense
+at [UNDEF-IUA](https://www.iua.edu.ar/) (Argentina), which remains a secondary
+reference. The figures below are the camera-ready paper's evidence (MIESC
+v5.4.1, tag `09ef10f`); each is recomputed from a repository JSON by
+`benchmarks/verify_paper_claims.py`.
 
-- **143 contracts**, 207 ground-truth vulnerabilities, 10 categories
-- **95.8% recall** on the latest full-corpus reproducible local SmartBugs profile; Slither alone baseline: 43.2%
-- Paper 1 reports a local Ollama follow-up on the residual SmartBugs misses at 140/143 (97.9%); the reproducible corpus artifact remains the 95.8% JSON profile.
-- Paper 1 now treats EVMBench as the primary business-logic benchmark: static-only reaches 22/120 (18.3%), while the reproducible four-provider ensemble reaches 111/120 (92.5%)
-- Paper 2 evaluates remediation artifacts: 123/143 fixes applied, 123/123 patched contracts compile standalone, 88/123 eliminate the original finding by re-scan, 121/123 pass bounded no-regression, and 70/123 are clean-HIGH under external Slither
-- Reproducible SmartBugs profile runs in 737.0s total (~5.15 sec/contract)
-- Canonical results: [Paper 1 reproducibility](./paper/PAPER1_REPRODUCIBILITY.md), [Paper 2 reproducibility](./paper/PAPER2_REPRODUCIBILITY.md), [Paper 1 claims matrix](./benchmarks/results/paper1_claims_matrix.json), [Paper 2 claims matrix](./benchmarks/results/paper2_claims_matrix.json)
+- **143 contracts**, 10 vulnerability categories (SmartBugs-curated).
+- **95.8% recall (137/143)** on the reproducible, LLM-free SmartBugs profile;
+  **22.2% precision**, 36.0% F1. A controlled LLM-free ablation attributes the
+  recall to MIESC's own layers: static **82.5%** (118/143) → +own detectors
+  **93.0%** (133/143) → +intelligence engine **97.9%** (140/143), each step
+  gaining contracts without losing any.
+- **Business-logic (EVMBench)**: the score depends on the matching protocol, so
+  both are reported. In one Claude run scored under every protocol, a lenient
+  keyword matcher credits **88.3%** (106/120) while EVMBench's official GPT-5
+  judge confirms **27.4%** (32/117); a contract-agnostic null control credits
+  **50%** (60/120), so custom-matcher numbers need a control to be interpretable.
+  The union of four provider runs reaches **92.5%** (111/120) under the lenient
+  matcher.
+- **Real-world exploits**: **9/11** (81.8%, 95% Wilson CI [52%, 95%]) on
+  DeFiHackLabs attack reproductions (a case study on attack code, not victims).
+- **Remediation (Paper 2)**: 123/143 fixes applied, **123/123** patched
+  contracts compile standalone, **88/123** report fewer HIGH findings on re-scan,
+  121/123 pass bounded no-regression, and **70/123** are clean-HIGH under
+  external Slither.
+- Canonical sources: [Paper 1 (camera-ready)](./paper/ribci-cyted-2026/paper1-camera-ready.pdf),
+  [Paper 2 (camera-ready)](./paper/ribci-cyted-2026/paper2-camera-ready.pdf),
+  [Paper 1 reproducibility](./paper/PAPER1_REPRODUCIBILITY.md),
+  [Paper 2 reproducibility](./paper/PAPER2_REPRODUCIBILITY.md),
+  [Paper 1 claims matrix](./benchmarks/results/paper1_claims_matrix.json),
+  [Paper 2 claims matrix](./benchmarks/results/paper2_claims_matrix.json).
+  Re-check everything with `python benchmarks/verify_paper_claims.py`.
 
-If you use MIESC in research, please cite:
+If you use MIESC in research, please cite the two RIBCi–CYTED 2026 papers (the
+thesis is a secondary reference):
 
 ```bibtex
+@inproceedings{boiero2026miesc,
+  title={{MIESC}: A Multi-layer Framework for Automated Smart Contract Security Evaluation},
+  author={Boiero, Fernando and Mussetta, Sebastian Norberto and Cena, Norberto Gaspar},
+  booktitle={IV Simposio Internacional de Blockchain y Ciberseguridad (RIBCi--CYTED 2026)},
+  series={Livros de Atas},
+  publisher={Edi{\c{c}}{\~o}es CEOS.PP, ISCAP},
+  address={Porto, Portugal},
+  year={2026}
+}
+
+@inproceedings{boiero2026remediation,
+  title={From Findings to Verifiable Remediation Artifacts: A Smart Contract Security Pipeline},
+  author={Boiero, Fernando and Mussetta, Sebastian Norberto and Cena, Norberto Gaspar},
+  booktitle={IV Simposio Internacional de Blockchain y Ciberseguridad (RIBCi--CYTED 2026)},
+  series={Livros de Atas},
+  publisher={Edi{\c{c}}{\~o}es CEOS.PP, ISCAP},
+  address={Porto, Portugal},
+  year={2026}
+}
+
 @mastersthesis{boiero2025miesc,
   title={Integrated Security Assessment Framework for Smart Contracts:
          A Defense-in-Depth Approach to Cyberdefense},
@@ -676,9 +764,11 @@ The project self-assesses as meeting all 9 DPGA indicators — open license (AGP
 | Resource | Description |
 |----------|-------------|
 | [Installation Guide](./docs/INSTALLATION.md) | Complete setup instructions |
+| [Reproduce the papers](./REPRODUCE.md) | Re-run the Paper 1 SmartBugs profile from scratch and compare with the published artifact |
 | [Quick Start](./docs/guides/QUICKSTART.md) | Get running in 5 minutes |
 | [Architecture](./docs/ARCHITECTURE.md) | Technical design and layer details |
 | [Tool Reference](./docs/TOOLS.md) | All 35 analysis modules and their capabilities |
+| [LLM Providers](./docs/guides/LLM_PROVIDERS.md) | Claude, GPT, DeepSeek, Kimi, Ollama or any OpenAI-compatible endpoint, selected with `--model provider[:model]` |
 | [Report Guide](./docs/guides/REPORTS.md) | Report templates and customization |
 | [Custom Detectors](./docs/CUSTOM_DETECTORS.md) | Build your own detectors |
 | [Multi-Chain](./docs/MULTICHAIN.md) | Non-EVM chain analysis |
@@ -729,6 +819,15 @@ pip install solc-select
 solc-select install 0.4.26 0.5.17 0.8.20
 ```
 
+**`miesc-mcp` fails with `Cannot start the MIESC MCP server: an incompatible MCP SDK is installed`**
+The 2.x SDK renamed `FastMCP`. Pin the supported line:
+```bash
+pip install 'mcp[cli]>=1.2.0,<2'
+```
+
+**`miesc report -f pdf` exits 1 and writes `.html`**
+PDF support is an extra: `pip install 'miesc[pdf]'` (plus the system libraries below).
+
 **PDF report generation fails (`weasyprint` errors)**
 WeasyPrint needs system libraries:
 ```bash
@@ -737,7 +836,10 @@ sudo apt install libpango-1.0-0 libpangoft2-1.0-0  # Linux
 ```
 
 **`miesc audit full` runs slowly (>10 min per contract)**
-Heavy LLM models (32B) on small contracts. Use `qwen2.5-coder:14b` in `~/.miesc/config.yaml` or run quick scan: `miesc audit quick`.
+The Ollama layers auto-select the most capable installed model (preferring `qwen2.5-coder:32b` for audit quality), so a 32B model on a small contract is slow. Cap the LLM-backed tools with `--llm-timeout 60` (static tools keep `--timeout`), force the lighter model with `--model ollama:qwen2.5-coder:14b` (any provider works the same way, see [LLM Providers](./docs/guides/LLM_PROVIDERS.md)), set `qwen2.5-coder:14b` in `~/.miesc/config.yaml`, or run a quick scan: `miesc audit quick`. The "Slowest tools" table at the end of the audit shows where the time went.
+
+**An LLM adapter reports 0 findings on a contract that clearly has issues**
+Set `MIESC_LLM_DUMP_DIR=/tmp/miesc-llm` and re-run: every raw model response is saved there. If a file does not parse, open an issue with it attached; the parser fixtures in `tests/fixtures/llm_responses/` are built from exactly these captures.
 
 </details>
 
@@ -749,7 +851,7 @@ Heavy LLM models (32B) on small contracts. Use `qwen2.5-coder:14b` in `~/.miesc/
 git clone https://github.com/fboiero/MIESC.git
 cd MIESC && pip install -e .[dev]
 pytest tests/ --no-cov              # Fast local run
-pytest tests/ --cov=src --cov-report=term-missing  # Coverage run
+pytest tests/ --cov=miesc --cov-report=term-missing  # Coverage run
 ```
 
 See [CONTRIBUTING.md](./.github/CONTRIBUTING.md) for guidelines. [CONTRIBUTING_ES.md](./.github/CONTRIBUTING_ES.md) disponible en espanol.

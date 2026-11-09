@@ -7,11 +7,12 @@ Author: Fernando Boiero
 License: AGPL-3.0
 """
 
+import hashlib
 import json
 import logging
 import re
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Match, cast
 
@@ -22,6 +23,7 @@ from miesc.cli.utils import (
     RICH_AVAILABLE,
     console,
     error,
+    finding_list,
     get_data_path,
     get_root_dir,
     info,
@@ -29,6 +31,9 @@ from miesc.cli.utils import (
     success,
     warning,
 )
+from miesc.core.advisory_plans_io import MAX_AGENT_ITEMS, read_governance_plans
+from miesc.core.finding_taxonomy import CanonicalCategory, normalize_finding_type
+from miesc.core.fuzz_campaign_io import read_fuzz_campaign
 
 # Import Rich components if available
 if RICH_AVAILABLE:
@@ -39,14 +44,318 @@ logger = logging.getLogger(__name__)
 # Get ROOT_DIR for template paths
 ROOT_DIR = get_root_dir()
 
+# Finding sources whose counterexamples were reproduced by running the call under
+# Foundry (revert-invariant SDD, see ``miesc.llm.revert_invariant_findings``). These
+# are DYNAMIC, execution-reproduced PoCs -- never formal proofs. The report labels
+# them "Execution-reproduced (Foundry)" and must never call them "proven" or
+# "formally verified" (that is the overclaim class PR 0 removed).
+_EXECUTION_SOURCES = {"revert_invariant_executor", "revert_invariant_reasoning"}
+
+# Layer 4 formal-verification tools (mirrors the TOOL_LAYER_MAP entries built per
+# report run). Used to derive §4.4.1 straight from the same tool execution data
+# that feeds ``layer4_coverage`` in §2.3, so the two can never disagree.
+_LAYER4_TOOLS = {"certora", "scribble", "pyrometer", "smtchecker", "propertygpt"}
+
+# Phase 3 — §4.5 Trust Model & Privileged Roles. A finding is "trust-relevant" when its
+# canonical category concerns who holds privileged power over the contract. The
+# taxonomy already routes ``suicidal`` / ``selfdestruct-identifier`` / ``tx-origin`` to
+# ACCESS_CONTROL, so no per-type special-casing is needed here.
+_TRUST_FINDING_CATEGORIES = {
+    CanonicalCategory.ACCESS_CONTROL.value,
+    CanonicalCategory.CENTRALIZATION.value,
+    CanonicalCategory.PROXY_UPGRADE.value,
+}
+
+
+def _guarded_functions(edges: list[Any], source_id: str) -> str:
+    """Join the (de-duplicated) functions an actor or role guards, from the edges."""
+    targets = [
+        str(e.get("target") or "")
+        for e in edges
+        if isinstance(e, dict) and e.get("source") == source_id and e.get("relation") == "guards"
+    ]
+    return ", ".join(t for t in dict.fromkeys(targets) if t)
+
+
+def _build_trust_model_vars(
+    results: Dict[str, Any], formatted_findings: list[dict[str, Any]]
+) -> Dict[str, Any]:
+    """Build the §4.5 template variables from the advisory-plan inventory + findings.
+
+    Two blocks, both honest and additive — a role is a trust *assumption*, never a
+    ``Finding`` (it must not change any count or the risk score):
+
+    (a) ``governance_plans`` — the deterministic privileged-role inventory, when the
+        agentic audit persisted it. ``trust_inventory_ran`` distinguishes "not
+        extracted" (key absent) from "extraction found nothing" (key present, empty).
+    (b) ``trust_findings`` — existing findings whose canonical category is access
+        control / centralization / proxy-upgrade, cross-referenced by F-id. This is the
+        findings-based floor that works even for directory audits (which carry no
+        per-file advisory phase).
+
+    Nothing here is inferred about key custody or off-chain governance; the inventory is
+    rendered exactly as the static miner declared it.
+    """
+    plans = read_governance_plans(results)
+    trust_inventory_ran = plans is not None
+
+    governance_plans: list[dict[str, Any]] = []
+    for plan in plans or []:
+        graph = plan.get("authority_graph") or {}
+        actors_raw = graph.get("actors") or []
+        roles_raw = graph.get("roles") or []
+        edges_raw = graph.get("edges") or []
+
+        actors = [
+            {
+                "id": str(a.get("id") or ""),
+                "kind": str(a.get("kind") or "unknown"),
+                "source": str(a.get("source") or "unknown"),
+                "anchors": ", ".join(str(x) for x in (a.get("source_anchors") or [])),
+                "guards": _guarded_functions(edges_raw, str(a.get("id") or "")),
+            }
+            for a in actors_raw
+            if isinstance(a, dict) and a.get("id")
+        ]
+        roles = [
+            {
+                "name": str(r.get("name") or ""),
+                "admin_role": str(r.get("admin_role") or ""),
+                "grant_functions": ", ".join(str(x) for x in (r.get("grant_functions") or [])),
+                "revoke_functions": ", ".join(str(x) for x in (r.get("revoke_functions") or [])),
+                "guards": _guarded_functions(edges_raw, str(r.get("name") or "")),
+            }
+            for r in roles_raw
+            if isinstance(r, dict) and r.get("name")
+        ]
+        truncated = (
+            len(actors_raw) >= MAX_AGENT_ITEMS
+            or len(roles_raw) >= MAX_AGENT_ITEMS
+            or len(edges_raw) >= MAX_AGENT_ITEMS
+        )
+        governance_plans.append(
+            {
+                "id": str(plan.get("id") or ""),
+                "objective": str(plan.get("objective") or ""),
+                "actors": actors,
+                "roles": roles,
+                "truncated": truncated,
+            }
+        )
+
+    trust_findings = [
+        {
+            "id": f.get("id", ""),
+            "title": f.get("title", ""),
+            "severity_badge": f.get("severity_badge", ""),
+            "category": f.get("canonical_category") or f.get("category") or "",
+        }
+        for f in formatted_findings
+        if (f.get("canonical_category") or "") in _TRUST_FINDING_CATEGORIES
+    ]
+
+    return {
+        "trust_inventory_ran": trust_inventory_ran,
+        "governance_plans": governance_plans,
+        "trust_findings": trust_findings,
+    }
+
+
+# Phase 4 — §4.6 Dynamic Testing & Fuzzing. The tools whose campaign statistics the
+# writer (``collect_fuzz_campaign``) knows how to preserve. Rendering per tool is keyed
+# off the entry's own ``tool`` field, not this set, so the two cannot disagree.
+_FUZZING_DISPLAY = {"foundry": "Foundry", "echidna": "Echidna", "medusa": "Medusa"}
+
+
+def _fuzzer_finding_ids(tool: str, formatted_findings: list[dict[str, Any]]) -> list[str]:
+    """F-ids of findings attributed to ``tool`` (raw ``tool`` field or a confirming
+    tool). This is a cross-reference by id — the findings are already counted in
+    §1/§4, so §4.6 never re-counts them."""
+    key = tool.lower().strip()
+    ids: list[str] = []
+    for f in formatted_findings:
+        attributed = str(f.get("tool") or "").lower() == key or key in {
+            str(c).lower().strip() for c in (f.get("confirming_tools") or [])
+        }
+        if attributed and f.get("id"):
+            ids.append(str(f["id"]))
+    return ids
+
+
+def _build_dynamic_testing_vars(
+    tool_results: list[dict[str, Any]],
+    formatted_findings: list[dict[str, Any]],
+    layer_summary: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Build the §4.6 template variables — a three-state, honest dynamic-testing view.
+
+    A fuzzing-campaign statistic is NOT a finding: the counts here (tests run,
+    configured limits, violations reported) change no §1/§4 total and no risk score;
+    the renderer cross-references real fuzzer findings by F-id instead of re-counting.
+
+    Three states, so §4.6 never contradicts §2.3's Layer-2 line or §4.4:
+
+    * ``fuzzing_tools`` non-empty → at least one Layer-2 tool carried a campaign block;
+      render its metrics with the tool and scope named.
+    * else ``dynamic_layer_ran`` → a Layer-2 (dynamic-testing) tool ran but recorded no
+      campaign statistics (e.g. revert-invariant execution); point at §4.4.
+    * else → no dynamic/fuzzing testing was performed (the common static-only case).
+
+    ``dynamic_layer_ran`` is read from the SAME ``layer_summary`` that feeds
+    ``layer2_coverage`` in §2.3, so the two can never disagree. ``coverage`` and
+    ``gas_report`` are never read here (see ``fuzz_campaign_io``).
+    """
+    fuzzing_tools: list[dict[str, Any]] = []
+    for entry in tool_results:
+        campaign = read_fuzz_campaign(entry)
+        if campaign is None:
+            continue
+        tool_name = str(entry.get("tool") or "").lower().strip()
+        display = _FUZZING_DISPLAY.get(tool_name, tool_name or "unknown")
+        finding_ids = _fuzzer_finding_ids(tool_name, formatted_findings)
+        # Foundry reports observed test counts; a success with zero parsed tests means
+        # the statistics could not be read, which we state rather than printing "0/0".
+        tests_run = campaign.get("tests_run")
+        stats_unparsed = tool_name == "foundry" and (
+            not isinstance(tests_run, int) or tests_run <= 0
+        )
+        fuzzing_tools.append(
+            {
+                "tool": tool_name,
+                "display": display,
+                "is_foundry": tool_name == "foundry",
+                "tests_run": tests_run,
+                "tests_passed": campaign.get("tests_passed"),
+                "tests_failed": campaign.get("tests_failed"),
+                "fuzz_runs": campaign.get("fuzz_runs"),
+                "test_limit": campaign.get("test_limit"),
+                "property_violations": campaign.get("property_violations"),
+                "finding_ids": ", ".join(finding_ids),
+                "stats_unparsed": stats_unparsed,
+            }
+        )
+
+    return {
+        "fuzzing_tools": fuzzing_tools,
+        "dynamic_layer_ran": "dynamic_testing" in layer_summary,
+    }
+
+
+def _verification_method(source: str, detected_by: str) -> str:
+    """Honest per-finding verification label (Phase 2, Piece A).
+
+    A counterexample reproduced by a Foundry probe is ``"Execution-reproduced
+    (Foundry)"`` -- reproduced by execution, never "proven"/"formally verified".
+    Everything else is static analysis attributed to the detecting tool. This is
+    the honest replacement for PR-0's removed "Manual Review" step; it changes no
+    counts and no scores.
+    """
+    if source in _EXECUTION_SOURCES:
+        return "Execution-reproduced (Foundry)"
+    tool = (detected_by or "").strip() or "unknown"
+    return f"Static analysis ({tool})"
+
 
 # =============================================================================
 # Helper Functions
 # =============================================================================
 
 
-def _get_impact_description(severity: str, category: str = "") -> str:
-    """Get impact description based on severity and vulnerability category."""
+# Canonical-category -> human impact description. Keyed by CanonicalCategory so
+# the prose is selected from the normalized category rather than a raw tool
+# string (which frequently missed). Categories without a dedicated entry fall
+# back to the legacy keyword table and then to the severity-based text.
+_CANONICAL_IMPACTS: Dict[CanonicalCategory, str] = {
+    CanonicalCategory.PROXY_UPGRADE: "An unchecked delegatecall or upgradeable-proxy flaw lets an attacker execute arbitrary code in the contract's storage context, potentially overwriting critical state (owner, implementation address) and seizing full control of the contract and its funds.",
+    CanonicalCategory.CENTRALIZATION: "A single privileged account (owner/admin) can perform sensitive operations unilaterally. If that key is compromised or acts maliciously, it can drain funds, freeze the contract, or alter critical parameters, concentrating trust in one party.",
+    CanonicalCategory.SIGNATURE_VERIFICATION: "Flawed signature handling (malleability, missing zero-address or nonce checks) allows an attacker to forge or replay signed messages, bypassing authorization or double-spending signed approvals.",
+    CanonicalCategory.TIME_MANIPULATION: "Relying on block.timestamp/block.number for critical logic lets miners/validators nudge these values within consensus bounds, skewing time-dependent behavior such as deadlines, vesting, or auctions.",
+    CanonicalCategory.DENIAL_OF_SERVICE: "An attacker can make a critical function permanently revert or exhaust gas (e.g., unbounded loops, failing external calls in a loop), locking funds or blocking legitimate users from interacting with the contract.",
+    CanonicalCategory.INPUT_VALIDATION: "Missing validation of function inputs (ranges, zero addresses, array lengths) can place the contract into an inconsistent state or send funds to unintended destinations.",
+}
+
+# Canonical category -> keyword present in the legacy prose tables, so the
+# existing impact/recommendation text is reused for categories not listed in the
+# dedicated canonical tables above.
+_CANONICAL_KEYWORD = {
+    CanonicalCategory.REENTRANCY: "reentrancy",
+    CanonicalCategory.ACCESS_CONTROL: "access control",
+    CanonicalCategory.ORACLE_MANIPULATION: "oracle",
+    CanonicalCategory.FLASH_LOAN: "flash loan",
+    CanonicalCategory.ARITHMETIC: "integer overflow",
+    CanonicalCategory.UNCHECKED_CALL: "unchecked send",
+    CanonicalCategory.INITIALIZATION: "uninitialized state",
+    CanonicalCategory.BAD_RANDOMNESS: "weak randomness",
+    CanonicalCategory.FRONT_RUNNING: "front running",
+}
+
+
+# Spanish mirrors of the impact prose, selected when the report template is a
+# ``*-es`` variant. Kept as a separate path so the English text above stays
+# byte-for-byte unchanged (no regression risk for the English templates).
+_CANONICAL_IMPACTS_ES: Dict[CanonicalCategory, str] = {
+    CanonicalCategory.PROXY_UPGRADE: "Un delegatecall sin verificar o una falla de proxy actualizable permite a un atacante ejecutar código arbitrario en el contexto de almacenamiento del contrato, sobrescribiendo estado crítico (owner, dirección de implementación) y tomando el control total del contrato y sus fondos.",
+    CanonicalCategory.CENTRALIZATION: "Una única cuenta privilegiada (owner/admin) puede realizar operaciones sensibles de forma unilateral. Si esa llave se compromete o actúa de forma maliciosa, puede drenar fondos, congelar el contrato o alterar parámetros críticos, concentrando la confianza en una sola parte.",
+    CanonicalCategory.SIGNATURE_VERIFICATION: "Un manejo defectuoso de firmas (maleabilidad, falta de chequeos de dirección cero o de nonce) permite a un atacante falsificar o reutilizar mensajes firmados, eludiendo la autorización o gastando dos veces aprobaciones firmadas.",
+    CanonicalCategory.TIME_MANIPULATION: "Depender de block.timestamp/block.number para lógica crítica permite a los mineros/validadores ajustar esos valores dentro de los límites del consenso, sesgando comportamientos dependientes del tiempo como deadlines, vesting o subastas.",
+    CanonicalCategory.DENIAL_OF_SERVICE: "Un atacante puede hacer que una función crítica revierta permanentemente o agote el gas (p. ej., bucles sin cota, llamadas externas que fallan dentro de un bucle), bloqueando fondos o impidiendo que usuarios legítimos interactúen con el contrato.",
+    CanonicalCategory.INPUT_VALIDATION: "La falta de validación de las entradas de las funciones (rangos, direcciones cero, longitudes de arreglos) puede dejar al contrato en un estado inconsistente o enviar fondos a destinos no deseados.",
+}
+
+_CATEGORY_IMPACTS_ES: Dict[str, str] = {
+    "reentrancy": "Un atacante puede llamar recursivamente a la función vulnerable antes de que se completen las actualizaciones de estado, drenando los fondos del contrato en una sola transacción. Es una de las clases de vulnerabilidad más explotadas en DeFi (p. ej., el hackeo de The DAO, US$60M perdidos).",
+    "selfdestruct": "Un selfdestruct sin protección permite a cualquier llamante destruir permanentemente el contrato y redirigir todo el ETH restante a una dirección arbitraria. Tras EIP-6780 (upgrade Dencun), selfdestruct solo envía ETH sin destruir el almacenamiento, pero el riesgo de pérdida de fondos persiste.",
+    "uninitialized state": "Las variables de estado sin inicializar toman valores cero por defecto, lo que para los tipos address significa address(0). Los fondos enviados a direcciones sin inicializar se pierden de forma permanente. Para banderas booleanas, sin inicializar significa false, pudiendo eludir controles de acceso.",
+    "unchecked send": "Las llamadas de bajo nivel (send, call) pueden fallar silenciosamente sin revertir la transacción. Si no se verifica el valor de retorno, el estado del contrato avanza como si la transferencia hubiera tenido éxito, generando inconsistencias contables y potencial pérdida de fondos.",
+    "weak randomness": "Usar block.timestamp, block.number o blockhash como fuente de aleatoriedad es predecible para mineros/validadores. Un atacante puede manipular o predecir estos valores para ganar loterías de forma consistente, eludir chequeos aleatorios o hacer front-running de lógica dependiente del azar.",
+    "tx origin": "Usar tx.origin para autenticación habilita ataques de phishing: si el owner del contrato interactúa con un contrato malicioso, ese contrato puede llamar a la función vulnerable y pasar el chequeo de tx.origin. Use siempre msg.sender para autenticación.",
+    "access control": "Un control de acceso ausente o incorrecto permite a usuarios no autorizados ejecutar funciones privilegiadas como acuñar tokens, modificar estado, transferir la propiedad o retirar fondos.",
+    "integer overflow": "El desbordamiento aritmético (overflow/underflow) puede hacer que los balances se envuelvan, permitiendo a los atacantes acuñar tokens o manipular la contabilidad. Solidity 0.8+ tiene protección incorporada contra overflow, pero los bloques unchecked y el ensamblador la eluden.",
+    "front running": "Las transacciones pendientes en el mempool son visibles para cualquiera. Un atacante puede observar una transacción rentable y enviar la suya con mayor gas para que se ejecute primero, extrayendo valor (ataques sándwich, arbitraje en DEX).",
+    "oracle": "La manipulación del oráculo de precios permite a los atacantes distorsionar los precios de activos que usa el protocolo, habilitando exploits como ataques de préstamo flash que drenan pools de préstamo o manipulan los ratios de colateral.",
+    "flash loan": "Los ataques de préstamo flash permiten tomar prestado capital ilimitado sin colateral dentro de una sola transacción. Combinados con otras vulnerabilidades (manipulación de oráculo, reentrada), habilitan un drenaje catastrófico de fondos.",
+}
+
+_SEVERITY_IMPACTS_ES: Dict[str, str] = {
+    "critical": "Pérdida total de fondos o toma de control del contrato posible. Riesgo de explotación inmediato con alta probabilidad de explotación activa.",
+    "high": "Pérdida financiera significativa o compromiso del contrato posible. La explotación requiere esfuerzo moderado pero el impacto es severo.",
+    "medium": "Impacto financiero limitado o requiere condiciones previas específicas para explotarse. Debería atenderse antes del despliegue en mainnet.",
+    "low": "Impacto menor en la funcionalidad del contrato, la eficiencia de gas o la calidad del código. Bajo riesgo pero recomendable corregir por buenas prácticas.",
+    "info": "Hallazgo informativo para mejorar la calidad del código. Sin impacto de seguridad directo.",
+}
+
+
+def _get_impact_description(
+    severity: str,
+    category: str = "",
+    canonical: CanonicalCategory | None = None,
+    lang: str = "en",
+) -> str:
+    """Get impact description based on canonical category, then severity.
+
+    ``canonical`` (from :func:`normalize_finding_type`) is consulted first so the
+    description matches the normalized category. ``category`` and ``severity``
+    remain as fallbacks for hygiene detectors and the uncategorized case.
+    ``lang="es"`` selects the Spanish prose (for ``*-es`` templates).
+    """
+    if lang == "es":
+        if canonical is not None and canonical is not CanonicalCategory.OTHER:
+            canon_text = _CANONICAL_IMPACTS_ES.get(canonical)
+            if canon_text:
+                return canon_text
+            category = _CANONICAL_KEYWORD.get(canonical, canonical.value)
+        cat = category.lower().replace("-", " ").replace("_", " ") if category else ""
+        for key, desc in _CATEGORY_IMPACTS_ES.items():
+            if key in cat:
+                return desc
+        return _SEVERITY_IMPACTS_ES.get(severity, "Evaluación de impacto pendiente.")
+    if canonical is not None and canonical is not CanonicalCategory.OTHER:
+        canon_text = _CANONICAL_IMPACTS.get(canonical)
+        if canon_text:
+            return canon_text
+        # Fall through to the keyword table using a known keyword so the
+        # existing prose (reentrancy, access control, …) is reused.
+        category = _CANONICAL_KEYWORD.get(canonical, canonical.value)
     cat = category.lower().replace("-", " ").replace("_", " ") if category else ""
     # Category-specific impact descriptions
     category_impacts = {
@@ -76,8 +385,76 @@ def _get_impact_description(severity: str, category: str = "") -> str:
     return severity_impacts.get(severity, "Impact assessment pending.")
 
 
-def _get_recommendation(category: str, severity: str = "") -> str:
-    """Get specific recommendation based on vulnerability category."""
+# Canonical-category -> remediation recommendation for categories whose prose is
+# not already covered by the legacy keyword table below.
+_CANONICAL_RECOMMENDATIONS: Dict[CanonicalCategory, str] = {
+    CanonicalCategory.PROXY_UPGRADE: "Validate and allow-list delegatecall targets, never derive them from untrusted input. For upgradeable contracts use OpenZeppelin's UUPS/Transparent proxy with a storage gap and restrict upgrade authorization behind a timelock or multisig.",
+    CanonicalCategory.CENTRALIZATION: "Reduce single-key trust: move privileged operations behind a multisig and/or timelock, split roles with OpenZeppelin AccessControl, and emit events on every privileged action so changes are auditable.",
+    CanonicalCategory.SIGNATURE_VERIFICATION: "Use OpenZeppelin ECDSA (which rejects malleable signatures), include a per-signer nonce and domain separator (EIP-712), and reject the zero address returned by ecrecover on malformed input.",
+    CanonicalCategory.TIME_MANIPULATION: "Avoid using block.timestamp/block.number as a precise clock or entropy source. Widen tolerances, use block-number ranges where appropriate, and source randomness from Chainlink VRF.",
+    CanonicalCategory.DENIAL_OF_SERVICE: "Favor pull-over-push payments, bound all loops, and never let a single external call failure revert a batch. Isolate untrusted calls and cap gas where appropriate.",
+    CanonicalCategory.INPUT_VALIDATION: "Validate all external inputs with require() checks: non-zero addresses, sane numeric ranges, and matching array lengths before mutating state or transferring funds.",
+}
+
+
+# Spanish mirrors of the recommendation prose (for ``*-es`` templates). Separate
+# path so the English text above is byte-for-byte unchanged.
+_CANONICAL_RECOMMENDATIONS_ES: Dict[CanonicalCategory, str] = {
+    CanonicalCategory.PROXY_UPGRADE: "Valide y mantenga en allow-list los destinos de delegatecall; nunca los derive de entradas no confiables. Para contratos actualizables use los proxies UUPS/Transparent de OpenZeppelin con un storage gap y restrinja la autorización de actualización detrás de un timelock o multisig.",
+    CanonicalCategory.CENTRALIZATION: "Reduzca la confianza en una sola llave: mueva las operaciones privilegiadas detrás de un multisig y/o timelock, separe roles con AccessControl de OpenZeppelin y emita eventos en cada acción privilegiada para que los cambios sean auditables.",
+    CanonicalCategory.SIGNATURE_VERIFICATION: "Use ECDSA de OpenZeppelin (que rechaza firmas maleables), incluya un nonce por firmante y un separador de dominio (EIP-712), y rechace la dirección cero que ecrecover devuelve ante entradas malformadas.",
+    CanonicalCategory.TIME_MANIPULATION: "Evite usar block.timestamp/block.number como reloj preciso o fuente de entropía. Amplíe las tolerancias, use rangos de número de bloque donde corresponda y obtenga aleatoriedad de Chainlink VRF.",
+    CanonicalCategory.DENIAL_OF_SERVICE: "Prefiera el patrón pull sobre push para pagos, acote todos los bucles y nunca permita que el fallo de una sola llamada externa revierta un lote. Aísle las llamadas no confiables y limite el gas donde corresponda.",
+    CanonicalCategory.INPUT_VALIDATION: "Valide todas las entradas externas con chequeos require(): direcciones no cero, rangos numéricos razonables y longitudes de arreglos coincidentes antes de mutar estado o transferir fondos.",
+}
+
+_RECOMMENDATIONS_ES: Dict[str, str] = {
+    "reentrancy": "Aplique el patrón Checks-Effects-Interactions: verifique condiciones, actualice el estado y luego haga las llamadas externas. Considere usar el modificador ReentrancyGuard de OpenZeppelin.",
+    "selfdestruct": "Elimine selfdestruct por completo (obsoleto desde Solidity 0.8.24). Si necesita limpieza del contrato, implemente un patrón de migración con control de acceso adecuado.",
+    "uninitialized state": "Inicialice explícitamente todas las variables de estado en el constructor o en la declaración. Use chequeos require() para asegurar que las direcciones sean no cero antes de transferir fondos.",
+    "unchecked send": "Verifique siempre el valor de retorno de las llamadas de bajo nivel. Use Address.sendValue() de OpenZeppelin o SafeERC20 para transferencias de tokens, que manejan los fallos automáticamente.",
+    "weak randomness": "Use Chainlink VRF o un esquema commit-reveal para aleatoriedad criptográficamente segura. Nunca use block.timestamp, block.number o blockhash como fuentes de entropía.",
+    "tx origin": "Reemplace tx.origin por msg.sender en todos los chequeos de autenticación. tx.origin solo debería usarse para verificar que el llamante es una EOA (no un contrato), nunca para autorización.",
+    "access control": "Implemente control de acceso basado en roles usando AccessControl u Ownable2Step de OpenZeppelin. Use chequeos con modificadores y emita eventos en todas las operaciones privilegiadas.",
+    "unspecific solidity pragma": "Fije la versión de Solidity a un release específico (p. ej., pragma solidity 0.8.20;) en lugar de un rango (^0.8.0). Esto garantiza una compilación consistente y evita comportamientos inesperados por actualizaciones del compilador.",
+    "zero address check": "Agregue validación require(addr != address(0)) para todos los parámetros de dirección en funciones que asignan variables de estado o transfieren fondos.",
+    "unindexed events": "Agregue la palabra clave indexed a los parámetros de evento que se usarán para filtrar (típicamente direcciones e IDs). Cada evento puede tener hasta 3 parámetros indexados.",
+    "unsafe erc20": "Use la librería SafeERC20 de OpenZeppelin, que maneja implementaciones de ERC20 no estándar (tokens que no devuelven bool en transfer).",
+    "push zero opcode": "Configure el target del compilador de Solidity a >= 0.8.20 para aprovechar el opcode PUSH0 (EIP-3855), que ahorra gas en el despliegue del contrato.",
+    "solc version": "Actualice a una versión estable reciente de Solidity (0.8.20+) para obtener las últimas correcciones de seguridad, optimizaciones de gas y características del lenguaje.",
+}
+
+_GENERIC_RECOMMENDATION_ES = "Revise y corrija según las buenas prácticas de seguridad de contratos inteligentes. Consulte el Registro SWC para una guía de remediación detallada."
+
+
+def _get_recommendation(
+    category: str,
+    severity: str = "",
+    canonical: CanonicalCategory | None = None,
+    lang: str = "en",
+) -> str:
+    """Get specific recommendation based on canonical category.
+
+    ``canonical`` (from :func:`normalize_finding_type`) is consulted first, then
+    the legacy keyword table, then a generic best-practice recommendation.
+    ``lang="es"`` selects the Spanish prose (for ``*-es`` templates).
+    """
+    if lang == "es":
+        if canonical is not None and canonical is not CanonicalCategory.OTHER:
+            canon_text = _CANONICAL_RECOMMENDATIONS_ES.get(canonical)
+            if canon_text:
+                return canon_text
+            category = _CANONICAL_KEYWORD.get(canonical, canonical.value)
+        cat = category.lower().replace("-", " ").replace("_", " ") if category else ""
+        for key, rec in _RECOMMENDATIONS_ES.items():
+            if key in cat:
+                return rec
+        return _GENERIC_RECOMMENDATION_ES
+    if canonical is not None and canonical is not CanonicalCategory.OTHER:
+        canon_text = _CANONICAL_RECOMMENDATIONS.get(canonical)
+        if canon_text:
+            return canon_text
+        category = _CANONICAL_KEYWORD.get(canonical, canonical.value)
     cat = category.lower().replace("-", " ").replace("_", " ") if category else ""
     recommendations = {
         "reentrancy": "Apply the Checks-Effects-Interactions pattern: verify conditions, update state, then make external calls. Consider using OpenZeppelin's ReentrancyGuard modifier.",
@@ -98,6 +475,149 @@ def _get_recommendation(category: str, severity: str = "") -> str:
         if key in cat:
             return rec
     return "Review and fix according to smart contract security best practices. See SWC Registry for detailed remediation guidance."
+
+
+# Curated Spanish descriptions keyed by raw detector check id (not canonical
+# category, so variants like weak-prng vs weak-randomness keep their distinction).
+# Each says WHAT the check flags; the WHERE/exact code stays in the Location field
+# and the embedded Vulnerable Code snippet, so no technical specifics are lost.
+# An unrecognized check falls back to the detector's own English text plus a
+# visible note (see ``_localized_description``) — never a silent mix.
+_REENTRANCY_ES = (
+    "Reentrada: una llamada externa ocurre antes de actualizar el estado, permitiendo "
+    "reingresar a la función y repetir operaciones."
+)
+_ORACLE_STALE_ES = (
+    "Oráculo de precios potencialmente obsoleto: falta validación de frescura/antigüedad "
+    "del dato, lo que permite operar con un precio desactualizado."
+)
+_LOOP_CALL_ES = (
+    "Llamada externa dentro de un bucle: puede agotar el gas o ser bloqueada por un "
+    "elemento que falla, derivando en denegación de servicio."
+)
+_ARITH_ES = (
+    "Desbordamiento aritmético (overflow/underflow): una operación puede envolver el "
+    "valor y corromper la contabilidad o los balances."
+)
+_UNCHECKED_ES = (
+    "Valor de retorno de una llamada de bajo nivel o transferencia sin verificar: el "
+    "estado avanza aunque la operación haya fallado."
+)
+_UNINIT_ES = (
+    "Variable sin inicializar: toma el valor cero por defecto, pudiendo apuntar a "
+    "address(0) o dejar banderas de control en false."
+)
+_SIG_MALLEABLE_ES = (
+    "Firma maleable: ecrecover acepta firmas maleables, lo que permite falsificar o "
+    "reutilizar mensajes firmados."
+)
+_FLASH_LOAN_ES = (
+    "Exposición a préstamos flash: la lógica puede manipularse con capital sin colateral "
+    "dentro de una única transacción."
+)
+
+_CHECK_DESCRIPTIONS_ES: Dict[str, str] = {
+    "access-control": "Falta o es incorrecto el control de acceso: una función sensible puede ser invocada por cuentas no autorizadas.",
+    "access-control-missing": "Falta control de acceso: una función privilegiada no restringe quién puede invocarla.",
+    "missing-access-control": "Falta control de acceso: una función privilegiada no restringe quién puede invocarla.",
+    "arbitrary-send-erc20": "Transferencia de tokens ERC20 desde una dirección arbitraria: permite mover fondos de terceros sin su autorización.",
+    "arbitrary-send-erc20-permit": "Uso de permit() con parámetros controlables que habilita transferir tokens de terceros.",
+    "arbitrary-send-eth": "Envío de ETH a un destino controlable por el atacante o desde un origen arbitrario.",
+    "bad-randomness": "Aleatoriedad insegura: la fuente de entropía es predecible o manipulable en cadena.",
+    "weak-prng": "Generador pseudoaleatorio débil: se usa una fuente predecible en cadena (p. ej. block.timestamp) como semilla.",
+    "weak-randomness": "Aleatoriedad débil: se usan valores predecibles (block.timestamp/number, blockhash), incluido keccak256 sobre ellos, como entropía.",
+    "block-other-parameters": "Uso de parámetros de bloque (block.*) para lógica crítica, ajustables por mineros/validadores dentro del consenso.",
+    "calls-loop": _LOOP_CALL_ES,
+    "delegatecall-loop": _LOOP_CALL_ES,
+    "msg-value-loop": "Uso de msg.value dentro de un bucle: la contabilización repetida del valor enviado es incorrecta.",
+    "gas-limit-loop": "Bucle sin cota que puede superar el límite de gas del bloque y bloquear la función (denegación de servicio).",
+    "centralization-risk": "Riesgo de centralización: una cuenta privilegiada puede realizar acciones sensibles de forma unilateral.",
+    "owner-privileged": "El propietario tiene derechos privilegiados para operar el contrato y debe ser confiable para no abusar de ellos.",
+    "incorrect-owner": "Propietario mal asignado o incorrecto para una operación privilegiada.",
+    "protected-vars": "Variables que deberían estar protegidas por control de acceso y no lo están.",
+    "chainlink-stale": _ORACLE_STALE_ES,
+    "stale-oracle": _ORACLE_STALE_ES,
+    "stale-price": _ORACLE_STALE_ES,
+    "pragma_oracle_stale": _ORACLE_STALE_ES,
+    "twap-missing": "Falta un TWAP: se usa un precio spot manipulable en lugar de un promedio ponderado por tiempo.",
+    "spot-price": "Uso de precio spot manipulable (por ejemplo, mediante préstamos flash) en lugar de un precio robusto.",
+    "price-oracle": "Dependencia de un oráculo de precios sin las validaciones adecuadas.",
+    "oracle-manipulation": "Manipulación de oráculo: el precio o dato externo puede distorsionarse para explotar el protocolo.",
+    "controlled-delegatecall": "delegatecall con destino o datos controlables: permite ejecutar código arbitrario en el contexto de almacenamiento del contrato.",
+    "delegate-call-unchecked-address": "delegatecall a una dirección sin validar.",
+    "reentrancy": _REENTRANCY_ES,
+    "reentrancy-eth": "Reentrada con ETH en juego: los fondos pueden drenarse por reingreso antes de actualizar el estado.",
+    "reentrancy-no-eth": "Reentrada sin transferencia de ETH: el estado puede manipularse por reingreso.",
+    "reentrancy-benign": "Patrón de reentrada de bajo impacto, sin consecuencia directa aparente.",
+    "reentrancy-events": "Reentrada que altera el orden de emisión de eventos.",
+    "reentrancy-unlimited-gas": "Reentrada a través de una llamada con gas ilimitado (call), que no limita el gas como transfer/send.",
+    "cross-function-reentrancy": "Reentrada entre funciones: el reingreso ocurre a través de otra función que comparte el mismo estado.",
+    "read-only-reentrancy": "Reentrada de solo lectura: una función de vista devuelve estado inconsistente durante una llamada externa.",
+    "divide-before-multiply": "División antes de multiplicación: pérdida de precisión por el orden de las operaciones.",
+    "dos": "Denegación de servicio: una función crítica puede quedar permanentemente bloqueada o agotar el gas.",
+    "race-condition": "Condición de carrera / dependencia del orden de transacciones: el resultado depende del orden de minado y es explotable por front-running.",
+    "tod": "Dependencia del orden de transacciones (TOD): el resultado cambia según el orden de minado.",
+    "ecrecover-malleable": _SIG_MALLEABLE_ES,
+    "signature-malleability": _SIG_MALLEABLE_ES,
+    "signature_replay": "Reutilización de firma (replay): falta un nonce o separador de dominio que impida reusar una firma válida.",
+    "merkle-proof-forge": "Prueba de Merkle falsificable por una validación insuficiente de la prueba.",
+    "single-tx-vote": "Voto en una sola transacción: permite manipular una votación con poder adquirido y devuelto en la misma transacción (préstamo flash).",
+    "ecrecover-no-zero-check": "Falta verificar la dirección cero que ecrecover devuelve ante una firma malformada.",
+    "external-call-before-state-change": "Llamada externa antes de actualizar el estado, violando el patrón Checks-Effects-Interactions.",
+    "flash-loan": _FLASH_LOAN_ES,
+    "flash-loan-attack": _FLASH_LOAN_ES,
+    "flash-loan-governance": "Gobernanza manipulable con préstamos flash: el poder de voto puede adquirirse temporalmente en una sola transacción.",
+    "front-running": "Front-running: una transacción pendiente visible en el mempool puede ser adelantada para extraer valor.",
+    "integer-overflow": _ARITH_ES,
+    "integer-underflow": _ARITH_ES,
+    "overflow": _ARITH_ES,
+    "underflow": _ARITH_ES,
+    "unchecked_u256": _ARITH_ES,
+    "missing-initializer-guard": "Falta el guard del inicializador: la función de inicialización puede ser invocada por un atacante en un contrato actualizable.",
+    "upgrade_no_init_guard": "Falta el guard del inicializador tras la actualización, dejando el contrato reinicializable.",
+    "unprotected-upgrade": "Función de actualización sin la restricción de acceso adecuada.",
+    "storage-collision": "Colisión de almacenamiento entre el proxy y la implementación.",
+    "proxy_upgrade": "Falla de proxy/actualización: posible ejecución de código arbitrario o toma de control del contrato.",
+    "suicidal": "selfdestruct desprotegido: cualquiera puede destruir el contrato y redirigir el ETH restante a una dirección arbitraria.",
+    "selfdestruct-identifier": "Uso de la instrucción obsoleta selfdestruct, desaconsejada.",
+    "time-manipulation": "Dependencia de block.timestamp/number para lógica crítica, ajustable por mineros/validadores dentro del consenso.",
+    "timestamp": "Dependencia de block.timestamp para lógica crítica, manipulable dentro de los límites del consenso.",
+    "tx-origin": "Uso de tx.origin para autenticación: vulnerable a phishing; debe usarse msg.sender.",
+    "unchecked-call": _UNCHECKED_ES,
+    "unchecked-low-level-calls": _UNCHECKED_ES,
+    "unchecked-lowlevel": _UNCHECKED_ES,
+    "unchecked-return": _UNCHECKED_ES,
+    "unchecked-send": _UNCHECKED_ES,
+    "unchecked-transfer": "Transferencia de tokens sin verificar su valor de retorno: algunos ERC20 no revierten ante fallo.",
+    "unchecked_syscall_result": _UNCHECKED_ES,
+    "unused-return": "Valor de retorno ignorado: no se verifica el resultado de una llamada que puede fallar.",
+    "uninitialized-local": "Variable local sin inicializar: toma el valor cero por defecto.",
+    "uninitialized-state": _UNINIT_ES,
+    "uninitialized-storage": "Puntero de almacenamiento sin inicializar que puede sobrescribir otras variables de estado.",
+}
+
+
+def _localized_description(finding: dict[str, Any], lang: str) -> str:
+    """Finding description in the report language.
+
+    English (``lang != 'es'``) returns the detector's own text unchanged. Spanish
+    returns the curated description for the check id; an unrecognized check keeps
+    the detector's English text plus a visible note, so a reader always knows which
+    descriptions are curated and which are raw detector output (never a silent mix).
+    """
+    raw = finding.get("description", finding.get("message", "")) or ""
+    if lang != "es":
+        return raw
+    check = str(finding.get("type") or finding.get("check") or "").strip().lower()
+    for key in (check, check.replace("_", "-"), check.replace("-", "_")):
+        if key in _CHECK_DESCRIPTIONS_ES:
+            return _CHECK_DESCRIPTIONS_ES[key]
+    if not raw:
+        return ""
+    return (
+        f"{raw}\n\n> _Descripción provista por el detector (sin traducción curada "
+        f"para `{check or 'desconocido'}`)._"
+    )
 
 
 def _extract_attack_scenarios(findings: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -159,6 +679,122 @@ def _extract_confidence_level(findings: list[dict[str, Any]]) -> str:
     return "Low"
 
 
+def _finding_list(value: Any) -> list[dict[str, Any]]:
+    """Findings from either result-file shape; see ``miesc.cli.utils.finding_list``."""
+    return finding_list(value)
+
+
+def _coverage_and_provenance_variables(
+    results: dict[str, Any], results_file: str | None = None
+) -> dict[str, Any]:
+    """Template variables describing coverage gaps and run provenance.
+
+    Works for both the scan JSON (``tools`` / ``tools_failed``) and the audit JSON
+    (``tools_run`` / ``tools_success`` / ``tools_skipped`` / ``tools_fallback`` /
+    ``tool_status``). Everything degrades to empty lists when a key is absent.
+
+    When ``results_file`` is given, a SHA-256 integrity attestation is added: the
+    hash is computed over the *raw bytes* of that file as read from disk (never a
+    re-serialized dict), so it matches ``shasum -a 256 <results.json>``. The
+    attestation covers only the correspondence between this report and that input
+    file — it is not a cryptographic signature and does not attest how the scan
+    itself was run.
+    """
+    tool_status = results.get("tool_status") or {}
+    tools_run = list(results.get("tools_run") or results.get("tools") or tool_status.keys())
+    skipped = list(
+        results.get("tools_skipped") or [t for t, s in tool_status.items() if s == "skipped"]
+    )
+    fallback = list(
+        results.get("tools_fallback") or [t for t, s in tool_status.items() if "fallback" in str(s)]
+    )
+    failed = list(
+        results.get("tools_failed")
+        or [t for t, s in tool_status.items() if s in ("error", "timeout")]
+    )
+    failed = [t if isinstance(t, str) else str(t) for t in failed]
+    ran_clean = [t for t in tools_run if t not in skipped and t not in fallback and t not in failed]
+
+    prov = results.get("provenance") or {}
+    miesc_info = prov.get("miesc") or {}
+    python_info = prov.get("python") or {}
+    platform_info = prov.get("platform") or {}
+    solc_info = prov.get("solc") or {}
+    config_info = prov.get("config") or {}
+    tool_versions = prov.get("tools") or {}
+    rows: list[tuple[str, str]] = []
+    if prov:
+        version = miesc_info.get("version") or results.get("version") or VERSION
+        sha = miesc_info.get("git_sha")
+        if sha:
+            version = f"{version} ({sha[:12]}{', dirty' if miesc_info.get('git_dirty') else ''})"
+        rows.append(("MIESC", version))
+        rows.append(("Run timestamp", str(prov.get("timestamp") or results.get("timestamp") or "")))
+        if python_info:
+            rows.append(
+                (
+                    "Python",
+                    f"{python_info.get('version', '?')} ({python_info.get('implementation', '')})".strip(),
+                )
+            )
+        if platform_info:
+            rows.append(
+                (
+                    "Platform",
+                    " ".join(
+                        str(platform_info.get(k, "")) for k in ("system", "release", "machine")
+                    ).strip(),
+                )
+            )
+        per_contract = solc_info.get("per_contract") or {}
+        if per_contract:
+            rows.append(
+                (
+                    "solc per contract",
+                    "; ".join(f"{Path(k).name} → {v}" for k, v in sorted(per_contract.items())),
+                )
+            )
+        if config_info.get("sha256"):
+            rows.append(("Config sha256", str(config_info["sha256"])[:16] + "…"))
+        if "llm_free" in prov:
+            rows.append(
+                (
+                    "LLM adapters",
+                    "disabled (--no-llm)" if prov.get("llm_free") else "enabled where available",
+                )
+            )
+        if prov.get("command_line"):
+            rows.append(("Command", str(prov["command_line"])))
+    known_tool_versions = sorted(
+        (t, v)
+        for t, v in tool_versions.items()
+        if v and str(v).lower() != "unknown" and len(str(v)) < 80
+    )
+    # Report-integrity attestation: SHA-256 of the input file's raw bytes (not a
+    # re-serialized dict), the generator version and a UTC generation timestamp.
+    input_sha256: str | None = None
+    if results_file:
+        try:
+            input_sha256 = hashlib.sha256(Path(results_file).read_bytes()).hexdigest()
+        except Exception:
+            input_sha256 = None
+    generated_at_utc = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+    return {
+        "coverage_tools_run": tools_run,
+        "coverage_tools_clean": ran_clean,
+        "coverage_tools_skipped": sorted(skipped),
+        "coverage_tools_fallback": sorted(fallback),
+        "coverage_tools_failed": sorted(failed),
+        "coverage_llm_free": bool(prov.get("llm_free")) if prov else None,
+        "provenance_rows": rows,
+        "provenance_tool_versions": known_tool_versions,
+        "has_provenance": bool(prov),
+        "input_sha256": input_sha256,
+        "generated_at_utc": generated_at_utc,
+        "generator_version": VERSION,
+    }
+
+
 def _get_swc_references(category: str, swc_id: str = "") -> list[str]:
     """Auto-generate references based on SWC/CWE classification."""
     refs = []
@@ -192,31 +828,68 @@ def _get_swc_references(category: str, swc_id: str = "") -> list[str]:
     return refs
 
 
+def _resolve_source_path(
+    contract_path: str,
+    base_dir: str = "",
+    extra_dirs: list[str] | None = None,
+) -> Path | None:
+    """Locate a contract source file on disk, or return ``None``.
+
+    Single source of truth for source-file resolution, shared by the §5
+    source-snippet embedding (:func:`_extract_source_code`) and the §2.2 scope
+    line count. Searches, in order: the path as given, the audited source paths
+    (``extra_dirs``) and the results-file directory, the ``base_dir`` and its
+    parent, the CWD, and finally ``/contracts`` / ``/tmp``. For each base both
+    ``base/contract_path`` and ``base/<basename>`` are tried, so a finding whose
+    location is just ``Foo.sol`` (or an absolute ``/contracts/Foo.sol`` that no
+    longer exists) is still located next to the results JSON.
+    """
+    if not contract_path or contract_path == "unknown":
+        return None
+    try:
+        path = Path(contract_path)
+        if path.exists() and path.is_file():
+            return path
+        # Build the ordered list of directories to search.
+        search_dirs: list[Path] = []
+        for extra in extra_dirs or []:
+            if extra:
+                ed = Path(extra)
+                search_dirs.append(ed.parent if ed.is_file() else ed)
+        if base_dir:
+            bd = Path(base_dir)
+            search_dirs.append(bd.parent if bd.is_file() else bd)
+        search_dirs.append(Path.cwd())
+        search_dirs.extend([Path("/contracts"), Path("/tmp")])
+
+        basename = Path(contract_path).name
+        for base in search_dirs:
+            for candidate in (base / contract_path, base / basename):
+                if candidate.exists() and candidate.is_file():
+                    return candidate
+    except Exception:
+        return None
+    return None
+
+
 def _extract_source_code(
-    contract_path: str, line_number: int, context: int = 5, base_dir: str = ""
+    contract_path: str,
+    line_number: int,
+    context: int = 5,
+    base_dir: str = "",
+    extra_dirs: list[str] | None = None,
 ) -> str:
-    """Extract actual source code lines from the contract file."""
+    """Extract actual source code lines from the contract file.
+
+    Uses :func:`_resolve_source_path` to locate the file, then returns a snippet
+    centred on ``line_number`` (empty string when the file cannot be located).
+    """
     if not contract_path or contract_path == "unknown" or not line_number:
         return ""
     try:
-        path = Path(contract_path)
-        if not path.exists():
-            # Try relative to base_dir (from results JSON "contract" field)
-            search_dirs = [Path.cwd()]
-            if base_dir:
-                bd = Path(base_dir)
-                search_dirs.insert(0, bd)
-                # If base_dir is a file, use its parent
-                if bd.is_file():
-                    search_dirs.insert(0, bd.parent)
-            search_dirs.extend([Path("/contracts"), Path("/tmp")])
-            for base in search_dirs:
-                candidate = base / contract_path
-                if candidate.exists():
-                    path = candidate
-                    break
-            else:
-                return ""
+        path = _resolve_source_path(contract_path, base_dir, extra_dirs)
+        if path is None:
+            return ""
         lines = path.read_text(encoding="utf-8").splitlines()
         start = max(0, line_number - context - 1)
         end = min(len(lines), line_number + context)
@@ -227,6 +900,75 @@ def _extract_source_code(
         return "\n".join(snippet_lines)
     except Exception:
         return ""
+
+
+# Layer key → human capability name for the derived §2.2 out-of-scope list.
+# Only layers that tools are actually mapped to in ``TOOL_LAYER_MAP`` belong
+# here: a layer no tool can populate (e.g. ``property_testing``, which has no
+# mapped tool) would render unconditionally and become boilerplate in disguise.
+_LAYER_SCOPE_LABEL: dict[str, str] = {
+    "dynamic_testing": "Dynamic testing / fuzzing",
+    "symbolic_execution": "Symbolic execution",
+    "formal_verification": "Formal verification",
+    "ai_analysis": "AI/LLM-assisted review",
+    "ml_detection": "ML-based detection",
+    "specialized": "Specialized analysis (gas, threat modeling, clone detection)",
+}
+
+
+def _derive_out_of_scope(
+    layer_summary: dict[str, Any],
+    tools_execution_summary: list[dict[str, Any]],
+    coverage_tools_skipped: list[str],
+) -> list[str]:
+    """Out-of-scope boundaries derived from what this run did NOT exercise.
+
+    Honest and run-specific: a boundary appears only when the matching analysis
+    layer produced no successful tool in *this* run, or a tool was present but
+    did not run cleanly. Nothing is asserted as a pre-decided engagement
+    exclusion. Returns an empty list when nothing could be derived, in which case
+    the template renders an explicit "not explicitly assessed" sentence instead
+    of boilerplate.
+    """
+    out: list[str] = []
+    ran_layers = {lk for lk, ls in layer_summary.items() if (ls or {}).get("tools_success", 0) > 0}
+
+    # Analysis layers with no successful tool this run.
+    for lk, label in _LAYER_SCOPE_LABEL.items():
+        if lk not in ran_layers:
+            out.append(f"{label} — no tool from this layer produced results in this run")
+
+    # Economic / tokenomics (DeFi) analysis: in scope only if a DeFi-economic
+    # detector actually ran and succeeded. Checked against both the layer map and
+    # explicit tool names (defi_detectors / economic_invariants / mev) so a tool
+    # mapped outside the "defi" layer is still honoured.
+    econ_markers = ("defi", "economic", "tokenomics", "mev")
+    econ_ran = "defi" in ran_layers or any(
+        t.get("status") == "Success"
+        and any(m in str(t.get("name", "")).lower() for m in econ_markers)
+        for t in tools_execution_summary
+    )
+    if not econ_ran:
+        out.append(
+            "Economic / tokenomics (DeFi) analysis — no economic detector "
+            "produced results in this run"
+        )
+
+    # Tools that were present but did not run cleanly (skipped / unavailable /
+    # failed), so their coverage is explicitly excluded.
+    not_clean = sorted(
+        {
+            str(t.get("name"))
+            for t in tools_execution_summary
+            if t.get("status")
+            in ("Skipped", "Not Available", "Not Run", "Failed", "Error", "Timeout")
+        }
+        | set(coverage_tools_skipped)
+    )
+    if not_clean:
+        out.append("Tools not executed or unavailable at run time: " + ", ".join(not_clean))
+
+    return out
 
 
 def _interactive_wizard(variables: dict[str, Any], console: Any) -> dict[str, Any]:
@@ -269,6 +1011,22 @@ def _interactive_wizard(variables: dict[str, Any], console: Any) -> dict[str, An
         console.print(f"[green]✓ {changes} field(s) updated.[/green]\n")
 
     return variables
+
+
+def _coverage_label(success_count: int, failed_count: int) -> str:
+    """Single source of truth for a layer's coverage status label.
+
+    Used by both §2.3 (methodology) and §4.3 (layer coverage) so the two
+    sections never disagree. A layer with no successes and no failures was not
+    run (e.g. a ``not_available`` tool) — that is NOT a failure.
+    """
+    if success_count > 0 and failed_count == 0:
+        return "✅ Complete"
+    if success_count > 0:
+        return "⚠️ Partial"
+    if failed_count > 0:
+        return "❌ Failed"
+    return "⏭️ Not Run"
 
 
 def _calculate_risk_level(summary: dict[str, Any]) -> str:
@@ -377,8 +1135,18 @@ def _simple_render_template(template: str, variables: dict[str, Any]) -> str:
     return output
 
 
-def _markdown_to_html(markdown: str, title: str, use_premium_css: bool = True) -> str:
-    """Convert markdown to HTML with professional styling."""
+def _markdown_to_html(
+    markdown: str,
+    title: str,
+    use_premium_css: bool = True,
+    css_name: str = "profesional.css",
+    html_lang: str = "en",
+) -> str:
+    """Convert markdown to HTML with professional styling.
+
+    ``css_name`` selects the stylesheet (``profesional-es.css`` carries the
+    Spanish running header/footer); ``html_lang`` sets the ``<html lang>``.
+    """
     try:
         import markdown as md  # type: ignore[import-untyped]
 
@@ -390,7 +1158,9 @@ def _markdown_to_html(markdown: str, title: str, use_premium_css: bool = True) -
     # Try to load premium CSS
     css_content = ""
     if use_premium_css:
-        css_path = ROOT_DIR / "docs" / "templates" / "reports" / "profesional.css"
+        css_path = ROOT_DIR / "docs" / "templates" / "reports" / css_name
+        if not css_path.exists():
+            css_path = ROOT_DIR / "docs" / "templates" / "reports" / "profesional.css"
         if css_path.exists():
             css_content = css_path.read_text(encoding="utf-8")
 
@@ -415,7 +1185,7 @@ def _markdown_to_html(markdown: str, title: str, use_premium_css: bool = True) -
     html_body = _enhance_html_severity(html_body)
 
     return f"""<!DOCTYPE html>
-<html lang="en">
+<html lang="{html_lang}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -467,7 +1237,16 @@ def _enhance_html_severity(html: str) -> str:
     "--template",
     "-t",
     type=click.Choice(
-        ["professional", "executive", "technical", "github-pr", "simple", "profesional", "premium"]
+        [
+            "professional",
+            "executive",
+            "technical",
+            "github-pr",
+            "simple",
+            "profesional",
+            "profesional-es",
+            "premium",
+        ]
     ),
     default="simple",
     help="Report template to use (premium/profesional include CVSS scores, attack scenarios, and deployment recommendations)",
@@ -715,6 +1494,29 @@ def report(
                 seen_findings[dedup_key] = f
     findings = list(seen_findings.values())
 
+    # =========================================================================
+    # Normalize each finding's taxonomy ONCE, here, before any downstream
+    # aggregation (category summary, key takeaways, CVSS, impact/recommendation,
+    # PoC) reads it. We populate ``canonical_category`` only when a real category
+    # resolves (not OTHER / None) and only when the field is not already set by
+    # the intelligence engine — so we fill PR-0's honest blanks without
+    # clobbering richer upstream metadata or fabricating a category.
+    # ``_canonical`` holds the enum for in-process use (impact/recommendation).
+    for f in findings:
+        canon = normalize_finding_type(
+            {
+                "type": str(f.get("type") or f.get("category") or ""),
+                "check": str(f.get("check") or ""),
+                "swc_id": str(f.get("swc_id") or ""),
+            }
+        )
+        if canon is not None and canon is not CanonicalCategory.OTHER:
+            f["_canonical"] = canon
+            if not f.get("canonical_category"):
+                f["canonical_category"] = canon.value
+        else:
+            f["_canonical"] = None
+
     # Recalculate severity counts after deduplication
     if not summary:
         critical_count = sum(1 for f in findings if f.get("severity", "").lower() == "critical")
@@ -813,6 +1615,8 @@ def report(
         "category_summary": _extract_category_summary(findings),
         "exploitability_rating": "Medium",
         "business_impact": "Medium",
+        "availability_rating": "Low",
+        "availability_note": "No significant availability risks identified",
         "confidence_level": _extract_confidence_level(findings),
         "value_at_risk": None,
         "out_of_scope": [],
@@ -866,6 +1670,11 @@ def report(
         key_takeaways = "No vulnerabilities identified during the audit. " + deploy_note
 
     variables["key_takeaways"] = key_takeaways
+
+    # Coverage and provenance (Product Excellence Plan B.2/B.3): what did not run,
+    # what ran in fallback mode, and the exact environment, straight from the
+    # result JSON so the report can be cited and its gaps are visible.
+    variables.update(_coverage_and_provenance_variables(results, results_file))
     # Also set llm_executive_summary if not already set by LLM
     if not variables.get("llm_executive_summary"):
         variables["llm_executive_summary"] = key_takeaways
@@ -876,6 +1685,11 @@ def report(
     files_analyzed: list[dict[str, Any]] = []
     files_in_scope: list[dict[str, Any]] = []
     total_lines = 0
+    # An in-scope file whose source cannot be located at report time renders an
+    # em-dash (—), never ``0`` — a 0 LOC count would be a false claim. This flag
+    # records whether ANY in-scope file could not be measured, so the "Total" is
+    # also dashed (a partial sum labelled Total would itself be false).
+    scope_source_unavailable = False
 
     # Check if batch audit (has "contracts" array)
     if "contracts" in results:
@@ -886,15 +1700,24 @@ def report(
             )
             contract_findings = contract_data.get("total_findings", 0)
 
-            # Try to get lines of code
-            lines: int | str = "N/A"
-            try:
-                if contract_path and Path(contract_path).exists():
-                    with open(contract_path, encoding="utf-8") as contract_handle:
-                        lines = len(contract_handle.readlines())
-                        total_lines += lines
-            except Exception:
-                pass
+            # Count lines via the shared source resolver (same resolution used by
+            # the §5 snippet embedding), so a relative or stale-absolute path is
+            # still found next to the results JSON.
+            lines: int | str = "—"
+            resolved = _resolve_source_path(
+                contract_path if contract_path and contract_path != "Unknown" else "",
+                base_dir=contract_path if contract_path != "Unknown" else "",
+                extra_dirs=[results_file],
+            )
+            if resolved is not None:
+                try:
+                    lines = len(resolved.read_text(encoding="utf-8").splitlines())
+                    total_lines += lines
+                except Exception:
+                    lines = "—"
+                    scope_source_unavailable = True
+            else:
+                scope_source_unavailable = True
 
             files_analyzed.append(
                 {
@@ -924,37 +1747,24 @@ def report(
             Path(contract_path).name if contract_path and contract_path != "Unknown" else "Contract"
         )
 
-        lines = 0
+        lines = "—"
         functions_count = 0
-        try:
-            resolved_path = None
-            if contract_path and contract_path != "Unknown":
-                p = Path(contract_path)
-                if p.exists():
-                    resolved_path = p
-                else:
-                    # Try resolving relative to results file directory
-                    results_dir = Path(results_file).parent
-                    search_candidates = [
-                        results_dir / contract_path,
-                        results_dir.parent / contract_path,
-                        Path.cwd() / contract_path,
-                        Path("/contracts") / Path(contract_path).name,
-                        Path("/tmp") / Path(contract_path).name,
-                    ]
-                    for candidate in search_candidates:
-                        if candidate.exists():
-                            resolved_path = candidate
-                            break
-
-            if resolved_path and resolved_path.is_file():
+        resolved_path = _resolve_source_path(
+            contract_path if contract_path and contract_path != "Unknown" else "",
+            base_dir=contract_path if contract_path and contract_path != "Unknown" else "",
+            extra_dirs=[results_file],
+        )
+        if resolved_path is not None:
+            try:
                 content = resolved_path.read_text(encoding="utf-8")
                 lines = len(content.splitlines())
-                total_lines = lines
-                # Count functions
+                total_lines += lines
                 functions_count = len(re.findall(r"\bfunction\s+\w+\s*\(", content))
-        except Exception:
-            lines = "N/A"
+            except Exception:
+                lines = "—"
+                scope_source_unavailable = True
+        else:
+            scope_source_unavailable = True
 
         files_analyzed.append(
             {
@@ -977,8 +1787,12 @@ def report(
     variables["files_analyzed"] = files_analyzed
     variables["files_in_scope"] = files_in_scope
     variables["files_count"] = len(files_analyzed)
-    if total_lines > 0:
-        variables["lines_of_code"] = total_lines
+    variables["scope_source_unavailable"] = scope_source_unavailable
+    # Only report a numeric total when every in-scope file was measured; an
+    # em-dash otherwise (never a partial sum or ``N/A``/``0``).
+    variables["lines_of_code"] = (
+        total_lines if (total_lines > 0 and not scope_source_unavailable) else "—"
+    )
 
     # =========================================================================
     # Enhanced Tool Execution Summary
@@ -995,8 +1809,10 @@ def report(
         tools_run = results.get("tools_run", [])
         tools_success = set(results.get("tools_success", []))
         tools_failed = set(results.get("tools_failed", []))
-        raw_findings = results.get("raw_findings", {}).get("findings", [])
-        ml_findings = results.get("ml_filtered", {}).get("findings", [])
+        raw_findings = _finding_list(results.get("raw_findings"))
+        ml_findings = _finding_list(results.get("ml_filtered")) or _finding_list(
+            results.get("ml_enhanced")
+        )
         all_findings = ml_findings if ml_findings else raw_findings
 
         # Group findings by tool
@@ -1057,6 +1873,10 @@ def report(
         "medusa": "dynamic_testing",
         "dogefuzz": "dynamic_testing",
         "vertigo": "dynamic_testing",
+        # Revert-invariant counterexamples are reproduced by Foundry execution, so
+        # they belong to the dynamic-testing layer (not formal verification).
+        "revert_invariant_executor": "dynamic_testing",
+        "revert_invariant_reasoning": "dynamic_testing",
         # Layer 3: Symbolic Execution
         "mythril": "symbolic_execution",
         "manticore": "symbolic_execution",
@@ -1108,6 +1928,8 @@ def report(
             "skipped": "Skipped",
             "timeout": "Timeout",
             "error": "Error",
+            "not_available": "Not Available",
+            "not_run": "Not Run",
         }
         display_status = status_map.get(
             tool_status, tool_status.capitalize() if isinstance(tool_status, str) else "Unknown"
@@ -1216,11 +2038,7 @@ def report(
                     "success_count": ls["tools_success"],
                     "failed_count": ls["tools_failed"],
                     "findings_count": ls["findings_count"],
-                    "coverage_status": (
-                        "✅ Complete"
-                        if ls["tools_success"] > 0 and ls["tools_failed"] == 0
-                        else ("⚠️ Partial" if ls["tools_success"] > 0 else "❌ Not Executed")
-                    ),
+                    "coverage_status": _coverage_label(ls["tools_success"], ls["tools_failed"]),
                 }
             )
 
@@ -1263,6 +2081,16 @@ def report(
     variables["layer_summary"] = layer_summary_list
     variables["total_tools_executed"] = len(tools_execution_summary)
 
+    # §2.2 Out of Scope — derived from what this run did not exercise (layers with
+    # no successful tool, and tools present but not run cleanly), never generic
+    # boilerplate. Uses the same ``layer_summary`` that feeds §4.3 so the two
+    # sections agree on what ran.
+    variables["out_of_scope"] = _derive_out_of_scope(
+        layer_summary,
+        tools_execution_summary,
+        variables.get("coverage_tools_skipped", []),
+    )
+
     # Populate layer coverage status for methodology section (§2.3)
     layer_coverage_map = {
         "static_analysis": "layer1_coverage",
@@ -1278,12 +2106,7 @@ def report(
     for lk, var_name in layer_coverage_map.items():
         if lk in layer_summary:
             ls = layer_summary[lk]
-            if ls["tools_success"] > 0 and ls["tools_failed"] == 0:
-                variables[var_name] = "✅ Complete"
-            elif ls["tools_success"] > 0:
-                variables[var_name] = "⚠️ Partial"
-            else:
-                variables[var_name] = "❌ Failed"
+            variables[var_name] = _coverage_label(ls["tools_success"], ls["tools_failed"])
         else:
             variables[var_name] = "-- Not Run"
 
@@ -1418,7 +2241,7 @@ def report(
     # =========================================================================
     # Profesional Template Processing
     # =========================================================================
-    if template in ("profesional", "premium"):
+    if template in ("profesional", "profesional-es", "premium"):
         info("Generating premium report data (CVSS scores, risk matrix, etc.)...")
         try:
             from miesc.reports.risk_calculator import calculate_premium_risk_data
@@ -1435,6 +2258,12 @@ def report(
 
             # Calculate risk data
             risk_data = calculate_premium_risk_data(findings)
+
+            # cvss_scores is parallel to findings (same order). Re-label each row
+            # with the canonical F-xxx id so §3.2, §4.1, §5 and Appendix D all
+            # refer to the same finding identifiers instead of raw tool ids.
+            for cvss_idx, cvss_row in enumerate(risk_data.get("cvss_scores", []), 1):
+                cvss_row["finding_id"] = f"F-{cvss_idx:03d}"
 
             # Post-process risk score: cap by severity band
             # Only reach 100 if there are CRITICAL findings
@@ -1494,6 +2323,26 @@ def report(
                 }
             )
 
+            # §1.4 Impact Assessment — derive the Availability row from the
+            # actual scored CVSS vectors (A:H) instead of hard-coding it off
+            # severity counts, which previously produced a self-contradiction
+            # ("Medium - No significant availability risks"). Rating and note now
+            # always agree.
+            scored_vectors = [
+                str(row.get("vector", ""))
+                for row in risk_data.get("cvss_scores", [])
+                if not row.get("uncategorized")
+            ]
+            has_availability_impact = any("A:H" in v for v in scored_vectors)
+            if has_availability_impact:
+                variables["availability_rating"] = "Medium"
+                variables["availability_note"] = (
+                    "Denial-of-service or fund-locking impact is possible"
+                )
+            else:
+                variables["availability_rating"] = "Low"
+                variables["availability_note"] = "No significant availability risks identified"
+
             # Calculate category summary
             categories: Dict[str, Any] = {}
             for f in findings:
@@ -1547,8 +2396,23 @@ def report(
                 "visibility": ("SWC-100", "Function Default Visibility"),
             }
 
+            # Known SWC id -> title (built from the keyword map, plus a baseline
+            # of common registry titles) so a finding's own swc_id can be
+            # labelled even if its type does not match a keyword.
+            swc_titles = {
+                "SWC-106": "Unprotected SELFDESTRUCT Instruction",
+                "SWC-112": "Delegatecall to Untrusted Callee",
+                "SWC-116": "Block values as a proxy for time",
+                "SWC-120": "Weak Sources of Randomness from Chain Attributes",
+            }
+            swc_titles.update({sid: title for _, (sid, title) in SWC_MAPPING.items()})
+            swc_re = re.compile(r"^SWC-\d+$")
+
             swc_found: Dict[str, Any] = {}
-            for f in findings:
+            # Enumerate with the SAME 1-based index used to build F-xxx finding
+            # IDs below, so Appendix D cites the real finding IDs instead of a
+            # per-row "F1".
+            for idx, f in enumerate(findings, 1):
                 f_type = (
                     (f.get("type") or f.get("check") or f.get("category") or "")
                     .lower()
@@ -1557,23 +2421,32 @@ def report(
                 )
                 f_title = (f.get("title") or f.get("name") or "").lower()
 
-                # Try to match by type or title
-                for key, (swc_id, swc_title) in SWC_MAPPING.items():
-                    if key in f_type or key in f_title:
-                        if swc_id not in swc_found:
-                            swc_found[swc_id] = {
-                                "id": swc_id,
-                                "title": swc_title,
-                                "count": 0,
-                                "status": "Found",
-                                "status_icon": "⚠️",
-                                "finding_ids": [],
-                            }
-                        swc_found[swc_id]["count"] += 1
-                        swc_found[swc_id]["finding_ids"].append(
-                            f"F{len(swc_found[swc_id]['finding_ids'])+1}"
-                        )
-                        break
+                # Prefer the finding's own SWC id; else match by type/title.
+                own_swc = str(f.get("swc_id") or "").strip().upper()
+                matched_id = None
+                matched_title = None
+                if swc_re.match(own_swc):
+                    matched_id = own_swc
+                    matched_title = swc_titles.get(own_swc, "See SWC registry")
+                else:
+                    for key, (swc_id, swc_title) in SWC_MAPPING.items():
+                        if key in f_type or key in f_title:
+                            matched_id = swc_id
+                            matched_title = swc_title
+                            break
+
+                if matched_id:
+                    if matched_id not in swc_found:
+                        swc_found[matched_id] = {
+                            "id": matched_id,
+                            "title": matched_title,
+                            "count": 0,
+                            "status": "Found",
+                            "status_icon": "⚠️",
+                            "finding_ids": [],
+                        }
+                    swc_found[matched_id]["count"] += 1
+                    swc_found[matched_id]["finding_ids"].append(f"F-{idx:03d}")
 
             # Add common SWC entries that were checked but not found
             common_swc = [
@@ -1757,7 +2630,7 @@ def report(
     # =========================================================================
     # Proof of Concept Generation (for Critical/High findings)
     # =========================================================================
-    if template in ("profesional", "premium"):
+    if template in ("profesional", "profesional-es", "premium"):
         try:
             from miesc.poc.poc_generator import PoCGenerator
 
@@ -1795,6 +2668,14 @@ def report(
                             elif isinstance(loc, str) and ":" in loc:
                                 target = loc.split(":")[0]
                         poc = poc_generator.generate(finding, target_contract=target)
+                        if poc is None:
+                            # No PoC template for this vulnerability type: omit it
+                            # rather than ship a mislabelled exploit.
+                            logger.debug(
+                                "No PoC template available for type %s; omitting",
+                                finding.get("type"),
+                            )
+                            continue
                         finding["poc"] = poc.solidity_code
                         finding["poc_available"] = True
                         finding["poc_name"] = poc.name
@@ -1820,6 +2701,12 @@ def report(
             loc_str = f"{location.get('file', 'unknown')}:{location.get('line', '?')}"
             if location.get("function"):
                 loc_str += f" ({location.get('function')})"
+            extra = (finding.get("occurrences") or 1) - 1
+            if extra > 0:
+                more = ", ".join(
+                    str(hit.get("line", "?")) for hit in (finding.get("locations") or [])[1:]
+                )
+                loc_str += f" +{extra} more (lines {more})" if more else f" +{extra} more"
         else:
             loc_str = str(location) if location else "unknown"
 
@@ -1855,12 +2742,14 @@ def report(
             "informational": "#17a2b8",
         }
 
-        # Get CVSS score if available
+        # Get CVSS score if available. cvss_scores is parallel to findings in
+        # order, so index by position — matching on title breaks the moment two
+        # findings share a type/title.
         cvss_score = None
-        for score in variables.get("cvss_scores", []):
-            if score.get("title") == title_field or score.get("finding_id") == f"F-{i:03d}":
-                cvss_score = score.get("base_score")
-                break
+        cvss_rows = variables.get("cvss_scores", [])
+        if i - 1 < len(cvss_rows):
+            row = cvss_rows[i - 1]
+            cvss_score = None if row.get("uncategorized") else row.get("base_score")
 
         # Get attack scenario — first from global list, then from intelligence engine
         attack_scenario = None
@@ -1910,12 +2799,18 @@ def report(
         if confirming:
             detected_by = ", ".join(confirming)
         else:
-            raw_tool = finding.get("tool", "unknown")
+            # ``source`` is the attributing field for formats without ``tool``
+            # (e.g. revert-invariant counterexamples), matching the tool_set
+            # fallback used when building the tool list.
+            raw_tool = finding.get("tool") or finding.get("source") or "unknown"
             if raw_tool == "miesc-intelligence":
                 # Fall back to any tool info from the finding itself
                 detected_by = finding.get("original_tool", raw_tool)
             else:
                 detected_by = raw_tool
+
+        # Phase 2 (Piece A): honest verification method per finding.
+        verification = _verification_method(str(finding.get("source") or ""), detected_by)
 
         # Fix #10: Include confidence in status display
         raw_status = finding.get("status", "Open")
@@ -1935,9 +2830,16 @@ def report(
                 "severity_color": severity_colors.get(severity_lower, "#6c757d"),
                 "category": category,
                 "location": loc_str,
-                "description": finding.get("description", finding.get("message", "")),
+                "description": _localized_description(
+                    finding, "es" if template.endswith("-es") else "en"
+                ),
                 "recommendation": (
-                    _get_recommendation(category, severity_lower)
+                    _get_recommendation(
+                        category,
+                        severity_lower,
+                        canonical=finding.get("_canonical"),
+                        lang=("es" if template.endswith("-es") else "en"),
+                    )
                     if not finding.get("recommendation")
                     or finding.get("recommendation", "").startswith("Review and fix")
                     else finding["recommendation"]
@@ -1945,7 +2847,12 @@ def report(
                 "tool": detected_by,
                 "status": status_display,
                 "impact": (
-                    _get_impact_description(severity_lower, category)
+                    _get_impact_description(
+                        severity_lower,
+                        category,
+                        canonical=finding.get("_canonical"),
+                        lang=("es" if template.endswith("-es") else "en"),
+                    )
                     if not finding.get("impact")
                     or finding.get("impact", "").startswith("Significant financial")
                     or finding.get("impact", "").startswith("Minor impact")
@@ -1969,6 +2876,7 @@ def report(
                         )
                     ),
                     base_dir=detected_contract_full_path,
+                    extra_dirs=[results_file],
                 )
                 or "// Source code not available for this finding",
                 "references": finding.get("references")
@@ -2000,10 +2908,43 @@ def report(
                 "poc_name": finding.get("poc_name", ""),
                 "poc_prerequisites": finding.get("poc_prerequisites", []),
                 "poc_expected_outcome": finding.get("poc_expected_outcome", ""),
+                # Phase 2 — formal/invariant evidence passthrough. The whitelist
+                # above reconstructs each finding, so these keys must be carried
+                # explicitly or they are dropped before the template. ``evidence``
+                # text comes verbatim from the real finding dict, never invented.
+                "source": str(finding.get("source") or ""),
+                "evidence": list(finding.get("evidence") or []),
+                "verification": verification,
+                # Reentrancy triage (scan annotation) — flattened to scalars so both
+                # the Jinja2 and the simple fallback renderer can print them. Empty
+                # for non-reentrancy findings, so the template row stays conditional.
+                "triage_tier": str((finding.get("reentrancy_triage") or {}).get("tier") or ""),
+                "triage_guard": str((finding.get("reentrancy_triage") or {}).get("guard") or ""),
             }
         )
 
     variables["findings"] = formatted_findings
+    # Phase 2 (Piece B): property & invariant analysis inputs.
+    # (b) Execution-verified findings: discriminated by their ``source`` so only
+    # Foundry-reproduced counterexamples appear — labelled "reproduced by
+    # execution", never "proven"/"formally verified".
+    variables["execution_verified_findings"] = [
+        f for f in formatted_findings if f.get("source") in _EXECUTION_SOURCES
+    ]
+    # (a) Formal verification (Layer 4): per-tool ran / status / #findings, drawn
+    # from the SAME tool-execution summary that feeds ``layer4_coverage`` (§2.3),
+    # so the two sections can never contradict. Only ran/not-run/#findings is
+    # reported — never "N invariants proven", which this data does not support.
+    variables["formal_verification_tools"] = [
+        {
+            "name": t.get("name", ""),
+            "status": t.get("status", ""),
+            "status_icon": t.get("status_icon", ""),
+            "findings_count": t.get("findings_count", 0),
+        }
+        for t in variables.get("tools_execution_summary", [])
+        if str(t.get("name", "")).lower().strip() in _LAYER4_TOOLS
+    ]
     variables["critical_high_findings"] = [
         f for f in formatted_findings if f["severity"] in ("critical", "high")
     ]
@@ -2011,19 +2952,47 @@ def report(
         f for f in formatted_findings if f["severity"] in ("medium", "low")
     ]
 
+    # Phase 3 (§4.5): Trust Model & Privileged Roles. Additive and advisory — the
+    # inventory and the trust-relevant finding cross-reference carry ZERO weight in any
+    # count or the risk score (a role is a trust assumption, not a Finding).
+    variables.update(_build_trust_model_vars(results, formatted_findings))
+
+    # Phase 4 (§4.6): Dynamic Testing & Fuzzing. Additive and honest — campaign
+    # statistics are not findings, so this carries ZERO weight in any count or the
+    # risk score. State is derived from the same ``layer_summary`` that feeds §2.3's
+    # Layer-2 coverage, so the two sections cannot contradict each other.
+    variables.update(_build_dynamic_testing_vars(tool_results, formatted_findings, layer_summary))
+
     # Simple template rendering (basic variable substitution)
     output_content = _render_template(template_content, variables)
+
+    # Spanish ``*-es`` templates get the Spanish stylesheet (Spanish running
+    # header/footer) and <html lang="es">; everything else stays English.
+    _is_es = template.endswith("-es")
+    report_css_name = "profesional-es.css" if _is_es else "profesional.css"
+    report_html_lang = "es" if _is_es else "en"
 
     # Handle output
     if output:
         output_path = Path(output)
 
         if output_format == "html":
-            output_content = _markdown_to_html(output_content, title or "MIESC Security Report")
+            output_content = _markdown_to_html(
+                output_content,
+                title or "MIESC Security Report",
+                css_name=report_css_name,
+                html_lang=report_html_lang,
+            )
         elif output_format == "pdf":
             # Generate PDF from HTML using weasyprint (preferred) or pandoc fallback
-            html_content = _markdown_to_html(output_content, title or "MIESC Security Report")
+            html_content = _markdown_to_html(
+                output_content,
+                title or "MIESC Security Report",
+                css_name=report_css_name,
+                html_lang=report_html_lang,
+            )
             pdf_generated = False
+            pdf_degraded_to_html = False
 
             # Try weasyprint first (available in Docker image)
             try:
@@ -2033,8 +3002,10 @@ def report(
                 info("Generating PDF with WeasyPrint...")
                 font_config = FontConfiguration()
 
-                # Load premium CSS if available
-                css_path = ROOT_DIR / "docs" / "templates" / "reports" / "profesional.css"
+                # Load premium CSS if available (Spanish variant for *-es templates)
+                css_path = ROOT_DIR / "docs" / "templates" / "reports" / report_css_name
+                if not css_path.exists():
+                    css_path = ROOT_DIR / "docs" / "templates" / "reports" / "profesional.css"
                 if css_path.exists():
                     css_content = css_path.read_text(encoding="utf-8")
                     css = CSS(string=css_content, font_config=font_config)
@@ -2074,20 +3045,36 @@ def report(
                     success(f"PDF report saved to {output_path}")
                     return
                 except FileNotFoundError:
+                    temp_html.unlink(missing_ok=True)
                     warning(
                         "PDF generation requires weasyprint or pandoc. "
-                        "Install with: pip install weasyprint"
+                        "Install with: pip install 'miesc\\[pdf]' "
+                        "plus weasyprint's system libraries (cairo, pango, gdk-pixbuf) -- "
+                        "see the README, or use the Docker image which bundles them."
                     )
                     output_path = output_path.with_suffix(".html")
                     output_content = html_content
+                    pdf_degraded_to_html = True
                     warning(f"Saved as HTML instead: {output_path}")
                 except subprocess.CalledProcessError as e:
+                    temp_html.unlink(missing_ok=True)
                     warning(f"PDF generation failed: {e}")
                     output_path = output_path.with_suffix(".html")
                     output_content = html_content
+                    pdf_degraded_to_html = True
                     warning(f"Saved as HTML instead: {output_path}")
 
         output_path.write_text(output_content, encoding="utf-8")
+        if output_format == "pdf" and pdf_degraded_to_html:
+            # Do not report success for a file the user did not ask for: the
+            # HTML is kept, but the exit code tells scripts/CI that no PDF exists.
+            error(
+                f"No PDF was produced; HTML fallback written to {output_path}. "
+                "Install PDF support with: pip install 'miesc\\[pdf]' plus weasyprint's "
+                "system libraries (cairo, pango, gdk-pixbuf; see the README), or use the "
+                "Docker image which bundles them."
+            )
+            sys.exit(1)
         success(f"Report saved to {output_path}")
     else:
         # Output to stdout

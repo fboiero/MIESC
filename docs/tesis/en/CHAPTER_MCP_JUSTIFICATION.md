@@ -19,7 +19,7 @@ Consider the typical workflow of a developer who wants to verify the security of
 5. Investigate each finding to determine if it represents a real vulnerability
 6. Decide and apply the appropriate remediation
 
-This process assumes specialized technical knowledge that exceeds the typical competencies of an application developer. The result, documented by Beller et al. (2016), is that "static analysis tools are underutilized in industrial practice due to usage friction and difficulty in interpreting results" (p. 12).
+This process assumes specialized technical knowledge that exceeds the typical competencies of an application developer. The result, documented by Beller et al. (2016) in their large-scale evaluation of open-source projects, is that static analysis tools remain underused in practice because of usage friction and the difficulty of interpreting their results.
 
 ### 7.1.2 The Emergence of Conversational Interfaces
 
@@ -95,12 +95,12 @@ MCP selection was based on four factors:
 
 **1. Alignment with data sovereignty principles**
 
-MCP defines a model where the server (MIESC) runs on the user's infrastructure, and the client (Claude) connects locally. Source code never leaves the local system:
+MCP defines a model where the server (MIESC) runs on the user's infrastructure, and the client (Claude) connects locally. Source code and tools stay on the local system; what does travel to the assistant's provider, when the client is a hosted service such as Claude Desktop, is the content the server returns (findings and quoted snippets):
 
 ```
 User -> Claude Desktop -> MCP Client -> localhost:3000 -> MIESC MCP Server -> Tools
                                                                 |
-                                                          (All local)
+                                               (Server and tools local; responses go to the hosted client)
 ```
 
 This model is fundamentally different from ChatGPT plugins, where data travels through third-party servers.
@@ -143,9 +143,9 @@ The MIESC MCP server acts as a bridge between Claude's conversational world and 
 
 3. **Maintain session state:** The server preserves context from previous analyses, enabling iterative refinement.
 
-**Figure 23.** MCP integration architecture
+**Figure 7.1.** MCP integration architecture
 
-![Figure 23 - MCP integration architecture](../figures/Figura%2023.%20Arquitectura%20de%20integración%20MCP.svg)
+![Figure 7.1 - MCP integration architecture](../figures/Figura%2023.%20Arquitectura%20de%20integración%20MCP.svg)
 
 *Interaction flow between User, Claude Desktop and MIESC MCP Server*
 
@@ -270,9 +270,9 @@ class MIESCResourceHandler:
 
 The following sequence diagram illustrates the complete flow of a typical interaction:
 
-**Figure 24.** MCP interaction sequence
+**Figure 7.2.** MCP interaction sequence
 
-![Figure 24 - MCP interaction sequence](../figures/Figura%2024.%20Secuencia%20de%20interacción%20MCP.svg)
+![Figure 7.2 - MCP interaction sequence](../figures/Figura%2024.%20Secuencia%20de%20interacción%20MCP.svg)
 
 ```
 User             Claude              MCP Client           MIESC Server          Slither
@@ -794,23 +794,21 @@ The MCP server implementation in MIESC addresses a real and significant problem:
 
 The combination of 25 security tools, sovereign LLM (Ollama), and conversational interface (MCP) positions MIESC as:
 
-> **The first smart contract security framework with native conversational AI integration, maintaining data sovereignty through completely local execution.**
+> **A smart contract security framework with native conversational AI integration, whose server and tools run on the user's infrastructure and which offers a fully local analysis mode.**
 
-This value proposition is unique in the blockchain security ecosystem, where alternatives require sending code to external services, have significant costs, or lack accessible interfaces for non-specialists.
+As far as the review in Chapter 3 reaches, this combination has no direct equivalent in the blockchain security ecosystem, where alternatives require sending code to external services, have significant costs, or lack accessible interfaces for non-specialists.
 
 ---
 
 ## 7.9 Chapter References
 
-Anthropic. (2024). Model Context Protocol Specification. https://github.com/anthropics/mcp
+Anthropic. (2024). Model Context Protocol Specification. https://modelcontextprotocol.io/
 
 Anthropic. (2024). MCP Servers Documentation. https://modelcontextprotocol.io/
 
-Beller, M., Gousios, G., Panichella, A., & Zaidman, A. (2016). When, how, and why developers (do not) test in their IDEs. *ESEC/FSE 2016*, 179-190.
+Beller, M., Bholanath, R., McIntosh, S., & Zaidman, A. (2016). Analyzing the state of static analysis: A large-scale evaluation in open source software. In *2016 IEEE 23rd International Conference on Software Analysis, Evolution, and Reengineering (SANER)* (pp. 470-481). IEEE. https://doi.org/10.1109/SANER.2016.105
 
 OWASP. (2023). Smart Contract Security Testing Guide. https://owasp.org/
-
-Ross, R., et al. (2016). Guide to Industrial Control Systems (ICS) Security. *NIST SP 800-82 Rev. 2*.
 
 ---
 

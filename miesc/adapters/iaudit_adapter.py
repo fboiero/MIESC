@@ -49,6 +49,7 @@ from miesc.core.tool_protocol import (
     ToolMetadata,
     ToolStatus,
 )
+from miesc.llm.json_extraction import extract_llm_object
 
 logger = logging.getLogger(__name__)
 
@@ -278,6 +279,42 @@ from miesc.adapters.iaudit_prompts import (  # noqa: E402
     REVIEWER_PROMPT,
 )
 
+# Lower-bound version constraint of a `pragma solidity` expression. The first
+# version token in the expression is the lower bound for the common forms
+# (`^0.8.0`, `~0.8.1`, `=0.8.30`, `0.8.30`, `>=0.8.0 <0.9.0`).
+_PRAGMA_RE = re.compile(r"pragma\s+solidity\s+([^;]+);", re.IGNORECASE)
+_VERSION_RE = re.compile(r"(\^|~|>=|<=|>|<|=)?\s*(\d+)\.(\d+)(?:\.(\d+))?")
+
+
+def _pragma_guarantees_checked_arithmetic(code: str) -> bool:
+    """True iff every ``pragma solidity`` in ``code`` guarantees compiler >= 0.8.0.
+
+    Solidity 0.8.0 made arithmetic overflow/underflow a revert by default, so an
+    SWC-101 "integer overflow" pattern finding is *provably wrong* there. This gates
+    the pattern-fallback emission so a 0.8.x contract is not flagged.
+
+    Recall-safe by construction — the guarantee holds only when it is certain:
+      * no pragma, or an unparseable one -> False (keep the finding);
+      * any pragma whose lower bound is < 0.8 -> False;
+      * an exclusive ``>`` or an upper-bound-only (``<`` / ``<=``) first token ->
+        False (we do not reason about the implied next version);
+      * only ``^`` / ``~`` / ``>=`` / ``=`` / bare lower bounds >= 0.8 count.
+    A flattened file with several pragmas must have *every* one >= 0.8.
+    """
+    exprs = _PRAGMA_RE.findall(code)
+    if not exprs:
+        return False
+    for expr in exprs:
+        m = _VERSION_RE.search(expr)
+        if not m:
+            return False
+        op, major, minor = m.group(1), int(m.group(2)), int(m.group(3))
+        if op in (">", "<", "<="):
+            return False  # exclusive / upper-bound-only: do not infer a >=0.8 floor
+        if (major, minor) < (0, 8):
+            return False
+    return True
+
 
 class IAuditAdapter(OllamaCallMixin, LLMCacheMixin, ToolAdapter):
     """
@@ -408,6 +445,7 @@ class IAuditAdapter(OllamaCallMixin, LLMCacheMixin, ToolAdapter):
             ],
             cost=0.0,
             requires_api_key=False,
+            requires_llm=True,
             is_optional=True,
         )
 
@@ -1288,6 +1326,15 @@ class IAuditAdapter(OllamaCallMixin, LLMCacheMixin, ToolAdapter):
                 if not self._check_reentrancy_pattern(contract_code):
                     continue
 
+            # SWC-101 overflow/underflow is checked by the compiler from Solidity
+            # 0.8.0 on, so emitting it for a >=0.8 contract is a demonstrably false
+            # finding (observed on a solc 0.8.30 target). Suppress it there; keep it
+            # when the floor is below 0.8 or unknown (recall-safe).
+            if vuln_type == "integer_overflow" and _pragma_guarantees_checked_arithmetic(
+                contract_code
+            ):
+                continue
+
             # Adjust severity and confidence based on mitigations
             severity = vuln_info["severity"]
             confidence = 0.70
@@ -1501,60 +1548,15 @@ class IAuditAdapter(OllamaCallMixin, LLMCacheMixin, ToolAdapter):
     # ========================================================================
 
     def _extract_json_robust(self, text: str) -> Optional[Dict[str, Any]]:
-        """
-        Extract JSON from LLM output using multiple strategies.
-
-        Strategy order:
-          1. JSON code block (```json ... ```)
-          2. Find {"findings" or {"reviewed_findings" start
-          3. First { to last }
-          4. Aggressive repair (trailing commas, unescaped newlines)
-
-        Args:
-            text: Raw LLM output text
-
-        Returns:
-            Parsed JSON dict, or None if extraction fails
-        """
+        """Extract JSON from LLM output (shared tolerant extractor)."""
         if not text or not text.strip():
             return None
-
-        # Strategy 1: JSON code block
-        json_block = re.search(r"```json\s*(.*?)\s*```", text, re.DOTALL)
-        if json_block:
-            try:
-                return cast(Optional[Dict[Any, Any]], json.loads(json_block.group(1)))
-            except json.JSONDecodeError:
-                pass
-
-        # Strategy 2: Find known key patterns
-        for key in ['"findings"', '"reviewed_findings"']:
-            pattern = re.search(r"\{\s*" + re.escape(key) + r"\s*:", text)
-            if pattern:
-                start = pattern.start()
-                result = self._extract_balanced_json(text, start)
-                if result is not None:
-                    return result
-
-        # Strategy 3: First { to last }
-        json_start = text.find("{")
-        json_end = text.rfind("}") + 1
-        if json_start != -1 and json_end > json_start:
-            json_str = text[json_start:json_end]
-            try:
-                return cast(Optional[Dict[Any, Any]], json.loads(json_str))
-            except json.JSONDecodeError:
-                pass
-
-            # Strategy 4: Repair and retry
-            repaired = self._repair_json(json_str)
-            if repaired:
-                try:
-                    return cast(Optional[Dict[Any, Any]], json.loads(repaired))
-                except json.JSONDecodeError:
-                    pass
-
-        return None
+        parsed = extract_llm_object(
+            text, required_keys=("findings", "reviewed_findings"), log_prefix="iAudit", warn=False
+        )
+        if parsed is None:
+            parsed = extract_llm_object(text, log_prefix="iAudit")
+        return parsed
 
     def _extract_balanced_json(self, text: str, start: int) -> Optional[Dict[str, Any]]:
         """

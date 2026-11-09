@@ -146,6 +146,10 @@ class SolhintAdapter(ToolAdapter):
             is_optional=True,
         )
 
+    def version_command(self) -> Optional[List[str]]:
+        """Version probe used by run provenance (``solhint --version``)."""
+        return ["solhint", "--version"]
+
     def is_available(self) -> ToolStatus:
         """Check if Solhint is installed and available"""
         try:

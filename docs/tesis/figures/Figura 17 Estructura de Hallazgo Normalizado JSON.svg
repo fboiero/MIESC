@@ -2,11 +2,6 @@
   <!-- Background -->
   <rect width="850" height="750" fill="#ffffff"/>
   
-  <!-- Title -->
-  <text x="425" y="28" text-anchor="middle" font-size="18" font-weight="bold" fill="#2c3e50">
-    Figura 17: Estructura de Hallazgo Normalizado MIESC
-  </text>
-  
   <!-- Terminal/Code window -->
   <rect x="40" y="45" width="770" height="640" fill="#1e1e1e" rx="8"/>
   

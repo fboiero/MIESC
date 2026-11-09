@@ -134,3 +134,39 @@ def test_unexpected_error_returns_none():
             "p", url="http://x/api/generate", model="m", timeout=10, max_attempts=1
         )
     assert out is None
+
+
+def _sent_payload(mock_urlopen):
+    req = mock_urlopen.call_args.args[0]
+    return json.loads(req.data.decode("utf-8"))
+
+
+def test_format_json_is_off_by_default(monkeypatch):
+    monkeypatch.delenv("MIESC_OLLAMA_FORMAT_JSON", raising=False)
+    host = _Host()
+    with patch("urllib.request.urlopen", return_value=_ok_response()) as m:
+        host._ollama_generate("p", url="http://x/api/generate", model="m", timeout=10)
+    assert "format" not in _sent_payload(m)
+
+
+def test_format_json_parameter_adds_native_json_mode():
+    host = _Host()
+    with patch("urllib.request.urlopen", return_value=_ok_response()) as m:
+        host._ollama_generate(
+            "p", url="http://x/api/generate", model="m", timeout=10, format_json=True
+        )
+    assert _sent_payload(m)["format"] == "json"
+
+
+def test_format_json_env_var_enables_it(monkeypatch):
+    monkeypatch.setenv("MIESC_OLLAMA_FORMAT_JSON", "1")
+    host = _Host()
+    with patch("urllib.request.urlopen", return_value=_ok_response()) as m:
+        host._ollama_generate("p", url="http://x/api/generate", model="m", timeout=10)
+    assert _sent_payload(m)["format"] == "json"
+    # explicit False wins over the environment
+    with patch("urllib.request.urlopen", return_value=_ok_response()) as m2:
+        host._ollama_generate(
+            "p", url="http://x/api/generate", model="m", timeout=10, format_json=False
+        )
+    assert "format" not in _sent_payload(m2)

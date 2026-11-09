@@ -2,6 +2,8 @@
 
 ## Multi-layer Integration Framework for Ethereum Smart Contract Security
 
+> **Translation note.** The Spanish text is the version of record. This English mirror receives every substantive, numerical and bibliographic correction made to the original (corrected edition, October 2026), but the editorial pass on prose, structure and register applied to the Spanish chapters was not replicated here: the English chapters keep their earlier structure (lists, templates) and should be read as a faithful but stylistically older rendering.
+
 ---
 
 ## Table of Contents

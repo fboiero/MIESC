@@ -1,0 +1,439 @@
+[
+ {
+  "type": "reentrancy",
+  "title": "Reentrancy in addRoleProvider via isPullProvider() corrupts _pullProviders array",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-08-wildcat_r06jhfrk/repo/src/access/FixedTermLoanHooks.sol",
+   "line": 0,
+   "function": "addRoleProvider"
+  },
+  "description": "In `addRoleProvider`, the external call `IRoleProvider(providerAddress).isPullProvider()` is made BEFORE the provider is stored in `_roleProviders[providerAddress]`. A malicious provider contract can reenter `addRoleProvider` with its own address. On the reentrant call, `_roleProviders[providerAddress]` is still null (not yet written), so the code enters the `isNull()` branch again, calls `isPullProvider()` again (potentially triggering further reentrancy), and pushes the provider to `_pullProviders` with index 0, then writes to `_roleProviders`. When control returns to the outer call, `_pullProviders.length` is now 1, so the provider is encoded with index 1 and pushed again \u2014 creating TWO entries in `_pullProviders` for the same provider, but `_roleProviders[addr]` only stores index 1. The entry at index 0 is now an orphan: it points to a provider address whose mapping entry claims a different index, permanently corrupting the pull provider array.",
+  "message": "The `_pullProviders` array becomes permanently corrupted with duplicate/orphaned entries. This means: (1) The orphaned entry at index 0 can never be cleanly removed via `removeRoleProvider` (the swap-remove logic will corrupt another provider's index), (2) `_loopTryGetCredential` will query the same provider twice, potentially granting credentials it shouldn't, (3) `_removePullProvider` called later may update the wrong provider's index in `_roleProviders`, breaking access control for legitimate providers.",
+  "recommendation": "Apply a checks-effects-interactions pattern: store the provider in `_roleProviders` BEFORE making the external call, or use a reentrancy guard. Alternatively, check if the provider is already registered before pushing to the array:\n\nfunction addRoleProvider(address providerAddress, uint32 timeToLive) external onlyBorrower {\n    RoleProvider provider = _roleProviders[providerAddress];\n    if (provider.isNull()) {\n        // Store a placeholder first to prevent reentrancy\n        _roleProviders[providerAddress] = encodeRoleProvider(timeToLive, providerAddress, NotPullProviderIndex);\n        bool isPullProvider = IRoleProvider(providerAddress).isPullProvider();\n        uint24 index = isPullProvider ? uint24(_pullProviders.length) : NotPullProviderIndex;\n        provider = encodeRoleProvider(timeToLive, providerAddress, index);\n        if (isPullProvider) _pullProviders.push(provider);\n        _roleProviders[providerAddress] = provider;\n        emit RoleProviderAdded(...);\n    } else { ... }\n}\n",
+  "exploit_scenario": "1. Deploy MaliciousProvider contract where `isPullProvider()` calls back `addRoleProvider(address(this), ttl)` on the hooks contract.\n2. Borrower calls `addRoleProvider(malicious, ttl)`.\n3. First call: `_roleProviders[malicious]` is null, external call to `malicious.isPullProvider()` is made.\n4. Malicious provider reenters `addRoleProvider(malicious, ttl)`.\n5. Inner call: `_roleProviders[malicious]` still null, `isPullProvider()` returns true (or false, doesn't matter), provider pushed to `_pullProviders[0]`, `_roleProviders[malicious]` written with index 0.\n6. Returns to outer call: `_pullProviders.length == 1`, so index 1 is assigned, pushed to `_pullProviders[1]`, `_roleProviders[malicious]` overwritten with index 1.\n7. Now `_pullProviders[0]` exists with stale index 0, but the mapping says index 1. Array is corrupted.",
+  "swc_id": "",
+  "file": "FixedTermLoanHooks.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "reentrancy",
+  "title": "validateCredential reentrancy can overwrite revoked/blocked lender status",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-08-wildcat_r06jhfrk/repo/src/access/FixedTermLoanHooks.sol",
+   "line": 0,
+   "function": "_tryValidateCredential"
+  },
+  "description": "`_tryValidateCredential` makes a non-view external call to `provider.validateCredential(account, data)`. This call can reenter the hooks contract. Specifically, a malicious provider can call `blockFromDeposits(lender)` or `revokeRole(lender)` during the `validateCredential` callback, which writes an updated `LenderStatus` to `_lenderStatus[lender]`. However, the calling functions (`onDeposit`, `onTransfer`) hold the lender's status in a **memory** `LenderStatus` struct that was loaded before the external call. After `_tryValidateCredential` returns, `_writeLenderStatus` writes the (now stale) memory status back to storage, **overwriting** the revocation/block that was applied during the callback. This means a borrower's attempt to block a lender from deposits during an active deposit transaction is silently undone.",
+  "message": "A lender who is being blocked from deposits or whose role is being revoked during the same transaction can circumvent the block/revocation by having their credential validated through a malicious provider. The borrower's `blockFromDeposits` call is silently overwritten. This undermines the borrower's ability to enforce access control.",
+  "recommendation": "Re-read lender status from storage after any external call, or use a reentrancy guard on deposit/transfer hooks. Also consider making `_tryValidateCredential` not write back if a block/revocation was applied during the callback:\n\n// After _tryValidateCredential returns, reload from storage\nLenderStatus memory freshStatus = _lenderStatus[accountAddress];\nif (freshStatus.isBlockedFromDeposits) revert NotApprovedLender();\n\nOr add `nonReentrant` modifier to `onDeposit`, `onTransfer`, `onQueueWithdrawal`.",
+  "exploit_scenario": "1. Lender L has an expired credential. Borrower adds MaliciousProvider as a role provider.\n2. L calls `deposit(amount, hooksData=[maliciousProvider, accessToken])`.\n3. `onDeposit` loads `status = _lenderStatus[L]` (blocked=false).\n4. `_tryValidateAccessInner` \u2192 `_handleHooksData` \u2192 `_tryValidateCredential(status, L, hooksData)`.\n5. During `validateCredential` call, MaliciousProvider reenters and calls `blockFromDeposits(L)`, which writes `status.isBlockedFromDeposits=true` to `_lenderStatus[L]`.\n6. `validateCredential` returns a valid timestamp.\n7. Back in `onDeposit`: `hasValidCredential=true`, no revert (market.depositRequiresAccess && !hasValidCredential is false).\n8. `_writeLenderStatus` writes memory `status` (isBlockedFromDeposits=false) back to storage, erasing the block.\n9. Deposit succeeds and block is erased.",
+  "swc_id": "",
+  "file": "FixedTermLoanHooks.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "setFixedTermEndTime allows setting term to 0 or past timestamp, immediately unlocking withdrawals",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-08-wildcat_r06jhfrk/repo/src/access/FixedTermLoanHooks.sol",
+   "line": 0,
+   "function": "setFixedTermEndTime"
+  },
+  "description": "`setFixedTermEndTime` only checks `newFixedTermEndTime > hookedMarket.fixedTermEndTime` (reverts if increasing). It does NOT validate that `newFixedTermEndTime >= block.timestamp`. This allows the borrower to set `fixedTermEndTime = 0` (or any past timestamp), which immediately satisfies the condition `market.fixedTermEndTime > block.timestamp == false` in `onQueueWithdrawal`, bypassing the withdrawal lock entirely. While this is a borrower-controlled function, it breaks the protocol invariant that the term can only be reduced (not effectively eliminated) and could be used by a compromised or malicious borrower to unlock withdrawals prematurely \u2014 which is precisely the behavior the fixed term mechanism is designed to prevent.",
+  "message": "A malicious or compromised borrower can immediately unlock withdrawals for all lenders on a fixed-term market at any time by setting the fixed term end time to 0. This defeats the core purpose of the FixedTermLoanHooks contract and could allow lenders to withdraw before the borrower expected, potentially causing a bank run on a market that was supposed to have locked liquidity.",
+  "recommendation": "Add a check that the new fixed term is not in the past (or at minimum, not zero):\n\nfunction setFixedTermEndTime(address market, uint32 newFixedTermEndTime) external onlyBorrower {\n    HookedMarket storage hookedMarket = _hookedMarkets[market];\n    if (!hookedMarket.isHooked) revert NotHookedMarket();\n    if (newFixedTermEndTime > hookedMarket.fixedTermEndTime) revert IncreaseFixedTerm();\n    if (newFixedTermEndTime < block.timestamp) revert InvalidFixedTerm(); // ADD THIS\n    hookedMarket.fixedTermEndTime = newFixedTermEndTime;\n    emit FixedTermUpdated(market, newFixedTermEndTime);\n}\n",
+  "exploit_scenario": "1. Borrower deploys a fixed term market with `fixedTermEndTime = block.timestamp + 365 days`.\n2. Lenders deposit, expecting funds to be locked for 1 year.\n3. Borrower calls `setFixedTermEndTime(market, 0)`.\n4. Since `0 <= hookedMarket.fixedTermEndTime`, the check passes (no IncreaseFixedTerm revert).\n5. `fixedTermEndTime` is now 0.\n6. Any lender can now call `queueWithdrawal` because `0 > block.timestamp` is false.\n7. All lenders can withdraw immediately, potentially before the borrower has repaid.",
+  "swc_id": "",
+  "file": "FixedTermLoanHooks.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "access_control",
+  "title": "Unverified market caller in all hook functions enables unauthorized state manipulation",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-08-wildcat_r06jhfrk/repo/src/access/FixedTermLoanHooks.sol",
+   "line": 0,
+   "function": "onDeposit, onTransfer, onQueueWithdrawal"
+  },
+  "description": "All hook functions (`onDeposit`, `onTransfer`, `onQueueWithdrawal`, etc.) only verify that `msg.sender` is a registered hooked market (`_hookedMarkets[msg.sender].isHooked`). However, any contract that calls `_onCreateMarket` (via the factory) can register itself as a hooked market. More critically: `isKnownLenderOnMarket[lender][msg.sender]` is keyed by `msg.sender` (the calling market). A malicious market registered by the borrower can call `onDeposit` or `onTransfer` to set `isKnownLenderOnMarket[attacker][maliciousMarket] = true`. While this only affects the attacker's status on the malicious market, it also updates `_lenderStatus[lender]` in global storage \u2014 shared across ALL markets on this hooks contract. A malicious market can grant credentials to arbitrary lenders in the global `_lenderStatus` mapping, potentially allowing them to bypass access controls on legitimate markets.",
+  "message": "A borrower-controlled malicious market (or any market registered with this hooks contract) can manipulate global `_lenderStatus` state by calling hook functions with arbitrary `lender` addresses and `hooksData` pointing to a malicious role provider. Since `_lenderStatus` is shared across all markets using this hooks contract, credentials granted via a malicious market affect all other markets. An attacker could pre-grant credentials to blocked lenders, bypassing `blockFromDeposits` on legitimate markets.",
+  "recommendation": "The hooks contract should maintain a registry of ONLY factory-deployed markets and verify that `msg.sender` is a legitimate factory-deployed market, not just any registered market. Consider adding verification through the factory contract:\n\naddress public immutable factory;\nmodifier onlyHookedMarket() {\n    if (!_hookedMarkets[msg.sender].isHooked) revert NotHookedMarket();\n    // Optionally: require(IFactory(factory).isDeployedMarket(msg.sender));\n    _;\n}\n",
+  "exploit_scenario": "1. Borrower deploys a legitimate market M1 with deposit access control.\n2. Borrower deploys a malicious market M2 (minimal implementation, calls hooks directly).\n3. Borrower adds a malicious role provider RP that grants credentials to any address.\n4. Blocked lender L (blocked on M1) controls M2.\n5. M2 calls `onDeposit(L, amount, state, hooksData=[RP, token])` on the hooks contract.\n6. `_lenderStatus[L]` is updated with a valid credential from RP.\n7. L can now deposit on M1 because their credential appears valid (block check happens before credential check, but borrower can also unblock and re-credential via this mechanism).",
+  "swc_id": "",
+  "file": "FixedTermLoanHooks.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "reentrancy",
+  "title": "Missing reentrancy protection in onDeposit allows double-deposit or status manipulation via validateCredential callback",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-08-wildcat_r06jhfrk/repo/src/access/FixedTermLoanHooks.sol",
+   "line": 0,
+   "function": "onDeposit"
+  },
+  "description": "The `onDeposit` hook calls `_tryValidateAccessInner` which can invoke `_tryValidateCredential`, making a non-view external call to a role provider's `validateCredential` function. During this callback, the role provider can call back into the market contract (not the hooks contract directly), which may call `onDeposit` again for the same or different lender. Since `_lenderStatus` and `isKnownLenderOnMarket` are only written at the END of `onDeposit` via `_writeLenderStatus`, a reentrant call to `onDeposit` will see the old (pre-update) state. This is particularly concerning for the `isKnownLenderOnMarket` flag: a reentrant deposit can bypass the minimum deposit check on the second call if the first call set `isKnownLenderOnMarket` during the callback (though the write ordering makes this complex). More importantly, the status written at the end of the outer call will overwrite any status updates from the inner call.",
+  "message": "The most severe scenario involves the credential system being manipulated through callback reentrancy, allowing lenders to have their status reset to an unexpected state or to bypass access controls by timing callbacks to occur between state reads and writes.",
+  "recommendation": "Add a reentrancy guard to all hook functions that make external calls:\n\nuint256 private _reentrancyStatus;\nmodifier nonReentrant() {\n    require(_reentrancyStatus != 2, 'Reentrant call');\n    _reentrancyStatus = 2;\n    _;\n    _reentrancyStatus = 1;\n}\n\nApply to `onDeposit`, `onTransfer`, `onQueueWithdrawal`.",
+  "exploit_scenario": "1. Lender L calls deposit on Market M with hooksData pointing to MaliciousProvider.\n2. MaliciousProvider.validateCredential is called.\n3. Inside validateCredential, MaliciousProvider calls back to Market M with a second deposit.\n4. Second deposit executes fully (reads old lenderStatus, validates, writes new status).\n5. First deposit continues, _writeLenderStatus overwrites the status written by the second deposit.\n6. The net effect is that the status from the SECOND deposit is lost.",
+  "swc_id": "",
+  "file": "FixedTermLoanHooks.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "reentrancy",
+  "title": "Reentrancy in addRoleProvider allows duplicate pull provider entries",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-08-wildcat_r06jhfrk/repo/src/access/AccessControlHooks.sol",
+   "line": 0,
+   "function": "addRoleProvider"
+  },
+  "description": "In `addRoleProvider`, the external call `IRoleProvider(providerAddress).isPullProvider()` is made before the provider is written to `_roleProviders`. During this external call, a malicious provider contract can reenter `addRoleProvider` with the same address. At the time of reentrance, `_roleProviders[providerAddress]` is still null (not yet written), so the `provider.isNull()` check passes again. This causes the provider to be pushed to `_pullProviders` twice with different indices, while `_roleProviders` mapping will only store one entry (the second write). The result is that `_pullProviders` contains a stale/orphaned entry pointing to the provider with an incorrect index, permanently desynchronizing the array-mapping invariant.",
+  "message": "Permanent desynchronization of `_pullProviders` array and `_roleProviders` mapping. The orphaned entry in `_pullProviders` will contain an incorrect `pullProviderIndex` value. When `removeRoleProvider` is later called, `_removePullProvider` will swap the wrong entries, potentially overwriting valid providers with stale data, corrupting provider state permanently. This could cause legitimate lenders to lose access or unauthorized lenders to retain access.",
+  "recommendation": "Apply a checks-effects-interactions pattern. Write a placeholder to `_roleProviders[providerAddress]` before making the external call, or use a reentrancy guard. Example: set `_roleProviders[providerAddress] = SENTINEL_VALUE` before the `isPullProvider()` call, then overwrite with the full provider data after. Alternatively, use OpenZeppelin's `ReentrancyGuard`.",
+  "exploit_scenario": "1. Deploy malicious contract at `attackerAddr` that implements `IRoleProvider`. 2. In `isPullProvider()`, reenter `addRoleProvider(attackerAddr, ttl)` before returning. 3. The reentrant call sees `_roleProviders[attackerAddr].isNull() == true` (not yet written). 4. `isPullProvider()` is called again (could return false this time or true). 5. Provider is pushed to `_pullProviders` a second time with index 1. 6. `_roleProviders[attackerAddr]` is written with index 1 (second call completes first). 7. Original call then writes `_roleProviders[attackerAddr]` again with index 0, overwriting. 8. `_pullProviders[1]` now has the correct index but `_pullProviders[0]` is an orphaned stale entry with index 0. 9. Subsequent `removeRoleProvider` for another provider at index 0 will incorrectly swap and corrupt state.",
+  "swc_id": "",
+  "file": "AccessControlHooks.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "access_control",
+  "title": "revokeRole allows any account to revoke credentials of accounts with no prior provider",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-08-wildcat_r06jhfrk/repo/src/access/AccessControlHooks.sol",
+   "line": 0,
+   "function": "revokeRole"
+  },
+  "description": "In `revokeRole`, the check is `if (status.lastProvider != msg.sender) revert ProviderCanNotRevokeCredential()`. For an account that has never had a credential set, `status.lastProvider` will be `address(0)`. Any account whose `_roleProviders` mapping entry is non-null AND whose address resolves to address(0) for `lastProvider` comparison... more critically: a provider at `address(0)` cannot call this. However, the real issue is that a removed provider (whose entry is now `EmptyRoleProvider` in `_roleProviders`) that previously granted credentials to lenders can still call `revokeRole` on those lenders, since the only check is `status.lastProvider == msg.sender` which compares the stored provider address, not whether that provider is still approved. This allows a removed/untrusted role provider to continue revoking credentials after being removed by the borrower.",
+  "message": "A role provider that has been removed via `removeRoleProvider` can still call `revokeRole` to revoke credentials of any lender that previously received credentials from it. This disrupts lenders who still have valid credentials, preventing them from depositing or withdrawing (if they haven't made a first deposit), even after the borrower explicitly removed the provider.",
+  "recommendation": "Add a check that `msg.sender` is still an approved role provider before allowing revocation: `if (callingProvider.isNull()) revert ProviderNotFound();` similar to `grantRole`. Alternatively, only allow the borrower or the current approved provider to revoke credentials.",
+  "exploit_scenario": "1. Borrower adds `providerA` as a role provider. 2. `providerA` grants credentials to `lenderX` (sets `lenderX.lastProvider = providerA`). 3. Borrower calls `removeRoleProvider(providerA)` to remove it. 4. `providerA` (now untrusted) calls `revokeRole(lenderX)`. 5. The check `status.lastProvider != msg.sender` evaluates as `providerA != providerA` \u2192 false, so no revert. 6. `lenderX`'s credential is revoked despite the borrower having removed the provider. 7. `lenderX` loses deposit/withdrawal access.",
+  "swc_id": "",
+  "file": "AccessControlHooks.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "reentrancy",
+  "title": "Memory-only status updates during validateCredential reentrancy enable double credential grants",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-08-wildcat_r06jhfrk/repo/src/access/AccessControlHooks.sol",
+   "line": 0,
+   "function": "_tryValidateCredential"
+  },
+  "description": "`_tryValidateCredential` makes an external non-view `call()` to `providerAddress` (validateCredential). During this call, the lender's `LenderStatus` has only been read into memory (`status`) but not yet written back to storage. A malicious `validateCredential` implementation can reenter `onDeposit` or `onTransfer` for the same lender. Since `_lenderStatus[lender]` in storage still reflects the old state, the reentrant call reads stale storage, potentially allowing the lender to pass access control checks with an expired/invalid credential in one path while the outer call processes a fresh credential. More critically, `_writeLenderStatus` (which persists changes) is called in the outer function after `_tryValidateCredential` returns, meaning the reentrant call's storage write may be overwritten by the outer call's write, or vice versa, leading to inconsistent state.",
+  "message": "A malicious role provider can manipulate the order of storage writes to grant itself or an accomplice unexpected access. In markets where `depositRequiresAccess` is true, a lender with an expired credential could gain deposit access by manipulating the reentrancy flow. The `isKnownLenderOnMarket` flag could be incorrectly set, permanently granting withdrawal access to unauthorized users.",
+  "recommendation": "Implement a reentrancy guard on `onDeposit`, `onTransfer`, and `onQueueWithdrawal`. Alternatively, write the lender status to storage before making any external calls, and reload from storage after external calls complete. Consider using a mutex pattern specific to per-lender operations.",
+  "exploit_scenario": "1. Deploy malicious provider implementing `validateCredential` that calls back into the market's `deposit()`. 2. Lender calls market `deposit()` with hooksData pointing to malicious provider. 3. `onDeposit` reads `_lenderStatus[lender]` into memory `status` (expired credential). 4. `_tryValidateCredential` calls malicious provider's `validateCredential`. 5. Malicious provider reenters market `deposit()` \u2192 `onDeposit` again. 6. Reentrant `onDeposit` reads storage `_lenderStatus[lender]` (still old/expired). 7. `_tryValidateAccessInner` may follow a different path with old data, reach `_writeLenderStatus` with `canSetKnownLender=true`. 8. `isKnownLenderOnMarket[lender][market]` is set to true with potentially invalid credential. 9. Outer call completes, but known lender flag is already set, granting permanent withdrawal access.",
+  "swc_id": "",
+  "file": "AccessControlHooks.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Minimum deposit check uses unvalidated calldata scaleFactor from market",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-08-wildcat_r06jhfrk/repo/src/access/AccessControlHooks.sol",
+   "line": 0,
+   "function": "onDeposit"
+  },
+  "description": "In `onDeposit`, the minimum deposit check computes `uint normalizedAmount = scaledAmount.rayMul(state.scaleFactor)` where `state` is a `MarketState calldata` parameter passed directly by the calling market contract. The hooks contract assumes `msg.sender` is a legitimate hooked market, verified only by `market.isHooked` check. However, the `state.scaleFactor` value within the MarketState struct is entirely controlled by the caller. A hooked market (or any contract that can spoof being a hooked market) could pass an artificially inflated `scaleFactor`, making even tiny `scaledAmount` values appear to exceed `minimumDeposit`, or pass `scaleFactor = type(uint256).max` to cause overflow in `rayMul`, or pass `scaleFactor = 0` to make any amount appear as 0 normalized, bypassing minimum deposit checks entirely.",
+  "message": "If `scaleFactor` is set to 0 or a very small value by a malicious market, even large deposits would compute as 0 normalized amount, bypassing the minimum deposit check. Conversely, with a manipulated scale factor, legitimate users could be DOS'd from depositing. Since the hooks contract is designed to be reusable across markets, a malicious market that registers itself via `_onCreateMarket` could exploit this to allow deposits below minimums.",
+  "recommendation": "The hooks contract should not rely on the `scaleFactor` provided in calldata for security-critical checks. Instead, either: (1) require the market to be in a known registry and query scaleFactor directly from the market contract, (2) perform the minimum deposit check in scaled (not normalized) terms with a stored scaled minimum, or (3) query the market's current state directly rather than trusting calldata.",
+  "exploit_scenario": "1. Borrower deploys a malicious market contract that calls `onCreateMarket` to register itself as a hooked market with a minimumDeposit set. 2. Malicious market calls `onDeposit(lender, 1, MarketState{scaleFactor: 0, ...}, hooksData)`. 3. `normalizedAmount = 1.rayMul(0) = 0`. 4. Check `market.minimumDeposit > 0` passes (assuming minimumDeposit > 0), but wait \u2014 if normalizedAmount=0 and minimumDeposit=100, then `100 > 0` is true \u2192 revert. Actually with scaleFactor=RAY (1e27), normalizedAmount=scaledAmount. With scaleFactor=1, normalizedAmount \u2248 0 for small scaledAmount. The real bypass is: pass scaledAmount=1e27 with scaleFactor=1, normalizedAmount=1, still below minimum. Better: pass scaledAmount=minimumDeposit*RAY/scaleFactor to exactly meet minimum with tiny actual deposit. This allows economic manipulation of the minimum deposit requirement.",
+  "swc_id": "",
+  "file": "AccessControlHooks.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Pre-call returndatasize() check in onSetAnnualInterestAndReserveRatioBips causes always-revert",
+  "severity": "Critical",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-08-wildcat_r06jhfrk/repo/src/types/HooksConfig.sol",
+   "line": 0,
+   "function": "onSetAnnualInterestAndReserveRatioBips"
+  },
+  "description": "The assembly block uses `or(lt(returndatasize(), 0x40), iszero(call(...)))` as the revert condition. Due to EVM short-circuit evaluation NOT applying in assembly (the `or` opcode evaluates both arguments before combining), `returndatasize()` is checked BEFORE the call is made. At the point of evaluation, `returndatasize()` reflects the return data from any PREVIOUS external call in the transaction (or 0 if none). The check is meant to validate the return data size AFTER the hook call, but because `or` in assembly evaluates left-to-right with both sides computed before `or` is applied, the `lt(returndatasize(), 0x40)` is evaluated before the `call()` opcode executes. If the prior returndatasize is < 0x40 (which it will be in most cases, e.g., 0), the entire expression short-circuits to true and reverts, even when the hook call succeeds. This means `onSetAnnualInterestAndReserveRatioBips` will almost always revert when the hook is enabled, making the function permanently broken.",
+  "message": "The `setAnnualInterestAndReserveRatioBips` function will be permanently broken whenever the hook is enabled. Market operators cannot update interest rates or reserve ratios. This effectively freezes critical market parameters, potentially causing insolvency or preventing necessary risk adjustments.",
+  "recommendation": "Restructure the assembly to check returndatasize() after the call: `let success := call(gas(), target, 0, add(cdPointer, 0x1c), size, 0, 0x40)` then `if or(iszero(success), lt(returndatasize(), 0x40)) { returndatacopy(0, 0, returndatasize()) revert(0, returndatasize()) }`",
+  "exploit_scenario": "1. Deploy a market with `useOnSetAnnualInterestAndReserveRatioBips = true` 2. Call `setAnnualInterestAndReserveRatioBips` on the market 3. The market calls `onSetAnnualInterestAndReserveRatioBips` 4. In assembly, `returndatasize()` is evaluated BEFORE `call()` - it returns 0 (or size from prior call) 5. `lt(0, 0x40)` = 1 (true), so `or(1, iszero(call(...)))` = 1 always 6. The revert branch is always taken 7. The hook call is made but the result is ignored since revert already determined",
+  "swc_id": "",
+  "file": "HooksConfig.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Free memory pointer not updated after assembly writes, causing memory corruption",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-08-wildcat_r06jhfrk/repo/src/types/HooksConfig.sol",
+   "line": 0,
+   "function": "onDeposit, onQueueWithdrawal, onExecuteWithdrawal, onTransfer, onBorrow, onRepay, onCloseMarket, onSetMaxTotalSupply, onSetAnnualInterestAndReserveRatioBips, onSetProtocolFeeBips, onNukeFromOrbit"
+  },
+  "description": "Every hook function reads `mload(0x40)` (the free memory pointer) to get `cdPointer`, then writes large amounts of data starting from that pointer (MarketStateSize = 0x1c0 bytes, plus extra calldata, plus header fields). However, none of these functions update the free memory pointer (`mstore(0x40, newPointer)`) after writing. If Solidity allocates memory after any of these assembly blocks (e.g., for return values, string errors, or further operations in the calling function), it will reuse the same memory region and corrupt the data written by the hook calldata construction. While the `call()` happens before any subsequent Solidity allocation in the same function, any future memory allocation in the calling context could overwrite data that was just used.",
+  "message": "In complex call sequences where Solidity allocates memory after these hook functions return, memory corruption could occur leading to incorrect hook calldata being sent, wrong market state being passed to hooks, or incorrect return value parsing. This could cause hooks to make decisions based on corrupted market state.",
+  "recommendation": "After constructing the calldata in each assembly block, update the free memory pointer: `mstore(0x40, add(headPointer, size))` before making the external call. This ensures subsequent Solidity memory allocations don't reuse the same space.",
+  "exploit_scenario": "1. Call a market function that invokes a hook (e.g., deposit) 2. The hook function writes hook calldata at free memory pointer but doesn't update it 3. If the calling Solidity function subsequently allocates memory (e.g., for error handling or return value encoding), it overwrites the region 4. While the hook call already completed, in complex scenarios with multiple hooks or nested calls, this corruption can propagate",
+  "swc_id": "",
+  "file": "HooksConfig.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Calldata size underflow when calldatasize() < hardcoded base size",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-08-wildcat_r06jhfrk/repo/src/types/HooksConfig.sol",
+   "line": 0,
+   "function": "onDeposit, onBorrow, onCloseMarket, onSetMaxTotalSupply, onSetProtocolFeeBips, onNukeFromOrbit"
+  },
+  "description": "Functions like `onDeposit` compute `extraCalldataBytes := sub(calldatasize(), DepositCalldataSize)` where `DepositCalldataSize = 0x24`. In Solidity assembly, `sub` on uint256 values wraps around on underflow (no revert). If `calldatasize()` is less than the hardcoded constant (which can happen if these internal functions are called from a context with less calldata than expected, or if the market contract receives a call with truncated data), `extraCalldataBytes` becomes an astronomically large uint256 value (e.g., 2^256 - 1). This would then be used as the length for `calldatacopy` and the total `size` for the `call`, potentially causing the call to attempt copying/sending an enormous amount of data, leading to out-of-gas or other undefined behavior. The `calldatacopy` of a huge `extraCalldataBytes` when actual calldata is exhausted would just copy zeros, but the `size` passed to `call` would be enormous.",
+  "message": "If triggered, the hook call would attempt to pass an astronomically large calldata size to the external call, consuming all available gas and causing the transaction to fail with out-of-gas. This could be used as a griefing vector to make certain market operations always fail, effectively DoS-ing deposit, borrow, close market, and other critical functions.",
+  "recommendation": "Add a check before computing extraCalldataBytes: require that calldatasize() >= the base calldata size. In assembly: `if lt(calldatasize(), DepositCalldataSize) { revert(0, 0) }`. Alternatively, use a checked subtraction pattern.",
+  "exploit_scenario": "1. Craft a transaction to a market contract that calls `deposit` but with calldata shorter than 0x24 bytes 2. The market's deposit function calls `onDeposit` in the hooks library 3. `sub(calldatasize(), 0x24)` underflows to a huge value 4. `call(gas(), target, 0, ..., hugeSize, 0, 0)` consumes all gas 5. Transaction reverts with out-of-gas",
+  "swc_id": "",
+  "file": "HooksConfig.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "oracle_manipulation",
+  "title": "totalAssets() Donation Attack Can Mask Delinquency and Inflate Borrowable Assets",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-08-wildcat_r06jhfrk/repo/src/market/WildcatMarketBase.sol",
+   "line": 0,
+   "function": "_writeState / borrowableAssets / _getUpdatedState"
+  },
+  "description": "totalAssets() returns asset.balanceOf(address(this)) which includes any directly donated tokens. An attacker (or the borrower themselves) can donate underlying assets directly to the contract to manipulate the protocol's delinquency detection. In _writeState(), the delinquency check is `state.liquidityRequired() > totalAssets()`, so donating assets can prevent the market from being marked delinquent when it should be. Similarly, in _getUpdatedState(), the withdrawal batch payment uses totalAssets() to determine availableLiquidity - a donation temporarily increases this value, potentially causing more of a withdrawal batch to be marked as 'paid' with assets that may be withdrawn after the flash loan repays.",
+  "message": "Borrower can use a flash loan to temporarily donate assets, preventing delinquency marking and associated penalty fees, then withdraw the donated assets in the same transaction. This allows the borrower to avoid delinquency penalties indefinitely if they can afford flash loan fees. Additionally, the accounting of withdrawal batches could become inconsistent.",
+  "recommendation": "Track deposited assets internally rather than relying on balanceOf(). Maintain an internal accounting variable `_totalDeposited` that is incremented on deposit and decremented on withdrawal/borrow. Use this instead of or in addition to balanceOf() to detect delinquency. Alternatively, use the cached state values to compute expected balance and compare against actual balanceOf to detect and reject donation-based manipulation.",
+  "exploit_scenario": "1. Borrower is in a state where liquidityRequired() > actual liquid assets (should be delinquent)\n2. Borrower takes a flash loan of underlying asset tokens\n3. Borrower transfers flash loan tokens directly to market contract (no function call needed - just ERC20 transfer)\n4. Borrower calls any state-updating function; _writeState() now sees totalAssets() >= liquidityRequired(), market is not marked delinquent\n5. Borrower borrows the available assets (now appears borrowable)\n6. Borrower repays flash loan from borrowed funds\n7. Market is undercollateralized but not marked delinquent, avoiding penalty fee accrual",
+  "swc_id": "",
+  "file": "WildcatMarketBase.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Rounding Down in _applyWithdrawalBatchPayment Causes Permanent Dust Loss for Lenders",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-08-wildcat_r06jhfrk/repo/src/market/WildcatMarketBase.sol",
+   "line": 0,
+   "function": "_applyWithdrawalBatchPayment"
+  },
+  "description": "In _applyWithdrawalBatchPayment, normalizedAmountPaid is calculated using MathUtils.mulDiv(scaledAmountBurned, state.scaleFactor, RAY) which rounds DOWN. The scaled tokens are burned from state.scaledTotalSupply, but the normalized amount reserved for lenders is slightly less than the true value. The difference (the rounding dust) is neither credited to lenders nor tracked - it simply disappears from accounting. Over many withdrawal operations, especially as scaleFactor grows, this rounding error accumulates. The comment says this is intentional ('ensuring it is always possible to finish withdrawal batches on closed markets') but it creates a systematic bias where lenders receive slightly less than they should.",
+  "message": "Lenders receive slightly less than owed on each withdrawal batch payment. In aggregate over many batches with a high scaleFactor, this could represent a non-trivial loss. The dust remains in the contract as unaccounted assets (included in totalAssets() but not in any liability) - this permanently benefits the borrower or protocol at the expense of lenders.",
+  "recommendation": "Either round up the normalizedAmountPaid to always favor lenders (use ceiling division), or track the accumulated rounding dust and distribute it fairly. If the rounding-down is intentional for closed market scenarios, add explicit documentation and consider tracking dust separately. At minimum, ensure the dust amount flows to the fee recipient rather than being silently absorbed.",
+  "exploit_scenario": "1. Market has scaleFactor = 1.5e27 (50% interest accrued)\n2. Withdrawal batch with scaledTotalAmount = 100 tokens is processed\n3. scaledAmountBurned = 100, normalizedAmountPaid = mulDiv(100, 1.5e27, 1e27) = 150 (exact)\n4. If scaleFactor = 1.5e27 + 1, normalizedAmountPaid rounds down, lenders get 150 instead of 150.0000...1\n5. Repeated across thousands of withdrawals, dust accumulates as untracked assets\n6. These assets are accessible via borrowableAssets() and can be borrowed by the borrower",
+  "swc_id": "",
+  "file": "WildcatMarketBase.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "unchecked_return_value",
+  "title": "Missing Return Value Check in _createEscrowForUnderlyingAsset Assembly Block",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-08-wildcat_r06jhfrk/repo/src/market/WildcatMarketBase.sol",
+   "line": 0,
+   "function": "_createEscrowForUnderlyingAsset"
+  },
+  "description": "The assembly block in _createEscrowForUnderlyingAsset uses `call()` to invoke the sentinel contract, and checks that returndatasize() == 0x20 AND the call succeeds. However, the returned address from mload(0) is not validated to be non-zero. If the sentinel contract returns address(0) (e.g., due to an implementation bug or edge case), the escrow address will be set to address(0). Any subsequent asset transfers to address(0) would effectively burn the assets permanently.",
+  "message": "If sentinel returns address(0) as escrow address, underlying assets transferred to the escrow are permanently burned/lost. This could happen if the sentinel contract has a bug creating escrows for accounts with unusual conditions.",
+  "recommendation": "Add a zero-address check after retrieving the escrow address:\nassembly\nescrow := mload(0)\nif iszero(escrow) {\n    mstore(0, 0x...)\n    revert(0x1c, 0x04)\n}\n",
+  "exploit_scenario": "1. Account gets sanctioned and _createEscrowForUnderlyingAsset is called\n2. Sentinel's createEscrow function returns address(0) due to an edge case\n3. Assembly does not check `if iszero(escrow) { revert(0,0) }`\n4. Caller treats address(0) as a valid escrow\n5. Asset tokens are transferred to address(0), permanently lost",
+  "swc_id": "",
+  "file": "WildcatMarketBase.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "_runtimeConstant Returns Incorrect Value When calldatasize() Is Zero",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-08-wildcat_r06jhfrk/repo/src/market/WildcatMarketBase.sol",
+   "line": 0,
+   "function": "_runtimeConstant"
+  },
+  "description": "The _runtimeConstant function uses `mload(iszero(calldatasize()))` to load the stored value. When calldatasize() > 0 (normal external calls), iszero() returns 0, and mload(0) correctly returns the stored value. However, when calldatasize() == 0 (e.g., during constructor execution, fallback calls, or receive() calls), iszero() returns 1, and mload(1) is executed instead of mload(0). mload(1) reads 32 bytes starting from offset 1, which is a shifted/corrupted version of the stored value. This function is called in _applyWithdrawalBatchPayment with address(0) for the Transfer event. If _applyWithdrawalBatchPayment is ever called in a context where calldatasize() == 0 (e.g., via a receive() or fallback triggered by an internal call chain), the emitted address will be incorrect.",
+  "message": "Incorrect addresses emitted in Transfer events in contexts where calldatasize() is 0. This could affect off-chain indexers and monitoring tools that rely on Transfer events to track token burns, potentially causing incorrect balance tracking in external systems.",
+  "recommendation": "Use a cleaner approach to prevent optimizer specialization that doesn't depend on calldatasize(): use a storage variable read or a different opcode that's reliably non-constant. Alternatively, use `returndatasize()` which is 0 in most contexts except after external calls, or simply use an explicit memory store/load pattern without the iszero trick.",
+  "exploit_scenario": "1. A function with no calldata reaches _applyWithdrawalBatchPayment (e.g., through a receive() function chain)\n2. _runtimeConstant(address(0)) is called\n3. calldatasize() == 0, so iszero() == 1\n4. mload(1) reads bytes 1-32, which is `0x0000...0000` shifted by 1 byte - still 0 for address(0)\n5. However for other constants passed to _runtimeConstant(uint256), the value would be corrupted by 1-byte shift",
+  "swc_id": "",
+  "file": "WildcatMarketBase.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "access_control",
+  "title": "Disabled hooks template can still be used in deployMarketAndHooks",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-08-wildcat_r06jhfrk/repo/src/HooksFactory.sol",
+   "line": 0,
+   "function": "deployMarketAndHooks"
+  },
+  "description": "In `deployMarketAndHooks`, the function checks `templateDetails.exists` but does NOT check `templateDetails.enabled`. This bypasses the `disableHooksTemplate` administrative control. The `_deployHooksInstance` internal function does check `template.enabled`, but after that check passes, `_deployMarket` is called with the already-fetched `templateDetails` (which may have `enabled=false` if the template was disabled between the two calls, or more critically, the initial check in `deployMarketAndHooks` never validates `enabled`). Wait - `_deployHooksInstance` does check `enabled`. However, the flow is: (1) check exists but not enabled in deployMarketAndHooks, (2) call _deployHooksInstance which checks enabled. So the enabled check IS performed in _deployHooksInstance. But the enabled check is NOT performed for the templateDetails passed to _deployMarket, and a race condition exists where the template could be disabled between the _deployHooksInstance call and _deployMarket call. More critically, in deployMarket (not deployMarketAndHooks), there is NO enabled check on the template at all - a borrower can deploy a market using an instance of a disabled template.",
+  "message": "Borrowers can deploy new markets using hooks instances of disabled templates, bypassing the admin's intent to stop new market creation with that template.",
+  "recommendation": "Add `if (!templateDetails.enabled) revert HooksTemplateNotAvailable();` in `deployMarket` after fetching `templateDetails`, and similarly in `deployMarketAndHooks` after the exists check.",
+  "exploit_scenario": "1. Admin adds hooksTemplate T and borrower deploys hooksInstance H from it. 2. Admin calls disableHooksTemplate(T). 3. Borrower calls deployMarket() with H - the code only checks getHooksTemplateForInstance[H] != address(0) and reads templateDetails, but never checks templateDetails.enabled. 4. Market is successfully deployed despite template being disabled.",
+  "swc_id": "",
+  "file": "HooksFactory.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Integer underflow in pushProtocolFeeBipsUpdates when marketStartIndex > marketEndIndex",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-08-wildcat_r06jhfrk/repo/src/HooksFactory.sol",
+   "line": 0,
+   "function": "pushProtocolFeeBipsUpdates(address,uint,uint)"
+  },
+  "description": "In `pushProtocolFeeBipsUpdates`, after computing `marketEndIndex = MathUtils.min(marketEndIndex, markets.length)`, the code computes `uint256 count = marketEndIndex - marketStartIndex` without checking that `marketStartIndex <= marketEndIndex`. If a caller passes `marketStartIndex > markets.length` (or `marketStartIndex > marketEndIndex` after the min), this subtraction underflows, producing an enormous `count` value. The subsequent loop `for (uint256 i = 0; i < count; i++)` with `markets[marketStartIndex + i]` will access out-of-bounds storage slots and make calls to arbitrary addresses derived from storage, potentially calling arbitrary contracts with `setProtocolFeeBips`.",
+  "message": "A caller (this function has no access control) can cause the loop to iterate an astronomically large number of times, making calls to arbitrary addresses derived from storage layout. This could lead to out-of-gas DoS or in theory interaction with unintended contracts. The function being public with no access restrictions amplifies this.",
+  "recommendation": "Add a check: `if (marketStartIndex > marketEndIndex) revert InvalidRange();` after computing the min. Also add access control or at minimum validate the range properly.",
+  "exploit_scenario": "1. Call pushProtocolFeeBipsUpdates(validTemplate, 999999, 0). 2. marketEndIndex = min(0, markets.length) = 0. 3. count = 0 - 999999 underflows to ~2^256 - 999999. 4. Loop runs until out of gas, making calls to arbitrary storage-derived addresses.",
+  "swc_id": "",
+  "file": "HooksFactory.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Integer underflow in getHooksTemplates(start,end) when start > end",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-08-wildcat_r06jhfrk/repo/src/HooksFactory.sol",
+   "line": 0,
+   "function": "getHooksTemplates(uint256,uint256)"
+  },
+  "description": "In `getHooksTemplates(uint256 start, uint256 end)`, after `end = MathUtils.min(end, len)`, the code computes `uint256 count = end - start` without validating `start <= end`. If `start > len`, then `end` is clamped to `len` and `count` underflows to a huge number. The `new address[](count)` call will then attempt to allocate a massive array, likely reverting with out-of-gas, but it's a DoS vector for callers and could have unexpected behavior.",
+  "message": "Callers passing invalid ranges get unexpected reverts due to integer underflow causing massive memory allocation attempts. While primarily a DoS on view functions, same pattern in `getMarketsForHooksTemplate(address,uint256,uint256)` also applies.",
+  "recommendation": "Add bounds validation: `if (start > end) revert InvalidRange();` after computing the min for end, in all paginated view functions.",
+  "exploit_scenario": "1. Call getHooksTemplates(100, 0) when length is 5. 2. end = min(0, 5) = 0. 3. count = 0 - 100 underflows to 2^256 - 100. 4. new address[](2^256-100) causes out-of-gas revert.",
+  "swc_id": "",
+  "file": "HooksFactory.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "onCreateMarket external call made before market deployment with origination fee already transferred",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-08-wildcat_r06jhfrk/repo/src/HooksFactory.sol",
+   "line": 0,
+   "function": "_deployMarket"
+  },
+  "description": "In `_deployMarket`, the origination fee is transferred to `templateDetails.feeRecipient` BEFORE `IHooks(hooksInstance).onCreateMarket()` is called, and the market hasn't been deployed yet. If `onCreateMarket` reverts (for any reason, including legitimate validation), the origination fee has already been transferred and is NOT refunded. The borrower loses their origination fee even though no market was created. Additionally, if the subsequent `LibStoredInitCode.create2WithStoredInitCode` call fails after `onCreateMarket` succeeds, the fee is again lost with no market deployed.",
+  "message": "Borrowers can lose their origination fees if market deployment fails after the fee transfer but before successful market creation. A malicious or buggy hooks instance that reverts in onCreateMarket causes fee loss.",
+  "recommendation": "This is less severe than initially assessed due to EVM atomicity. No change needed for fee safety.",
+  "exploit_scenario": "1. Borrower calls deployMarket with valid originationFeeAsset and amount. 2. Fee is transferred to feeRecipient. 3. onCreateMarket() reverts (e.g., due to hooks validation logic). 4. Entire transaction reverts - BUT because the ERC20 transfer succeeded and is within the same transaction, it IS reverted. Wait - all state changes revert together in a revert. This is actually safe due to transaction atomicity. Re-evaluating...",
+  "swc_id": "",
+  "file": "HooksFactory.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "access_control",
+  "title": "Disabled hooks template bypass in deployMarket - enabled check missing",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-08-wildcat_r06jhfrk/repo/src/HooksFactory.sol",
+   "line": 0,
+   "function": "deployMarket"
+  },
+  "description": "In `deployMarket`, after retrieving `hooksTemplate` from `getHooksTemplateForInstance[hooksInstance]` and fetching `templateDetails`, the code never checks `templateDetails.enabled`. The `disableHooksTemplate` function sets `enabled = false` to prevent new markets from being created with a template, but `deployMarket` does not enforce this restriction. Any borrower can continue deploying new markets using existing hook instances of a disabled template, completely bypassing the admin's intent. `deployMarketAndHooks` correctly checks `enabled` via `_deployHooksInstance`, but `deployMarket` skips this check entirely.",
+  "message": "Admin's ability to halt new market creation for a specific hooks template is completely ineffective. Borrowers can continue creating markets indefinitely using pre-existing hooks instances of disabled templates.",
+  "recommendation": "Add `if (!templateDetails.enabled) revert HooksTemplateNotAvailable();` in `deployMarket` after fetching templateDetails: `HooksTemplate memory templateDetails = _templateDetails[hooksTemplate]; if (!templateDetails.enabled) revert HooksTemplateNotAvailable();`",
+  "exploit_scenario": "1. Admin adds hooksTemplate T with addHooksTemplate(). 2. Borrower deploys hooksInstance H via deployHooksInstance(T, args). 3. Admin calls disableHooksTemplate(T) intending to stop new market creation. 4. Borrower calls deployMarket() with hooksInstance H - templateDetails.enabled is never checked. 5. Market deploys successfully despite template being disabled.",
+  "swc_id": "",
+  "file": "HooksFactory.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Integer underflow in pushProtocolFeeBipsUpdates when marketStartIndex exceeds clamped marketEndIndex",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-08-wildcat_r06jhfrk/repo/src/HooksFactory.sol",
+   "line": 0,
+   "function": "pushProtocolFeeBipsUpdates(address,uint256,uint256)"
+  },
+  "description": "In `pushProtocolFeeBipsUpdates(address, uint, uint)`, after `marketEndIndex = MathUtils.min(marketEndIndex, markets.length)`, the subtraction `uint256 count = marketEndIndex - marketStartIndex` is computed without verifying `marketStartIndex <= marketEndIndex`. Since all values are `uint256`, if `marketStartIndex > marketEndIndex` (e.g., caller passes marketStartIndex=1000 when there are 5 markets), `count` wraps to ~2^256. The for loop then iterates an astronomically large number of times, accessing out-of-bounds `markets[marketStartIndex + i]` storage slots which resolve to zero addresses or unintended addresses, making low-level calls to them. This function has no access control restriction - anyone can call it.",
+  "message": "Any external caller can trigger an out-of-gas loop that wastes gas, or worse, makes `setProtocolFeeBips(protocolFeeBips)` calls to unintended/arbitrary addresses derived from out-of-bounds storage reads. If those addresses happen to be contracts, they receive unexpected calls.",
+  "recommendation": "Add explicit bounds check: `if (marketStartIndex > marketEndIndex) return;` or `revert InvalidRange();` after computing the clamped marketEndIndex. Also consider adding access control to restrict callers.",
+  "exploit_scenario": "1. Attacker calls pushProtocolFeeBipsUpdates(validTemplate, 1000, 1) where template has 5 markets. 2. marketEndIndex = min(1, 5) = 1. 3. count = 1 - 1000 = underflow \u2192 ~2^256 - 999. 4. Loop iterates until out of gas, calling markets[1000], markets[1001], ... which are uninitialized storage slots (zero or garbage addresses). 5. Calls to zero address or unintended addresses are made.",
+  "swc_id": "",
+  "file": "HooksFactory.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Integer underflow in paginated view functions when start > clamped end",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-08-wildcat_r06jhfrk/repo/src/HooksFactory.sol",
+   "line": 0,
+   "function": "getHooksTemplates(uint256,uint256) and getMarketsForHooksTemplate(address,uint256,uint256)"
+  },
+  "description": "In `getHooksTemplates(uint256 start, uint256 end)` and `getMarketsForHooksTemplate(address, uint256, uint256)`, after `end = MathUtils.min(end, len)`, the expression `uint256 count = end - start` can underflow when `start > end`. This creates a massive `count` value, and `new address[](count)` will attempt to allocate an impossibly large array. While view functions cannot drain funds directly, this causes any caller (including other contracts) relying on these functions to receive unexpected reverts, and if integrated into a market creation or management flow, could cause DoS.",
+  "message": "Callers with invalid range parameters receive unexpected reverts due to underflow-induced memory allocation failures. Any protocol integration relying on these view functions for pagination could be disrupted.",
+  "recommendation": "Add input validation in all paginated functions: `if (start > end) { if (start > len) return new address[](0); end = len; } require(start <= end, 'InvalidRange');` or simply `if (start >= end) return new address[](0);` after computing the clamped end.",
+  "exploit_scenario": "1. Call getHooksTemplates(50, 10) when there are 30 templates. 2. end = min(10, 30) = 10. 3. count = 10 - 50 underflows to 2^256 - 40. 4. new address[](2^256-40) triggers out-of-gas/revert.",
+  "swc_id": "",
+  "file": "HooksFactory.sol",
+  "backend": "claude"
+ }
+]

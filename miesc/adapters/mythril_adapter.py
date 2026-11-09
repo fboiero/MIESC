@@ -102,6 +102,11 @@ class MythrilAdapter(ToolAdapter):
             is_optional=True,  # DPGA compliance - graceful degradation
         )
 
+    def version_command(self) -> Optional[List[str]]:
+        """Version probe for the ``myth`` this adapter resolved (``.tools`` install first)."""
+        myth_cmd = self._myth_cmd()
+        return [myth_cmd, "version"] if myth_cmd else None
+
     def is_available(self) -> ToolStatus:
         """
         Check if Mythril CLI is available and working.
@@ -219,7 +224,6 @@ class MythrilAdapter(ToolAdapter):
 
         try:
             # Prepare parameters
-            kwargs.get("output_path", "/tmp/mythril_output.json")
             timeout = kwargs.get("timeout", 600)
             execution_timeout = kwargs.get("execution_timeout", 300)
             max_depth = kwargs.get("max_depth", 22)
@@ -590,7 +594,10 @@ class MythrilAdapter(ToolAdapter):
 
             # Find matching Mythril finding
             for mythril_finding in result.get("findings", []):
-                swc = mythril_finding.get("swc_id", "").replace("SWC-", "")
+                # ``swc_id`` is normalized to ``None`` (not "") when Mythril emits
+                # an issue without an SWC id, so ``.get(..., "")`` still yields None
+                # for a present-but-None key. Coerce with ``or ""`` before .replace.
+                swc = (mythril_finding.get("swc_id") or "").replace("SWC-", "")
                 if swc in expected_swcs:
                     return True, mythril_finding
 

@@ -46,6 +46,9 @@ dependencies = [
     # Without rich the analyze/report/audit commands crash with
     # AttributeError: 'NoneType' object has no attribute 'print'.
     "rich>=13.0.0",
+    # Tolerant JSON repair for LLM output (pure Python). Core, not an extra: the
+    # local --model ollama path needs it and must work on a minimal install.
+    "json-repair>=0.25.0",
 ]
 
 [project.optional-dependencies]
@@ -88,8 +91,16 @@ cli = [
 watch = [
     "watchdog>=3.0.0",
 ]
+# miesc.mcp_server targets the 1.x SDK (mcp.server.fastmcp.FastMCP). The 2.x SDK
+# renamed FastMCP to MCPServer and changed APIs, so keep the extra on 1.x.
 mcp = [
-    "mcp[cli]>=1.0.0",
+    "mcp[cli]>=1.2.0,<2",
+]
+# Built-in ML detectors (smartbugs_ml, peculiar pattern fallback). Part of the
+# Paper 1 reproducible profile (layers 1,6,7); see REPRODUCE.md.
+ml = [
+    "scikit-learn>=1.3.0",
+    "numpy>=1.24.0",
 ]
 # PDF report generation (requires system dependencies: pango, cairo)
 # macOS: brew install pango cairo
@@ -102,6 +113,7 @@ llm = [
     "openai>=1.0.0",
     "anthropic>=0.18.0",
     "httpx>=0.25.0",
+    "json-repair>=0.25.0",
 ]
 # RAG with embeddings and vector database
 rag = [
@@ -139,6 +151,8 @@ full = [
     "uvicorn>=0.24.0",
     "weasyprint>=60.0",
     "markdown>=3.5.0",
+    "scikit-learn>=1.3.0",
+    "numpy>=1.24.0",
     # Lightweight RAG dependencies. Semantic embeddings are split into
     # rag-embeddings so CPU-only Docker builds do not accidentally pull CUDA
     # PyTorch wheels from the default package index.

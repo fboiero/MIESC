@@ -11,6 +11,7 @@ import concurrent.futures
 import glob as glob_module
 import json
 import logging
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -22,7 +23,10 @@ from miesc import __version__ as VERSION
 from miesc.cli.constants import ADAPTER_MAP, AVAILABLE_PROFILES, LAYERS, QUICK_TOOLS
 from miesc.cli.utils import (
     RICH_AVAILABLE,
+    _print_tool_result,
     console,
+    count_available,
+    describe_tool_status,
     error,
     get_correlation_api,
     get_ml_orchestrator,
@@ -30,13 +34,18 @@ from miesc.cli.utils import (
     info,
     load_profiles,
     print_banner,
+    print_tool_timing,
     run_layer,
     run_plugins,
     run_tool,
+    set_llm_timeout,
     success,
     summarize_findings,
+    summarize_tool_statuses,
     warning,
 )
+from miesc.core.advisory_plans_io import ADVISORY_PLANS_KEY, hoist_advisory_plans
+from miesc.core.provenance import build_provenance
 
 # Import Rich components if available
 if RICH_AVAILABLE:
@@ -46,6 +55,9 @@ if RICH_AVAILABLE:
     from rich.table import Table
 
 logger = logging.getLogger(__name__)
+
+# Bump when the `audit batch` checkpoint format changes; --resume refuses other versions.
+CHECKPOINT_VERSION = 1
 
 
 def _apply_deep_profile_config(config: Any, profile_name: str | None) -> tuple[Any, Dict[str, Any]]:
@@ -63,6 +75,8 @@ def _apply_deep_profile_config(config: Any, profile_name: str | None) -> tuple[A
         config.max_iterations = int(profile["max_iterations"])
     if "enable_agentic_invariants" in profile:
         config.enable_agentic_invariants = bool(profile["enable_agentic_invariants"])
+    if "enable_advisory_plans" in profile:
+        config.enable_advisory_plans = bool(profile["enable_advisory_plans"])
 
     ensemble = profile.get("agentic_ensemble", {})
     if isinstance(ensemble, dict):
@@ -76,7 +90,11 @@ def _apply_deep_profile_config(config: Any, profile_name: str | None) -> tuple[A
 
 def _profile_uses_agentic_path(profile: Dict[str, Any]) -> bool:
     """Return True for profiles that require agentic audit semantics."""
-    return bool(profile.get("agentic_ensemble") or profile.get("enable_agentic_invariants"))
+    return bool(
+        profile.get("agentic_ensemble")
+        or profile.get("enable_agentic_invariants")
+        or profile.get("enable_advisory_plans")
+    )
 
 
 def _run_agentic_audit_profile(
@@ -126,6 +144,14 @@ def _run_agentic_audit_profile(
                 "summary": summary,
                 "version": VERSION,
             }
+            # Phase 3: hoist the deterministic advisory-plan inventory (privileged
+            # governance et al.) to a stable top-level key so the premium report can
+            # render §4.5 without reaching into the nested ``result.phases`` shape.
+            # Present only when the agent ran with ``enable_advisory_plans``; omitted
+            # entirely otherwise, so the default-path output is unchanged.
+            advisory_plans_block = hoist_advisory_plans(result)
+            if advisory_plans_block is not None:
+                data[ADVISORY_PLANS_KEY] = advisory_plans_block
         mode = "w"
         with open(output, mode, encoding="utf-8") as f:
             if fmt == "markdown":
@@ -208,6 +234,9 @@ def _to_sarif(results: List[Dict[str, Any]]) -> Dict[str, Any]:
                 file_path = result.get("contract", "unknown")
                 line = 1
 
+            # A grouped finding (same rule, same file, several lines) carries
+            # every hit in "locations"; SARIF locations is natively a list.
+            lines = [loc.get("line", line) for loc in finding.get("locations") or []] or [line]
             sarif["runs"][0]["results"].append(
                 {
                     "ruleId": rule_id,
@@ -217,9 +246,10 @@ def _to_sarif(results: List[Dict[str, Any]]) -> Dict[str, Any]:
                         {
                             "physicalLocation": {
                                 "artifactLocation": {"uri": file_path},
-                                "region": {"startLine": max(1, int(line))},
+                                "region": {"startLine": max(1, int(hit_line or 1))},
                             }
                         }
+                        for hit_line in lines
                     ],
                     "properties": {
                         "tool": tool_name,
@@ -238,14 +268,55 @@ def _to_sarif(results: List[Dict[str, Any]]) -> Dict[str, Any]:
     return sarif
 
 
+def _print_tool_run_summary(
+    *,
+    tools_planned: List[str],
+    success: List[str],
+    fallback: List[str],
+    skipped: List[str],
+    failed: List[str],
+) -> None:
+    """Print the tool denominator the way ``miesc doctor`` counts it.
+
+    ``available`` is the number of planned tools whose adapter reports
+    AVAILABLE (what doctor prints); ``ran`` counts results, fallbacks included
+    but labelled; ``skipped`` were not run; ``failed`` are errors and timeouts.
+    """
+    planned = [t for t in dict.fromkeys(tools_planned) if t]
+    available, total = count_available(planned)
+    ran = f"ran {len(success)}/{len(planned)}"
+    if fallback:
+        ran += f" ({len(fallback)} fallback)"
+    line = (
+        f"Tools: available {available}/{total} (as `miesc doctor`) · {ran} · "
+        f"skipped {len(skipped)} · failed {len(failed)}"
+    )
+    if RICH_AVAILABLE:
+        console.print(f"\n[dim]{line}[/dim]")
+        if skipped:
+            console.print(f"[dim]Skipped: {', '.join(skipped)}[/dim]")
+        if failed:
+            console.print(f"[yellow]Failed: {', '.join(failed)}[/yellow]")
+    else:
+        print(line)  # noqa: T201
+        if skipped:
+            print(f"Skipped: {', '.join(skipped)}")  # noqa: T201
+        if failed:
+            print(f"Failed: {', '.join(failed)}")  # noqa: T201
+
+
 def _to_markdown(results: List[Dict[str, Any]], contract: str) -> str:
     """Convert results to Markdown report."""
     summary = summarize_findings(results)
     total = sum(summary.values())
 
-    # Count tools
-    successful_tools = [r["tool"] for r in results if r.get("status") == "success"]
-    failed_tools = [r["tool"] for r in results if r.get("status") != "success"]
+    # Count tools (shared status vocabulary: success / skipped / timeout / error)
+    buckets = summarize_tool_statuses(results)
+    successful_tools = [
+        f"{t} (fallback)" if t in buckets["fallback"] else t for t in buckets["success"]
+    ]
+    skipped_tools = buckets["skipped"]
+    failed_tools = buckets["timeout"] + buckets["error"]
 
     md = f"""# MIESC Security Audit Report
 
@@ -267,7 +338,8 @@ def _to_markdown(results: List[Dict[str, Any]], contract: str) -> str:
 ### Tools Executed
 
 - **Successful**: {', '.join(successful_tools) if successful_tools else 'None'}
-- **Failed/Unavailable**: {', '.join(failed_tools) if failed_tools else 'None'}
+- **Skipped** (not installed / excluded): {', '.join(skipped_tools) if skipped_tools else 'None'}
+- **Failed** (error / timeout): {', '.join(failed_tools) if failed_tools else 'None'}
 
 ## Detailed Findings
 
@@ -312,7 +384,7 @@ def _to_markdown(results: List[Dict[str, Any]], contract: str) -> str:
 
     for result in results:
         tool = result.get("tool", "unknown")
-        status = result.get("status", "unknown")
+        status = describe_tool_status(result)
         exec_time = result.get("execution_time", 0)
         findings_count = len(result.get("findings", []))
         md += f"| {tool} | {status} | {exec_time:.1f} | {findings_count} |\n"
@@ -356,7 +428,9 @@ def _ml_result_to_markdown(result: Any, contract: str) -> str:
 ## Tools Executed
 
 - **Successful**: {', '.join(result.tools_success) if result.tools_success else 'None'}
-- **Failed**: {', '.join(result.tools_failed) if result.tools_failed else 'None'}
+- **Of which built-in fallback**: {', '.join(getattr(result, 'tools_fallback', [])) or 'None'}
+- **Skipped** (not installed / excluded): {', '.join(getattr(result, 'tools_skipped', [])) or 'None'}
+- **Failed** (error / timeout): {', '.join(result.tools_failed) if result.tools_failed else 'None'}
 
 ## Detailed Findings
 
@@ -518,6 +592,18 @@ def _run_full_audit_with_ml(
             for _k in ("critical", "high", "medium", "low"):
                 summary_data[_k] = _sf.get(_k.upper(), summary_data.get(_k, 0))
 
+        print_tool_timing(
+            [
+                {
+                    "tool": t,
+                    "status": result.tool_status.get(t, "success"),
+                    "execution_time": secs,
+                    "timeout_budget_s": getattr(result, "tool_budgets", {}).get(t),
+                    "from_cache": getattr(result, "tool_cached", {}).get(t, False),
+                }
+                for t, secs in getattr(result, "tool_timings", {}).items()
+            ]
+        )
         if RICH_AVAILABLE:
             console.print("\n")
 
@@ -552,12 +638,14 @@ def _run_full_audit_with_ml(
             ml_table.add_row("Cross-Validated", str(result.cross_validated))
             console.print(ml_table)
 
-            # Tools summary
-            console.print(
-                f"\n[dim]Tools: {len(result.tools_success)}/{len(result.tools_run)} successful[/dim]"
+            # Tools summary — same vocabulary and denominator as `miesc doctor`
+            _print_tool_run_summary(
+                tools_planned=result.tools_run,
+                success=result.tools_success,
+                fallback=getattr(result, "tools_fallback", []),
+                skipped=getattr(result, "tools_skipped", []),
+                failed=result.tools_failed,
             )
-            if result.tools_failed:
-                console.print(f"[yellow]Failed: {', '.join(result.tools_failed)}[/yellow]")
 
             console.print(
                 f"[dim]Execution time: {result.execution_time_ms/1000:.1f}s (ML: {result.ml_processing_time_ms/1000:.1f}s)[/dim]"
@@ -576,6 +664,15 @@ def _run_full_audit_with_ml(
         if output:
             if fmt == "json":
                 data = result.to_dict()
+                tool_records = [
+                    {"tool": t, "status": "success"} for t in getattr(result, "tools_success", [])
+                ] + [{"tool": t, "status": "error"} for t in getattr(result, "tools_failed", [])]
+                data["provenance"] = build_provenance(
+                    tool_records,
+                    command="audit full",
+                    contracts=[contract],
+                    llm_used=bool(verify_fp and verify_model),
+                )
                 with open(output, "w", encoding="utf-8") as f:
                     json.dump(data, f, indent=2, default=str)
             elif fmt == "markdown":
@@ -729,6 +826,7 @@ def _run_full_audit_with_correlation(
 
     if RICH_AVAILABLE:
         console.print("\n")
+        print_tool_timing(all_results)
         table = Table(title="Correlated Audit Summary", box=box.ROUNDED)
         table.add_column("Metric", style="bold")
         table.add_column("Value", justify="right")
@@ -756,6 +854,13 @@ def _run_full_audit_with_correlation(
         print(f"Cross-validated: {summary.get('cross_validated', 0)}")
 
     if output:
+        if isinstance(report, dict):
+            report["provenance"] = build_provenance(
+                all_results,
+                command="audit full",
+                contracts=[contract],
+                llm_used=bool(verify_fp and verify_model),
+            )
         with open(output, "w", encoding="utf-8") as f:
             json.dump(report, f, indent=2, default=str)
         success(f"Report saved to {output}")
@@ -823,6 +928,8 @@ def _run_full_audit_basic(
         layer_timing["plugins"] = round(plugin_elapsed, 3)
         all_results.extend(plugin_results)
         info(f"Plugins: {len(plugin_results)} detectors executed")
+
+    print_tool_timing(all_results)
 
     # v5.2.0: Intelligence engine — cross-tool scoring, semantic dedup,
     # zero-recall pattern detection, context-aware FP suppression,
@@ -907,9 +1014,17 @@ def _run_full_audit_basic(
         table.add_row("TOTAL", str(total), style="bold")
         console.print(table)
 
-        # Execution summary
-        successful = len([r for r in all_results if r.get("status") == "success"])
-        console.print(f"\n[dim]Tools executed: {successful}/{len(all_results)}[/dim]")
+        # Execution summary — same vocabulary and denominator as `miesc doctor`
+        buckets = summarize_tool_statuses(all_results)
+        _print_tool_run_summary(
+            tools_planned=[
+                t for layer in layer_list if layer in LAYERS for t in LAYERS[layer]["tools"]
+            ],
+            success=buckets["success"],
+            fallback=buckets["fallback"],
+            skipped=buckets["skipped"],
+            failed=buckets["timeout"] + buckets["error"],
+        )
         console.print(
             "[yellow]Note: ML filtering disabled. Results may contain false positives.[/yellow]"
         )
@@ -954,6 +1069,12 @@ def _run_full_audit_basic(
                     "per_layer": {str(k): v for k, v in layer_timing.items()},
                     "total_s": round(sum(layer_timing.values()), 3),
                 },
+                "provenance": build_provenance(
+                    all_results,
+                    command="audit full",
+                    contracts=[contract],
+                    llm_used=bool(verify_fp and verify_model),
+                ),
             }
 
         with open(output, "w", encoding="utf-8") as f:
@@ -977,6 +1098,19 @@ def _run_full_audit_basic(
 # =============================================================================
 # Audit Command Group
 # =============================================================================
+
+
+def _validate_llm_provider(ctx: click.Context, param: click.Parameter, value: str) -> str:
+    """``auto`` or a provider known to the registry (built-in or from the config)."""
+    from miesc.core.llm_providers import UnknownProviderError, get_provider
+
+    if value is None or value.lower() == "auto":
+        return "auto"
+    try:
+        get_provider(value)
+    except UnknownProviderError as exc:
+        raise click.BadParameter(str(exc)) from None
+    return value.lower()
 
 
 @click.group()
@@ -1005,8 +1139,10 @@ def audit() -> None:
     "--verify-model",
     "verify_model",
     default=None,
-    help="Ollama/DeepSeek model for an ADVISORY --verify-fp LLM pass (e.g. qwen2.5-coder:32b, "
-    "deepseek): flags more suspected FPs as needs_review; never drops.",
+    help="Model for an ADVISORY --verify-fp LLM pass: any registered provider as provider[:model] "
+    "(local Ollama by default, e.g. ollama:qwen2.5-coder:32b; gpt, claude, deepseek, kimi or an "
+    "endpoint from llm.providers need their key). Flags more suspected FPs as needs_review; "
+    "never drops. See docs/guides/LLM_PROVIDERS.md.",
 )
 @click.option(
     "--rank",
@@ -1084,12 +1220,7 @@ def audit_quick(
                 result = run_tool(tool, contract, timeout)
                 all_results.append(result)
 
-                if result["status"] == "success":
-                    success(f"{tool}: {len(result.get('findings', []))} findings")
-                elif result["status"] == "not_available":
-                    warning(f"{tool}: not installed")
-                else:
-                    warning(f"{tool}: {result.get('error', 'error')}")
+                _print_tool_result(tool, result)
 
                 progress.advance(task)
     else:
@@ -1196,7 +1327,17 @@ def audit_quick(
             with open(output, "w", encoding="utf-8") as f:
                 f.write(data)
         else:
-            data = {"results": all_results, "summary": summary, "version": VERSION}
+            data = {
+                "results": all_results,
+                "summary": summary,
+                "version": VERSION,
+                "provenance": build_provenance(
+                    all_results,
+                    command="audit quick",
+                    contracts=[contract],
+                    llm_used=bool(verify_fp and verify_model),
+                ),
+            }
             with open(output, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, default=str)
         success(f"Report saved to {output}")
@@ -1241,6 +1382,13 @@ def audit_quick(
     help="Layers to run (comma-separated, default: all 9)",
 )
 @click.option("--timeout", "-t", type=int, default=600, help="Timeout per tool in seconds")
+@click.option(
+    "--llm-timeout",
+    "llm_timeout",
+    type=int,
+    default=None,
+    help="Wall-clock budget in seconds for LLM-backed adapters (SmartGuard, GPTScan, iAudit...); static tools keep --timeout.",
+)
 @click.option("--skip-unavailable", is_flag=True, default=True, help="Skip unavailable tools")
 @click.option(
     "--ml/--no-ml", default=True, help="Enable ML pipeline for FP filtering and correlation"
@@ -1258,8 +1406,10 @@ def audit_quick(
     "--verify-model",
     "verify_model",
     default=None,
-    help="Ollama/DeepSeek model for an ADVISORY --verify-fp LLM pass (e.g. qwen2.5-coder:32b, "
-    "deepseek): flags more suspected FPs as needs_review; never drops.",
+    help="Model for an ADVISORY --verify-fp LLM pass: any registered provider as provider[:model] "
+    "(local Ollama by default, e.g. ollama:qwen2.5-coder:32b; gpt, claude, deepseek, kimi or an "
+    "endpoint from llm.providers need their key). Flags more suspected FPs as needs_review; "
+    "never drops. See docs/guides/LLM_PROVIDERS.md.",
 )
 @click.option(
     "--rank",
@@ -1315,6 +1465,7 @@ def audit_full(
     fmt: str,
     layers: str,
     timeout: int,
+    llm_timeout: int | None,
     skip_unavailable: bool,
     ml: bool,
     correlate: bool,
@@ -1340,10 +1491,27 @@ def audit_full(
         miesc audit full contract.sol -l 1,2,3          # Only layers 1-3
         miesc audit full contract.sol -o report.json    # Save to file
     """
+    # `audit full` runs the single-contract 9-layer pipeline; the orchestrator reads
+    # one source file. A directory target silently degrades the whole run — the
+    # source read fails ("[Errno 21] Is a directory"), so the ML/LLM layers get no
+    # code and produce nothing. Fail fast and point at `audit batch`, which iterates
+    # the .sol files in a directory, instead of crashing deep in the pipeline.
+    if Path(contract).is_dir():
+        error(
+            f"'{contract}' is a directory. 'audit full' analyses a single contract; "
+            "use 'miesc audit batch' to audit every .sol file in a directory."
+        )
+        sys.exit(2)
+
     print_banner()
     info(f"Full audit of {contract}")
 
     layer_list = [int(x.strip()) for x in layers.split(",") if x.strip().isdigit()]
+
+    # LLM-backed adapters get their own wall-clock budget when asked for.
+    set_llm_timeout(llm_timeout)
+    if llm_timeout:
+        info(f"LLM budget: {llm_timeout}s per LLM-backed tool (static tools: {timeout}s)")
 
     # Try to use ML Orchestrator for enhanced analysis
     ml_orchestrator = get_ml_orchestrator() if ml else None
@@ -1736,13 +1904,7 @@ def audit_profile(
                 result = run_tool(tool, contract, timeout)
                 all_results.append(result)
 
-                if result["status"] == "success":
-                    findings_count = len(result.get("findings", []))
-                    success(f"{tool}: {findings_count} findings")
-                elif result["status"] == "not_available":
-                    warning(f"{tool}: not installed")
-                else:
-                    warning(f"{tool}: {result.get('error', 'error')[:50]}")
+                _print_tool_result(tool, result)
 
                 progress.advance(task)
     else:
@@ -1914,6 +2076,17 @@ def audit_single(tool: str, contract: str, output: str | None, timeout: int) -> 
 @click.option(
     "--fail-on", type=str, default="", help="Fail on severity (comma-separated: critical,high)"
 )
+@click.option(
+    "--checkpoint",
+    type=click.Path(dir_okay=False),
+    default=None,
+    help="Write progress to this file after each contract completes",
+)
+@click.option(
+    "--resume",
+    is_flag=True,
+    help="Skip the contracts already completed in --checkpoint",
+)
 def audit_batch(
     path: str,
     output: str | None,
@@ -1923,6 +2096,8 @@ def audit_batch(
     recursive: bool,
     pattern: str,
     fail_on: str,
+    checkpoint: str | None,
+    resume: bool,
 ) -> None:
     """Batch analysis of multiple contracts.
 
@@ -1934,7 +2109,11 @@ def audit_batch(
       miesc audit batch ./src -r --profile balanced    # Recursive with balanced profile
       miesc audit batch . -j 8 -o report.json          # 8 parallel workers
       miesc audit batch ./contracts --fail-on critical,high  # CI mode
+      miesc audit batch ./contracts --checkpoint state.json           # Save progress
+      miesc audit batch ./contracts --checkpoint state.json --resume  # Continue after a crash
     """
+    if resume and not checkpoint:
+        raise click.UsageError("--resume needs --checkpoint")
     print_banner()
 
     # Find all Solidity files
@@ -1972,8 +2151,64 @@ def audit_batch(
     # Results storage
     all_contract_results = []
     aggregated_summary = {"CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "LOW": 0, "INFO": 0}
-    failed_contracts = []
+    failed_contracts: List[Dict[str, str]] = []
     start_time = datetime.now()
+
+    # The checkpoint has the report's own `contracts`/`failed` shape, so an unfinished run
+    # still leaves a usable partial result. Failed contracts are retried on --resume.
+    # `done` keeps resolved paths, so a resume from another cwd still matches.
+    checkpoint_path = Path(checkpoint) if checkpoint else None
+    source = {"path": str(path_obj.resolve()), "pattern": pattern, "recursive": recursive}
+    done: set[str] = set()
+    if resume and checkpoint_path and checkpoint_path.exists():
+        try:
+            saved = json.loads(checkpoint_path.read_text())
+            if saved.get("version") != CHECKPOINT_VERSION:
+                raise ValueError(f"version {saved.get('version')}, expected {CHECKPOINT_VERSION}")
+            mismatch = [
+                f"{key} {saved[key]} (now {now})"
+                for key, now in (("tools", tools_to_run), ("source", source))
+                if saved[key] != now
+            ]
+            contracts = saved["contracts"]
+            for done_result in contracts:
+                for sev, count in done_result["summary"].items():
+                    aggregated_summary[sev] += count
+            done = set(saved["done"])
+        except (OSError, ValueError, KeyError, TypeError, AttributeError) as e:
+            error(f"Could not read checkpoint {checkpoint_path}: {e}")
+            sys.exit(1)
+        if mismatch:
+            error(
+                f"Checkpoint {checkpoint_path} was made with {'; '.join(mismatch)}: "
+                "use the same path, --pattern, --recursive and --profile, or a new --checkpoint"
+            )
+            sys.exit(1)
+        all_contract_results = contracts
+        sol_files = [f for f in sol_files if str(Path(f).resolve()) not in done]
+        info(f"Resumed from {checkpoint_path}: {len(done)} done, {len(sol_files)} left")
+    elif checkpoint_path and checkpoint_path.exists():
+        warning(f"Overwriting {checkpoint_path}; pass --resume to continue it instead")
+
+    def write_checkpoint() -> None:
+        if not checkpoint_path:
+            return
+        state = {
+            "version": CHECKPOINT_VERSION,
+            "tools": tools_to_run,
+            "source": source,
+            "done": sorted(done),
+            "contracts": all_contract_results,
+            "failed": failed_contracts,
+        }
+        # Written aside and renamed, so a crash mid-write never leaves a truncated checkpoint.
+        # The PID keeps two runs on the same checkpoint from sharing the temp file.
+        tmp = checkpoint_path.with_name(f"{checkpoint_path.name}.{os.getpid()}.tmp")
+        try:
+            tmp.write_text(json.dumps(state, indent=2, default=str))
+            os.replace(tmp, checkpoint_path)
+        except OSError as e:
+            warning(f"Could not write checkpoint {checkpoint_path}: {e}")
 
     def analyze_contract(contract_path: str) -> Dict[str, Any]:
         """Analyze a single contract with all tools."""
@@ -2009,6 +2244,7 @@ def audit_batch(
                     try:
                         result = future.result()
                         all_contract_results.append(result)
+                        done.add(str(Path(contract).resolve()))
 
                         # Update aggregated summary
                         for sev, count in result["summary"].items():
@@ -2034,6 +2270,7 @@ def audit_batch(
                         failed_contracts.append({"contract": contract, "error": str(e)})
                         console.print(f"  [red]{Path(contract).name}[/red]: error - {e}")
 
+                    write_checkpoint()
                     progress.advance(task)
     else:
         with concurrent.futures.ThreadPoolExecutor(max_workers=parallel) as executor:
@@ -2048,6 +2285,7 @@ def audit_batch(
                 try:
                     result = future.result()
                     all_contract_results.append(result)
+                    done.add(str(Path(contract).resolve()))
 
                     for sev, count in result["summary"].items():
                         aggregated_summary[sev] += count
@@ -2055,6 +2293,8 @@ def audit_batch(
                 except Exception as e:
                     failed_contracts.append({"contract": contract, "error": str(e)})
                     print(f"  Error: {e}")
+
+                write_checkpoint()
 
     elapsed = (datetime.now() - start_time).total_seconds()
     total_findings = sum(aggregated_summary.values())
@@ -2243,9 +2483,14 @@ def audit_batch(
 @click.option("--no-rag", is_flag=True, help="Disable RAG enrichment")
 @click.option(
     "--llm-provider",
-    type=click.Choice(["auto", "ollama", "anthropic", "openai"]),
+    type=str,
+    callback=_validate_llm_provider,
     default="auto",
-    help="LLM provider: auto (local-first with cloud fallback), ollama, anthropic, openai",
+    metavar="PROVIDER",
+    help=(
+        "LLM provider for the narrative: auto (local-first with cloud fallback), ollama, "
+        "anthropic, openai, deepseek, kimi or one declared under llm.providers in the config"
+    ),
 )
 @click.option("--ci", is_flag=True, help="CI mode: exit 1 if critical/high issues")
 def audit_deep(
@@ -2278,6 +2523,11 @@ def audit_deep(
         miesc audit deep contract.sol --no-llm
         miesc audit deep contract.sol -t 300
         miesc audit deep contract.sol -o report.json --ci
+        miesc audit deep ./src
+
+    CONTRACT may be a directory: each .sol file is audited (lib/, node_modules/,
+    test/, script/ and build output are skipped) and the report lists which
+    function of another contract each contract calls.
     """
     print_banner()
 
@@ -2322,29 +2572,41 @@ def audit_deep(
     summary = result.get("summary", {})
     phases = result.get("phases", {})
 
+    if "files" in result:
+        meta, protocol = result["metadata"], result["protocol"]
+        info(
+            f"Protocol: {meta['files_analyzed']}/{meta['files_total']} files, "
+            f"{len(protocol['contracts'])} contracts, "
+            f"{len(protocol['calls'])} cross-contract calls"
+        )
+        if meta["timed_out"]:
+            warning("Timeout reached before every file was analyzed; raise --timeout")
+        for call in protocol["calls"][:10]:
+            info(f"  {call['caller']} -> {call['callee']}: {', '.join(call['functions'])}")
+
     if RICH_AVAILABLE:
         from rich.panel import Panel
         from rich.table import Table
 
-        # Risk profile
-        recon = phases.get("reconnaissance", {})
-        profile = recon.get("risk_profile", {})
-        console.print(
-            Panel(
-                f"[bold]{profile.get('primary', 'general').upper()}[/bold]",
-                title="Risk Profile",
-                border_style="cyan",
+        # Risk profile and phase summary are per file; a directory report has neither.
+        if phases:
+            recon = phases.get("reconnaissance", {})
+            profile = recon.get("risk_profile", {})
+            console.print(
+                Panel(
+                    f"[bold]{profile.get('primary', 'general').upper()}[/bold]",
+                    title="Risk Profile",
+                    border_style="cyan",
+                )
             )
-        )
 
-        # Phase summary
-        inv = phases.get("deep_investigation", {})
-        console.print(f"\n  Iterations: {inv.get('iterations', 0)}")
-        console.print(f"  Findings enriched: {inv.get('findings_enriched', 0)}")
-        console.print(f"  Exploit chains: {inv.get('chains_detected', 0)}")
-        console.print(f"  Mitigated: {inv.get('mitigated', 0)}")
-        if inv.get("additional_tools"):
-            console.print(f"  Additional tools triggered: {inv['additional_tools']}")
+            inv = phases.get("deep_investigation", {})
+            console.print(f"\n  Iterations: {inv.get('iterations', 0)}")
+            console.print(f"  Findings enriched: {inv.get('findings_enriched', 0)}")
+            console.print(f"  Exploit chains: {inv.get('chains_detected', 0)}")
+            console.print(f"  Mitigated: {inv.get('mitigated', 0)}")
+            if inv.get("additional_tools"):
+                console.print(f"  Additional tools triggered: {inv['additional_tools']}")
 
         # Findings table
         table = Table(title="Deep Audit Results")
@@ -2389,3 +2651,81 @@ def audit_deep(
         if critical > 0 or high > 0:
             error(f"CI check failed: {critical} critical, {high} high issues")
             sys.exit(1)
+
+
+@audit.command("address")
+@click.argument("address")
+@click.option(
+    "--chain",
+    type=click.Choice(["ethereum", "polygon", "arbitrum", "optimism", "bsc", "avalanche"]),
+    default="ethereum",
+    help="Chain the contract is deployed on",
+)
+@click.option(
+    "--api-key",
+    help="Etherscan API key (one V2 key covers every --chain); defaults to ETHERSCAN_API_KEY",
+)
+@click.option("--output", "-o", type=click.Path(), help="Output file path")
+@click.option("--format", "-f", "fmt", type=click.Choice(["json", "markdown"]), default="json")
+@click.option("--timeout", "-t", type=int, default=600, help="Max total audit time in seconds")
+@click.option("--no-llm", is_flag=True, help="Disable LLM synthesis entirely")
+@click.option("--ci", is_flag=True, help="CI mode: exit 1 if critical/high issues")
+@click.pass_context
+def audit_address(
+    ctx: click.Context,
+    address: str,
+    chain: str,
+    api_key: str | None,
+    output: str | None,
+    fmt: str,
+    timeout: int,
+    no_llm: bool,
+    ci: bool,
+) -> None:
+    """Audit a deployed contract by address: fetch its verified source, then `audit deep` it.
+
+    The source comes from the chain's block explorer (Etherscan V2), with your own
+    API key. Solidity only. Dependencies (@openzeppelin/..., lib/...) are written
+    under lib/ so imports resolve against the deployed versions, and are not
+    audited as protocol code.
+
+    \b
+    Examples:
+        miesc audit address 0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984
+        miesc audit address 0x... --chain arbitrum --no-llm -o report.json
+    """
+    import tempfile
+
+    from miesc.core.block_explorer import (
+        BlockExplorerError,
+        fetch_verified_source,
+        write_contract_to_dir,
+    )
+    from miesc.core.chain_abstraction import ChainType
+
+    info(f"Fetching verified source for {address} on {chain}...")
+    try:
+        contract = fetch_verified_source(address, chain=ChainType(chain), api_key=api_key)
+    except BlockExplorerError as e:
+        error(str(e))
+        sys.exit(1)
+    success(
+        f"Fetched {contract.contract_name} ({len(contract.files)} file(s), "
+        f"{contract.compiler_version})"
+    )
+
+    with tempfile.TemporaryDirectory(prefix="miesc_address_") as tmp:
+        try:
+            target = write_contract_to_dir(contract, Path(tmp))
+        except BlockExplorerError as e:
+            error(str(e))
+            sys.exit(1)
+        ctx.invoke(
+            audit_deep,
+            contract=str(target),
+            output=output,
+            fmt=fmt,
+            timeout=timeout,
+            no_llm=no_llm,
+            ci=ci,
+        )

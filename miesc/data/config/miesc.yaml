@@ -552,6 +552,19 @@ llm:
   provider: ollama
   host: http://localhost:11434
 
+  # Proveedores LLM (nube y locales). Los built-in son anthropic, openai, deepseek,
+  # kimi (Moonshot) y ollama; acá se agregan endpoints compatibles con OpenAI o se
+  # pisa un campo de un built-in. Las claves se leen de las variables de entorno
+  # indicadas y nunca se guardan. Ver docs/guides/LLM_PROVIDERS.md.
+  # providers:
+  #   openrouter:
+  #     kind: openai                     # openai | anthropic | ollama
+  #     base_url: https://openrouter.ai/api/v1
+  #     api_key_env: OPENROUTER_API_KEY
+  #     default_model: qwen/qwen-2.5-coder-32b-instruct
+  #   kimi:
+  #     default_model: kimi-k2-thinking
+
   # Modelo por defecto para todas las tareas
   default_model: qwen2.5-coder:32b
 
@@ -894,6 +907,25 @@ analysis:
 # v4.3.0+ Nuevas Capas de Inteligencia (2025-2026)
 # =============================================================================
 intelligence:
+  # Acceptance-pattern intelligence (pluggable, ports-and-adapters).
+  # Provides a per-vulnerability-class "acceptance probability": how often a
+  # finding of this class is historically ACCEPTED as valid by human judges in
+  # competitive audits (Sherlock, Code4rena, ...). RECALL-SAFE: this signal only
+  # reorders findings by priority — it never feeds confidence and never drops
+  # anything (recall stays 1.0).
+  acceptance:
+    # Local, offline, curated open table — the default provider. Always safe.
+    local:
+      enabled: true
+    # Opt-in EXTERNAL provider (a third-party bug-bounty-intelligence service).
+    # Off by default; requires an API key and honors the local-first policy.
+    # The paid per-contract (x402) scan is NOT shipped in core.
+    bugbounty:
+      enabled: false            # must be explicitly enabled
+      api_key_env: MIESC_BUGBOUNTY_API_KEY
+      allow_remote: false       # remote traffic stays off unless opted in
+      base_url: null            # override the vendor endpoint (HTTPS, SSRF-guarded)
+
   # LLM Ensemble Detector - Multi-model voting
   ensemble_detection:
     enabled: true

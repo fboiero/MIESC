@@ -2,11 +2,6 @@
   <!-- Background -->
   <rect width="1100" height="750" fill="#ffffff"/>
   
-  <!-- Title -->
-  <text x="550" y="40" text-anchor="middle" font-size="26" font-weight="bold" fill="#2c3e50">
-    Figura 6.1. Superficie de Ataque en Análisis con API Comercial
-  </text>
-  
   <!-- Main container -->
   <rect x="50" y="70" width="1000" height="660" fill="#fef9f9" rx="10" stroke="#e74c3c" stroke-width="3"/>
   

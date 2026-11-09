@@ -14,7 +14,6 @@ License: AGPL-3.0
 from __future__ import annotations
 
 import tempfile
-import time
 from pathlib import Path
 
 from miesc.agents.audit_readiness import documentation_analyzer as da
@@ -80,10 +79,11 @@ def test_analyze_all_on_temp_root_does_not_traverse_subdirs(tmp_path, monkeypatc
     monkeypatch.setattr(da, "_is_system_temp_root", lambda p: p == tmp_path)
 
     analyzer = DocumentationAnalyzer()
-    start = time.monotonic()
     result = analyzer.analyze_all(str(contract))
-    elapsed = time.monotonic() - start
 
-    assert elapsed < 5.0  # returns fast, no runaway recursion
-    # Only the immediate-directory interface is counted; the nested one is not.
+    # Non-traversal is asserted behaviourally, not by wall-clock: only the immediate-directory
+    # interface (`IToken`) is counted, never the one nested under `unrelated/` (`IHidden`). If the
+    # guard regressed and the whole temp root were walked, the count would be 2. (The previous
+    # `elapsed < 5.0` bound flaked under machine load — 18 s on a busy host — while proving nothing
+    # the count does not.)
     assert result["api"]["interface_count"] == 1

@@ -3104,6 +3104,7 @@ contract Test {
 
         # Should get cached result
         result = orchestrator._run_tool("slither", str(contract))
+        assert result.pop("from_cache") is True  # cache hits are flagged for timing tables
         assert result == cached_result
 
     def test_run_tool_successful_execution(self, tmp_path):

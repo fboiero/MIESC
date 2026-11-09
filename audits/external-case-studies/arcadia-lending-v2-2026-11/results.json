@@ -1,0 +1,1045 @@
+{
+  "contract": "Arcadia lending-v2 (arcadia-finance/lending-v2, src/)",
+  "results": [
+    {
+      "tool": "slither",
+      "contract": "src/",
+      "status": "success",
+      "findings": [
+        {
+          "title": "arbitrary-send-erc20",
+          "type": "arbitrary-send-erc20",
+          "severity": "High",
+          "confidence": 0.9,
+          "description": "LendingPool.auctionRepay(uint256,uint256,uint256,address,address) (src/LendingPool.sol#510-537) uses arbitrary from in transferFrom: asset.safeTransferFrom(bidder,address(this),amount) (src/LendingPool.sol#520)",
+          "location": {
+            "file": "src/LendingPool.sol",
+            "line": 510
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "arbitrary-send-erc20",
+          "type": "arbitrary-send-erc20",
+          "severity": "High",
+          "confidence": 0.9,
+          "description": "LendingPool.depositInLendingPool(uint256,address) (src/LendingPool.sol#342-357) uses arbitrary from in transferFrom: asset.safeTransferFrom(from,address(this),assets) (src/LendingPool.sol#351)",
+          "location": {
+            "file": "src/LendingPool.sol",
+            "line": 342
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "divide-before-multiply",
+          "type": "divide-before-multiply",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "LogExpMath._ln_36(int256) (src/libraries/LogExpMath.sol#430-477) performs a multiplication on the result of a division:\n\t- z = ((x - ONE_36) * ONE_36) / (x + ONE_36) (src/libraries/LogExpMath.sol#442)\n\t- z_squared = (z * z) / ONE_36 (src/libraries/LogExpMath.sol#443)",
+          "location": {
+            "file": "src/libraries/LogExpMath.sol",
+            "line": 430
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "divide-before-multiply",
+          "type": "divide-before-multiply",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "LogExpMath._ln(int256) (src/libraries/LogExpMath.sol#290-422) performs a multiplication on the result of a division:\n\t- z_squared = (z * z) / ONE_20 (src/libraries/LogExpMath.sol#388)\n\t- num = (num * z_squared) / ONE_20 (src/libraries/LogExpMath.sol#406)\n\t- num = (num * z_squared) / ONE_20 (src/libraries/LogExpMath.sol#409)",
+          "location": {
+            "file": "src/libraries/LogExpMath.sol",
+            "line": 290
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "divide-before-multiply",
+          "type": "divide-before-multiply",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "LogExpMath.exp(int256) (src/libraries/LogExpMath.sol#149-284) performs a multiplication on the result of a division:\n\t- product = (product * a4) / ONE_20 (src/libraries/LogExpMath.sol#205)\n\t- product = (product * a5) / ONE_20 (src/libraries/LogExpMath.sol#209)",
+          "location": {
+            "file": "src/libraries/LogExpMath.sol",
+            "line": 149
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "incorrect-equality",
+          "type": "incorrect-equality",
+          "severity": "Medium",
+          "confidence": 0.9,
+          "description": "Tranche.convertToShares(uint256) (src/Tranche.sol#295-300) uses a dangerous strict equality:\n\t- supply == 0 (src/Tranche.sol#299)",
+          "location": {
+            "file": "src/Tranche.sol",
+            "line": 295
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "incorrect-equality",
+          "type": "incorrect-equality",
+          "severity": "Medium",
+          "confidence": 0.9,
+          "description": "Tranche.deposit(uint256,address) (src/Tranche.sol#158-175) uses a dangerous strict equality:\n\t- (shares = previewDepositAndSync(assets)) == 0 (src/Tranche.sol#166)",
+          "location": {
+            "file": "src/Tranche.sol",
+            "line": 158
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "incorrect-equality",
+          "type": "incorrect-equality",
+          "severity": "Medium",
+          "confidence": 0.9,
+          "description": "Tranche.convertToAssets(uint256) (src/Tranche.sol#320-325) uses a dangerous strict equality:\n\t- supply == 0 (src/Tranche.sol#324)",
+          "location": {
+            "file": "src/Tranche.sol",
+            "line": 320
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "incorrect-equality",
+          "type": "incorrect-equality",
+          "severity": "Medium",
+          "confidence": 0.9,
+          "description": "Tranche.previewMint(uint256) (src/Tranche.sol#355-360) uses a dangerous strict equality:\n\t- supply == 0 (src/Tranche.sol#359)",
+          "location": {
+            "file": "src/Tranche.sol",
+            "line": 355
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "incorrect-equality",
+          "type": "incorrect-equality",
+          "severity": "Medium",
+          "confidence": 0.9,
+          "description": "Tranche.convertToSharesAndSync(uint256) (src/Tranche.sol#308-313) uses a dangerous strict equality:\n\t- supply == 0 (src/Tranche.sol#312)",
+          "location": {
+            "file": "src/Tranche.sol",
+            "line": 308
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "incorrect-equality",
+          "type": "incorrect-equality",
+          "severity": "Medium",
+          "confidence": 0.9,
+          "description": "LendingPool._syncInterestsToLiquidityProviders(uint256) (src/LendingPool.sol#794-820) uses a dangerous strict equality:\n\t- realisedLiquidity == 0 (src/LendingPool.sol#806)",
+          "location": {
+            "file": "src/LendingPool.sol",
+            "line": 794
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "incorrect-equality",
+          "type": "incorrect-equality",
+          "severity": "Medium",
+          "confidence": 0.9,
+          "description": "Tranche.previewWithdraw(uint256) (src/Tranche.sol#380-385) uses a dangerous strict equality:\n\t- supply == 0 (src/Tranche.sol#384)",
+          "location": {
+            "file": "src/Tranche.sol",
+            "line": 380
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "incorrect-equality",
+          "type": "incorrect-equality",
+          "severity": "Medium",
+          "confidence": 0.9,
+          "description": "Tranche.convertToAssetsAndSync(uint256) (src/Tranche.sol#333-338) uses a dangerous strict equality:\n\t- supply == 0 (src/Tranche.sol#337)",
+          "location": {
+            "file": "src/Tranche.sol",
+            "line": 333
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "incorrect-equality",
+          "type": "incorrect-equality",
+          "severity": "Medium",
+          "confidence": 0.9,
+          "description": "Tranche.previewWithdrawAndSync(uint256) (src/Tranche.sol#393-398) uses a dangerous strict equality:\n\t- supply == 0 (src/Tranche.sol#397)",
+          "location": {
+            "file": "src/Tranche.sol",
+            "line": 393
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "incorrect-equality",
+          "type": "incorrect-equality",
+          "severity": "Medium",
+          "confidence": 0.9,
+          "description": "Tranche.maxRedeem(address) (src/Tranche.sol#447-455) uses a dangerous strict equality:\n\t- claimableShares == 0 (src/Tranche.sol#451)",
+          "location": {
+            "file": "src/Tranche.sol",
+            "line": 447
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "incorrect-equality",
+          "type": "incorrect-equality",
+          "severity": "Medium",
+          "confidence": 0.9,
+          "description": "LendingPool.auctionRepay(uint256,uint256,uint256,address,address) (src/LendingPool.sol#510-537) uses a dangerous strict equality:\n\t- accountDebt == 0 (src/LendingPool.sol#523)",
+          "location": {
+            "file": "src/LendingPool.sol",
+            "line": 510
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "incorrect-equality",
+          "type": "incorrect-equality",
+          "severity": "Medium",
+          "confidence": 0.9,
+          "description": "Tranche.redeem(uint256,address,address) (src/Tranche.sol#243-265) uses a dangerous strict equality:\n\t- (assets = previewRedeemAndSync(shares)) == 0 (src/Tranche.sol#258)",
+          "location": {
+            "file": "src/Tranche.sol",
+            "line": 243
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "incorrect-equality",
+          "type": "incorrect-equality",
+          "severity": "Medium",
+          "confidence": 0.9,
+          "description": "Tranche.previewMintAndSync(uint256) (src/Tranche.sol#368-373) uses a dangerous strict equality:\n\t- supply == 0 (src/Tranche.sol#372)",
+          "location": {
+            "file": "src/Tranche.sol",
+            "line": 368
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "incorrect-equality",
+          "type": "incorrect-equality",
+          "severity": "Medium",
+          "confidence": 0.9,
+          "description": "LendingPool.startLiquidation(address,uint256) (src/LendingPool.sol#912-954) uses a dangerous strict equality:\n\t- startDebt == 0 (src/LendingPool.sol#923)",
+          "location": {
+            "file": "src/LendingPool.sol",
+            "line": 912
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-no-eth",
+          "type": "reentrancy-no-eth",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "Reentrancy in Tranche.withdraw(uint256,address,address) (src/Tranche.sol#212-234):\n\tExternal calls:\n\t- shares = previewWithdrawAndSync(assets) (src/Tranche.sol#220)\n\t\t- assets = LENDING_POOL.liquidityOfAndSync(address(this)) (src/Tranche.sol#287)\n\tState variables written after the call(s):\n\t- _burn(owner_,shares) (src/Tranche.sol#229)\n\t\t- totalSupply -= amount (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#201)\n\tERC20.totalSupply (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#31) can be used in cross function reentrancies:\n\t- ERC20._burn(address,uint256) (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#195-205)\n\t- ERC20._mint(address,uint256) (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#183-193)\n\t- Tranche.convertToAssets(uint256) (src/Tranche.sol#320-325)\n\t- Tranche.convertToAssetsAndSync(uint256) (src/Tranche.sol#333-338)\n\t- Tranche.convertToShares(uint256) (src/Tranche.sol#295-300)\n\t- Tranche.convertToSharesAndSync(uint256) (src/Tranche.sol#308-313)\n\t- Tranche.previewMint(uint256) (src/Tranche.sol#355-360)\n\t- Tranche.previewMintAndSync(uint256) (src/Tranche.sol#368-373)\n\t- Tranche.previewWithdraw(uint256) (src/Tranche.sol#380-385)\n\t- Tranche.previewWithdrawAndSync(uint256) (src/Tranche.sol#393-398)\n\t- ERC20.totalSupply (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#31)",
+          "location": {
+            "file": "src/Tranche.sol",
+            "line": 212
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-no-eth",
+          "type": "reentrancy-no-eth",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "Reentrancy in LendingPool._processDefault(uint256) (src/LendingPool.sol#1120-1154):\n\tExternal calls:\n\t- ITranche(tranche).lock() (src/LendingPool.sol#1148)\n\t- ITranche(tranches[i - 1]).setAuctionInProgress(true) (src/LendingPool.sol#1151)\n\tState variables written after the call(s):\n\t- _popTranche(i,tranche) (src/LendingPool.sol#1143)\n\t\t- interestWeightTranches.pop() (src/LendingPool.sol#279)\n\tLendingPool.interestWeightTranches (src/LendingPool.sol#106) can be used in cross function reentrancies:\n\t- LendingPool._popTranche(uint256,address) (src/LendingPool.sol#274-284)\n\t- LendingPool._syncInterestsToLiquidityProviders(uint256) (src/LendingPool.sol#794-820)\n\t- LendingPool.addTranche(address,uint16) (src/LendingPool.sol#222-237)\n\t- LendingPool.setInterestWeightTranche(uint256,uint16) (src/LendingPool.sol#245-254)\n\t- realisedLiquidityOf[tranche] -= badDebt (src/LendingPool.sol#1134)\n\tLendingPool.realisedLiquidityOf (src/LendingPool.sol#118) can be used in cross function reentrancies:\n\t- LendingPool._flashActionCallback(address,bytes) (src/LendingPool.sol#599-625)\n\t- LendingPool._processDefault(uint256) (src/LendingPool.sol#1120-1154)\n\t- LendingPool._settleLiquidationHappyFlow(address,uint256,uint256,address,uint256) (src/LendingPool.sol#991-1019)\n\t- LendingPool._syncInterestsToLiquidityProviders(uint256) (src/LendingPool.sol#794-820)\n\t- LendingPool._syncLiquidationFee(uint256) (src/LendingPool.sol#1163-1190)\n\t- LendingPool.borrow(uint256,address,address,bytes3) (src/LendingPool.sol#430-476)\n\t- LendingPool.depositInLendingPool(uint256,address) (src/LendingPool.sol#342-357)\n\t- LendingPool.donateToTranche(uint256,uint256) (src/LendingPool.sol#368-382)\n\t- LendingPool.liquidityOf(address) (src/LendingPool.sol#685-699)\n\t- LendingPool.liquidityOfAndSync(address) (src/LendingPool.sol#671-674)\n\t- LendingPool.settleLiquidationUnhappyFlow(address,uint256,uint256,address) (src/LendingPool.sol#1036-1089)\n\t- LendingPool.skim() (src/LendingPool.sol#711-725)\n\t- LendingPool.startLiquidation(address,uint256) (src/LendingPool.sol#912-954)\n\t- LendingPool.withdrawFromLendingPool(uint256,address) (src/LendingPool.sol#391-401)\n\t- realisedLiquidityOf[tranche] = 0 (src/LendingPool.sol#1142)\n\tLendingPool.realisedLiquidityOf (src/LendingPool.sol#118) can be used in cross function reentrancies:\n\t- LendingPool._flashActionCallback(address,bytes) (src/LendingPool.sol#599-625)\n\t- LendingPool._processDefault(uint256) (src/LendingPool.sol#1120-1154)\n\t- LendingPool._settleLiquidationHappyFlow(address,uint256,uint256,address,uint256) (src/LendingPool.sol#991-1019)\n\t- LendingPool._syncInterestsToLiquidityProviders(uint256) (src/LendingPool.sol#794-820)\n\t- LendingPool._syncLiquidationFee(uint256) (src/LendingPool.sol#1163-1190)\n\t- LendingPool.borrow(uint256,address,address,bytes3) (src/LendingPool.sol#430-476)\n\t- LendingPool.depositInLendingPool(uint256,address) (src/LendingPool.sol#342-357)\n\t- LendingPool.donateToTranche(uint256,uint256) (src/LendingPool.sol#368-382)\n\t- LendingPool.liquidityOf(address) (src/LendingPool.sol#685-699)\n\t- LendingPool.liquidityOfAndSync(address) (src/LendingPool.sol#671-674)\n\t- LendingPool.settleLiquidationUnhappyFlow(address,uint256,uint256,address) (src/LendingPool.sol#1036-1089)\n\t- LendingPool.skim() (src/LendingPool.sol#711-725)\n\t- LendingPool.startLiquidation(address,uint256) (src/LendingPool.sol#912-954)\n\t- LendingPool.withdrawFromLendingPool(uint256,address) (src/LendingPool.sol#391-401)\n\t- _popTranche(i,tranche) (src/LendingPool.sol#1143)\n\t\t- totalInterestWeight -= interestWeightTranches[index] (src/LendingPool.sol#276)\n\tLendingPool.totalInterestWeight (src/LendingPool.sol#72) can be used in cross function reentrancies:\n\t- LendingPool._popTranche(uint256,address) (src/LendingPool.sol#274-284)\n\t- LendingPool._syncInterestsToLiquidityProviders(uint256) (src/LendingPool.sol#794-820)\n\t- LendingPool.addTranche(address,uint16) (src/LendingPool.sol#222-237)\n\t- LendingPool.liquidityOf(address) (src/LendingPool.sol#685-699)\n\t- LendingPool.setInterestWeightTranche(uint256,uint16) (src/LendingPool.sol#245-254)\n\t- LendingPool.setTreasuryWeights(uint16,uint16) (src/LendingPool.sol#298-305)\n\t- _popTranche(i,tranche) (src/LendingPool.sol#1143)\n\t\t- tranches.pop() (src/LendingPool.sol#280)\n\tLendingPool.tranches (src/LendingPool.sol#108) can be used in cross function reentrancies:\n\t- LendingPool._endLiquidation() (src/LendingPool.sol#1095-1108)\n\t- LendingPool._popTranche(uint256,address) (src/LendingPool.sol#274-284)\n\t- LendingPool._processDefault(uint256) (src/LendingPool.sol#1120-1154)\n\t- LendingPool._syncInterestsToLiquidityProviders(uint256) (src/LendingPool.sol#794-820)\n\t- LendingPool._syncLiquidationFee(uint256) (src/LendingPool.sol#1163-1190)\n\t- LendingPool.addTranche(address,uint16) (src/LendingPool.sol#222-237)\n\t- LendingPool.donateToTranche(uint256,uint256) (src/LendingPool.sol#368-382)\n\t- LendingPool.setInterestWeightTranche(uint256,uint16) (src/LendingPool.sol#245-254)\n\t- LendingPool.startLiquidation(address,uint256) (src/LendingPool.sol#912-954)",
+          "location": {
+            "file": "src/LendingPool.sol",
+            "line": 1120
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-no-eth",
+          "type": "reentrancy-no-eth",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "Reentrancy in LendingPool.settleLiquidationUnhappyFlow(address,uint256,uint256,address) (src/LendingPool.sol#1036-1089):\n\tExternal calls:\n\t- _processDefault(badDebt) (src/LendingPool.sol#1060)\n\t\t- ITranche(tranche).lock() (src/LendingPool.sol#1148)\n\t\t- ITranche(tranches[i - 1]).setAuctionInProgress(true) (src/LendingPool.sol#1151)\n\tState variables written after the call(s):\n\t- _burn(account,debtShares) (src/LendingPool.sol#1080)\n\t\t- balanceOf[from] -= amount (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#196)\n\tERC20.balanceOf (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#33) can be used in cross function reentrancies:\n\t- ERC20._burn(address,uint256) (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#195-205)\n\t- ERC20._mint(address,uint256) (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#183-193)\n\t- ERC20.balanceOf (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#33)\n\t- ERC4626.maxRedeem(address) (lib/accounts-v2/lib/solmate/src/tokens/ERC4626.sol#172-174)\n\t- ERC4626.maxWithdraw(address) (lib/accounts-v2/lib/solmate/src/tokens/ERC4626.sol#168-170)\n\t- LendingPool.settleLiquidationUnhappyFlow(address,uint256,uint256,address) (src/LendingPool.sol#1036-1089)\n\t- realisedDebt -= openDebt (src/LendingPool.sol#1081)\n\tDebtToken.realisedDebt (src/DebtToken.sol#27) can be used in cross function reentrancies:\n\t- DebtToken._deposit(uint256,address) (src/DebtToken.sol#77-86)\n\t- LendingPool._syncInterests() (src/LendingPool.sol#736-754)\n\t- DebtToken._withdraw(uint256,address,address) (src/DebtToken.sol#112-121)\n\t- LendingPool.calcUnrealisedDebt() (src/LendingPool.sol#766-785)\n\t- LendingPool.processInterests() (src/LendingPool.sol#175-181)\n\t- LendingPool.settleLiquidationUnhappyFlow(address,uint256,uint256,address) (src/LendingPool.sol#1036-1089)\n\t- LendingPool.skim() (src/LendingPool.sol#711-725)\n\t- LendingPool.totalAssets() (src/LendingPool.sol#635-644)\n\t- _burn(account,debtShares) (src/LendingPool.sol#1080)\n\t\t- totalSupply -= amount (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#201)\n\tERC20.totalSupply (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#31) can be used in cross function reentrancies:\n\t- ERC20._burn(address,uint256) (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#195-205)\n\t- ERC20._mint(address,uint256) (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#183-193)\n\t- DebtToken.convertToAssets(uint256) (src/DebtToken.sol#150-155)\n\t- DebtToken.convertToShares(uint256) (src/DebtToken.sol#139-144)\n\t- DebtToken.previewMint(uint256) (src/DebtToken.sol#161-166)\n\t- DebtToken.previewWithdraw(uint256) (src/DebtToken.sol#172-177)\n\t- ERC20.totalSupply (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#31)",
+          "location": {
+            "file": "src/LendingPool.sol",
+            "line": 1036
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-no-eth",
+          "type": "reentrancy-no-eth",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "Reentrancy in LiquidatorL1.endAuction(address) (src/liquidators/LiquidatorL1.sol#478-487):\n\tExternal calls:\n\t- ! _settleAuction(account,auctionInformation_) (src/liquidators/LiquidatorL1.sol#484)\n\t\t- ILendingPool(creditor).settleLiquidationUnhappyFlow(account,startDebt,minimumMargin,msg.sender) (src/liquidators/LiquidatorL1.sol#555)\n\t\t- IAccount(account).auctionBoughtIn(creditorToAccountRecipient[creditor]) (src/liquidators/LiquidatorL1.sol#557)\n\t\t- ILendingPool(creditor).settleLiquidationHappyFlow(account,startDebt,minimumMargin,msg.sender) (src/liquidators/LiquidatorL1.sol#530)\n\t- _endAuction(account) (src/liquidators/LiquidatorL1.sol#486)\n\t\t- IAccount(account).endAuction() (src/liquidators/LiquidatorL1.sol#566)\n\tState variables written after the call(s):\n\t- _endAuction(account) (src/liquidators/LiquidatorL1.sol#486)\n\t\t- delete auctionInformation[account] (src/liquidators/LiquidatorL1.sol#564)\n\tLiquidatorL1.auctionInformation (src/liquidators/LiquidatorL1.sol#56) can be used in cross function reentrancies:\n\t- LiquidatorL1.auctionInformation (src/liquidators/LiquidatorL1.sol#56)\n\t- LiquidatorL1.getAuctionInformationArrays(address) (src/liquidators/LiquidatorL1.sol#293-308)\n\t- LiquidatorL1.getBidPrice(address,uint256[]) (src/liquidators/LiquidatorL1.sol#382-394)",
+          "location": {
+            "file": "src/liquidators/LiquidatorL1.sol",
+            "line": 478
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-no-eth",
+          "type": "reentrancy-no-eth",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "Reentrancy in LiquidatorL1.bid(address,uint256[],bool,bytes) (src/liquidators/LiquidatorL1.sol#328-370):\n\tExternal calls:\n\t- bidAmounts = IAccount(account).auctionBid(auctionInformation_.assetAddresses,auctionInformation_.assetIds,bidAmounts,msg.sender) (src/liquidators/LiquidatorL1.sol#338-339)\n\t- IBidCallback(msg.sender).bidCallback(bidAmounts,price,data) (src/liquidators/LiquidatorL1.sol#350)\n\t- earlyTerminate = ILendingPool(auctionInformation_.creditor).auctionRepay(auctionInformation_.startDebt,auctionInformation_.minimumMargin,price,account,msg.sender) (src/liquidators/LiquidatorL1.sol#356-357)\n\t- _settleAuction(account,auctionInformation_) (src/liquidators/LiquidatorL1.sol#368)\n\t\t- ILendingPool(creditor).settleLiquidationUnhappyFlow(account,startDebt,minimumMargin,msg.sender) (src/liquidators/LiquidatorL1.sol#555)\n\t\t- IAccount(account).auctionBoughtIn(creditorToAccountRecipient[creditor]) (src/liquidators/LiquidatorL1.sol#557)\n\t\t- ILendingPool(creditor).settleLiquidationHappyFlow(account,startDebt,minimumMargin,msg.sender) (src/liquidators/LiquidatorL1.sol#530)\n\t- _endAuction(account) (src/liquidators/LiquidatorL1.sol#368)\n\t\t- IAccount(account).endAuction() (src/liquidators/LiquidatorL1.sol#566)\n\tState variables written after the call(s):\n\t- _endAuction(account) (src/liquidators/LiquidatorL1.sol#368)\n\t\t- delete auctionInformation[account] (src/liquidators/LiquidatorL1.sol#564)\n\tLiquidatorL1.auctionInformation (src/liquidators/LiquidatorL1.sol#56) can be used in cross function reentrancies:\n\t- LiquidatorL1.auctionInformation (src/liquidators/LiquidatorL1.sol#56)\n\t- LiquidatorL1.getAuctionInformationArrays(address) (src/liquidators/LiquidatorL1.sol#293-308)\n\t- LiquidatorL1.getBidPrice(address,uint256[]) (src/liquidators/LiquidatorL1.sol#382-394)",
+          "location": {
+            "file": "src/liquidators/LiquidatorL1.sol",
+            "line": 328
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-no-eth",
+          "type": "reentrancy-no-eth",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "Reentrancy in LendingPool.auctionRepay(uint256,uint256,uint256,address,address) (src/LendingPool.sol#510-537):\n\tExternal calls:\n\t- _settleLiquidationHappyFlow(account,startDebt,minimumMargin_,bidder,(amount - accountDebt)) (src/LendingPool.sol#529)\n\t\t- ITranche(tranches[tranches.length - 1]).setAuctionInProgress(false) (src/LendingPool.sol#1105)\n\tState variables written after the call(s):\n\t- _withdraw(amount,address(this),account) (src/LendingPool.sol#534)\n\t\t- balanceOf[from] -= amount (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#196)\n\tERC20.balanceOf (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#33) can be used in cross function reentrancies:\n\t- ERC20._burn(address,uint256) (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#195-205)\n\t- ERC20._mint(address,uint256) (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#183-193)\n\t- ERC20.balanceOf (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#33)\n\t- ERC4626.maxRedeem(address) (lib/accounts-v2/lib/solmate/src/tokens/ERC4626.sol#172-174)\n\t- ERC4626.maxWithdraw(address) (lib/accounts-v2/lib/solmate/src/tokens/ERC4626.sol#168-170)\n\t- LendingPool.settleLiquidationUnhappyFlow(address,uint256,uint256,address) (src/LendingPool.sol#1036-1089)\n\t- _withdraw(amount,address(this),account) (src/LendingPool.sol#534)\n\t\t- realisedDebt -= assets (src/DebtToken.sol#118)\n\tDebtToken.realisedDebt (src/DebtToken.sol#27) can be used in cross function reentrancies:\n\t- DebtToken._deposit(uint256,address) (src/DebtToken.sol#77-86)\n\t- LendingPool._syncInterests() (src/LendingPool.sol#736-754)\n\t- DebtToken._withdraw(uint256,address,address) (src/DebtToken.sol#112-121)\n\t- LendingPool.calcUnrealisedDebt() (src/LendingPool.sol#766-785)\n\t- LendingPool.processInterests() (src/LendingPool.sol#175-181)\n\t- LendingPool.settleLiquidationUnhappyFlow(address,uint256,uint256,address) (src/LendingPool.sol#1036-1089)\n\t- LendingPool.skim() (src/LendingPool.sol#711-725)\n\t- LendingPool.totalAssets() (src/LendingPool.sol#635-644)\n\t- _withdraw(amount,address(this),account) (src/LendingPool.sol#534)\n\t\t- totalSupply -= amount (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#201)\n\tERC20.totalSupply (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#31) can be used in cross function reentrancies:\n\t- ERC20._burn(address,uint256) (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#195-205)\n\t- ERC20._mint(address,uint256) (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#183-193)\n\t- DebtToken.convertToAssets(uint256) (src/DebtToken.sol#150-155)\n\t- DebtToken.convertToShares(uint256) (src/DebtToken.sol#139-144)\n\t- DebtToken.previewMint(uint256) (src/DebtToken.sol#161-166)\n\t- DebtToken.previewWithdraw(uint256) (src/DebtToken.sol#172-177)\n\t- ERC20.totalSupply (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#31)",
+          "location": {
+            "file": "src/LendingPool.sol",
+            "line": 510
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-no-eth",
+          "type": "reentrancy-no-eth",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "Reentrancy in LiquidatorL1.liquidateAccount(address) (src/liquidators/LiquidatorL1.sol#207-252):\n\tExternal calls:\n\t- (assetAddresses,assetIds,assetAmounts,creditor,minimumMargin,debt,assetValues) = IAccount(account).startLiquidation(msg.sender) (src/liquidators/LiquidatorL1.sol#231-239)\n\tState variables written after the call(s):\n\t- auctionInformation_.assetAddresses = assetAddresses (src/liquidators/LiquidatorL1.sol#242)\n\tLiquidatorL1.auctionInformation (src/liquidators/LiquidatorL1.sol#56) can be used in cross function reentrancies:\n\t- LiquidatorL1.auctionInformation (src/liquidators/LiquidatorL1.sol#56)\n\t- LiquidatorL1.getAuctionInformationArrays(address) (src/liquidators/LiquidatorL1.sol#293-308)\n\t- LiquidatorL1.getBidPrice(address,uint256[]) (src/liquidators/LiquidatorL1.sol#382-394)\n\t- auctionInformation_.assetIds = assetIds (src/liquidators/LiquidatorL1.sol#243)\n\tLiquidatorL1.auctionInformation (src/liquidators/LiquidatorL1.sol#56) can be used in cross function reentrancies:\n\t- LiquidatorL1.auctionInformation (src/liquidators/LiquidatorL1.sol#56)\n\t- LiquidatorL1.getAuctionInformationArrays(address) (src/liquidators/LiquidatorL1.sol#293-308)\n\t- LiquidatorL1.getBidPrice(address,uint256[]) (src/liquidators/LiquidatorL1.sol#382-394)\n\t- auctionInformation_.assetAmounts = assetAmounts (src/liquidators/LiquidatorL1.sol#244)\n\tLiquidatorL1.auctionInformation (src/liquidators/LiquidatorL1.sol#56) can be used in cross function reentrancies:\n\t- LiquidatorL1.auctionInformation (src/liquidators/LiquidatorL1.sol#56)\n\t- LiquidatorL1.getAuctionInformationArrays(address) (src/liquidators/LiquidatorL1.sol#293-308)\n\t- LiquidatorL1.getBidPrice(address,uint256[]) (src/liquidators/LiquidatorL1.sol#382-394)\n\t- auctionInformation_.creditor = creditor (src/liquidators/LiquidatorL1.sol#245)\n\tLiquidatorL1.auctionInformation (src/liquidators/LiquidatorL1.sol#56) can be used in cross function reentrancies:\n\t- LiquidatorL1.auctionInformation (src/liquidators/LiquidatorL1.sol#56)\n\t- LiquidatorL1.getAuctionInformationArrays(address) (src/liquidators/LiquidatorL1.sol#293-308)\n\t- LiquidatorL1.getBidPrice(address,uint256[]) (src/liquidators/LiquidatorL1.sol#382-394)\n\t- auctionInformation_.minimumMargin = minimumMargin (src/liquidators/LiquidatorL1.sol#246)\n\tLiquidatorL1.auctionInformation (src/liquidators/LiquidatorL1.sol#56) can be used in cross function reentrancies:\n\t- LiquidatorL1.auctionInformation (src/liquidators/LiquidatorL1.sol#56)\n\t- LiquidatorL1.getAuctionInformationArrays(address) (src/liquidators/LiquidatorL1.sol#293-308)\n\t- LiquidatorL1.getBidPrice(address,uint256[]) (src/liquidators/LiquidatorL1.sol#382-394)\n\t- auctionInformation_.startDebt = SafeCastLib.safeCastTo128(debt) (src/liquidators/LiquidatorL1.sol#247)\n\tLiquidatorL1.auctionInformation (src/liquidators/LiquidatorL1.sol#56) can be used in cross function reentrancies:\n\t- LiquidatorL1.auctionInformation (src/liquidators/LiquidatorL1.sol#56)\n\t- LiquidatorL1.getAuctionInformationArrays(address) (src/liquidators/LiquidatorL1.sol#293-308)\n\t- LiquidatorL1.getBidPrice(address,uint256[]) (src/liquidators/LiquidatorL1.sol#382-394)\n\t- auctionInformation_.assetShares = _getAssetShares(assetValues) (src/liquidators/LiquidatorL1.sol#251)\n\tLiquidatorL1.auctionInformation (src/liquidators/LiquidatorL1.sol#56) can be used in cross function reentrancies:\n\t- LiquidatorL1.auctionInformation (src/liquidators/LiquidatorL1.sol#56)\n\t- LiquidatorL1.getAuctionInformationArrays(address) (src/liquidators/LiquidatorL1.sol#293-308)\n\t- LiquidatorL1.getBidPrice(address,uint256[]) (src/liquidators/LiquidatorL1.sol#382-394)",
+          "location": {
+            "file": "src/liquidators/LiquidatorL1.sol",
+            "line": 207
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-no-eth",
+          "type": "reentrancy-no-eth",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "Reentrancy in LendingPool.startLiquidation(address,uint256) (src/LendingPool.sol#912-954):\n\tExternal calls:\n\t- ITranche(tranches[tranches.length - 1]).setAuctionInProgress(true) (src/LendingPool.sol#943)\n\tState variables written after the call(s):\n\t- ++ auctionsInProgress (src/LendingPool.sol#948)\n\tLendingPool.auctionsInProgress (src/LendingPool.sol#88) can be used in cross function reentrancies:\n\t- LendingPool._endLiquidation() (src/LendingPool.sol#1095-1108)\n\t- LendingPool.addTranche(address,uint16) (src/LendingPool.sol#222-237)\n\t- LendingPool.setLiquidationParameters(uint16,uint16,uint16,uint16,uint80) (src/LendingPool.sol#1241-1267)\n\t- LendingPool.skim() (src/LendingPool.sol#711-725)\n\t- LendingPool.startLiquidation(address,uint256) (src/LendingPool.sol#912-954)",
+          "location": {
+            "file": "src/LendingPool.sol",
+            "line": 912
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-no-eth",
+          "type": "reentrancy-no-eth",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "Reentrancy in Tranche.redeem(uint256,address,address) (src/Tranche.sol#243-265):\n\tExternal calls:\n\t- (assets = previewRedeemAndSync(shares)) == 0 (src/Tranche.sol#258)\n\t\t- assets = LENDING_POOL.liquidityOfAndSync(address(this)) (src/Tranche.sol#287)\n\tState variables written after the call(s):\n\t- _burn(owner_,shares) (src/Tranche.sol#260)\n\t\t- totalSupply -= amount (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#201)\n\tERC20.totalSupply (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#31) can be used in cross function reentrancies:\n\t- ERC20._burn(address,uint256) (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#195-205)\n\t- ERC20._mint(address,uint256) (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#183-193)\n\t- Tranche.convertToAssets(uint256) (src/Tranche.sol#320-325)\n\t- Tranche.convertToAssetsAndSync(uint256) (src/Tranche.sol#333-338)\n\t- Tranche.convertToShares(uint256) (src/Tranche.sol#295-300)\n\t- Tranche.convertToSharesAndSync(uint256) (src/Tranche.sol#308-313)\n\t- Tranche.previewMint(uint256) (src/Tranche.sol#355-360)\n\t- Tranche.previewMintAndSync(uint256) (src/Tranche.sol#368-373)\n\t- Tranche.previewWithdraw(uint256) (src/Tranche.sol#380-385)\n\t- Tranche.previewWithdrawAndSync(uint256) (src/Tranche.sol#393-398)\n\t- ERC20.totalSupply (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#31)",
+          "location": {
+            "file": "src/Tranche.sol",
+            "line": 243
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-no-eth",
+          "type": "reentrancy-no-eth",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "Reentrancy in Tranche.mint(uint256,address) (src/Tranche.sol#186-203):\n\tExternal calls:\n\t- assets = previewMintAndSync(shares) (src/Tranche.sol#194)\n\t\t- assets = LENDING_POOL.liquidityOfAndSync(address(this)) (src/Tranche.sol#287)\n\t- LENDING_POOL.depositInLendingPool(assets,msg.sender) (src/Tranche.sol#198)\n\tState variables written after the call(s):\n\t- _mint(receiver,shares) (src/Tranche.sol#200)\n\t\t- totalSupply += amount (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#184)\n\tERC20.totalSupply (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#31) can be used in cross function reentrancies:\n\t- ERC20._burn(address,uint256) (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#195-205)\n\t- ERC20._mint(address,uint256) (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#183-193)\n\t- Tranche.convertToAssets(uint256) (src/Tranche.sol#320-325)\n\t- Tranche.convertToAssetsAndSync(uint256) (src/Tranche.sol#333-338)\n\t- Tranche.convertToShares(uint256) (src/Tranche.sol#295-300)\n\t- Tranche.convertToSharesAndSync(uint256) (src/Tranche.sol#308-313)\n\t- Tranche.previewMint(uint256) (src/Tranche.sol#355-360)\n\t- Tranche.previewMintAndSync(uint256) (src/Tranche.sol#368-373)\n\t- Tranche.previewWithdraw(uint256) (src/Tranche.sol#380-385)\n\t- Tranche.previewWithdrawAndSync(uint256) (src/Tranche.sol#393-398)\n\t- ERC20.totalSupply (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#31)",
+          "location": {
+            "file": "src/Tranche.sol",
+            "line": 186
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-no-eth",
+          "type": "reentrancy-no-eth",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "Reentrancy in LiquidatorL2.liquidateAccount(address) (src/liquidators/LiquidatorL2.sol#259-305):\n\tExternal calls:\n\t- (assetAddresses,assetIds,assetAmounts,creditor,minimumMargin,debt,assetValues) = IAccount(account).startLiquidation(msg.sender) (src/liquidators/LiquidatorL2.sol#284-292)\n\tState variables written after the call(s):\n\t- auctionInformation_.assetAddresses = assetAddresses (src/liquidators/LiquidatorL2.sol#295)\n\tLiquidatorL2.auctionInformation (src/liquidators/LiquidatorL2.sol#60) can be used in cross function reentrancies:\n\t- LiquidatorL2.auctionInformation (src/liquidators/LiquidatorL2.sol#60)\n\t- LiquidatorL2.getAuctionInformationArrays(address) (src/liquidators/LiquidatorL2.sol#346-361)\n\t- LiquidatorL2.getBidPrice(address,uint256[]) (src/liquidators/LiquidatorL2.sol#444-456)\n\t- auctionInformation_.assetIds = assetIds (src/liquidators/LiquidatorL2.sol#296)\n\tLiquidatorL2.auctionInformation (src/liquidators/LiquidatorL2.sol#60) can be used in cross function reentrancies:\n\t- LiquidatorL2.auctionInformation (src/liquidators/LiquidatorL2.sol#60)\n\t- LiquidatorL2.getAuctionInformationArrays(address) (src/liquidators/LiquidatorL2.sol#346-361)\n\t- LiquidatorL2.getBidPrice(address,uint256[]) (src/liquidators/LiquidatorL2.sol#444-456)\n\t- auctionInformation_.assetAmounts = assetAmounts (src/liquidators/LiquidatorL2.sol#297)\n\tLiquidatorL2.auctionInformation (src/liquidators/LiquidatorL2.sol#60) can be used in cross function reentrancies:\n\t- LiquidatorL2.auctionInformation (src/liquidators/LiquidatorL2.sol#60)\n\t- LiquidatorL2.getAuctionInformationArrays(address) (src/liquidators/LiquidatorL2.sol#346-361)\n\t- LiquidatorL2.getBidPrice(address,uint256[]) (src/liquidators/LiquidatorL2.sol#444-456)\n\t- auctionInformation_.creditor = creditor (src/liquidators/LiquidatorL2.sol#298)\n\tLiquidatorL2.auctionInformation (src/liquidators/LiquidatorL2.sol#60) can be used in cross function reentrancies:\n\t- LiquidatorL2.auctionInformation (src/liquidators/LiquidatorL2.sol#60)\n\t- LiquidatorL2.getAuctionInformationArrays(address) (src/liquidators/LiquidatorL2.sol#346-361)\n\t- LiquidatorL2.getBidPrice(address,uint256[]) (src/liquidators/LiquidatorL2.sol#444-456)\n\t- auctionInformation_.minimumMargin = minimumMargin (src/liquidators/LiquidatorL2.sol#299)\n\tLiquidatorL2.auctionInformation (src/liquidators/LiquidatorL2.sol#60) can be used in cross function reentrancies:\n\t- LiquidatorL2.auctionInformation (src/liquidators/LiquidatorL2.sol#60)\n\t- LiquidatorL2.getAuctionInformationArrays(address) (src/liquidators/LiquidatorL2.sol#346-361)\n\t- LiquidatorL2.getBidPrice(address,uint256[]) (src/liquidators/LiquidatorL2.sol#444-456)\n\t- auctionInformation_.startDebt = SafeCastLib.safeCastTo128(debt) (src/liquidators/LiquidatorL2.sol#300)\n\tLiquidatorL2.auctionInformation (src/liquidators/LiquidatorL2.sol#60) can be used in cross function reentrancies:\n\t- LiquidatorL2.auctionInformation (src/liquidators/LiquidatorL2.sol#60)\n\t- LiquidatorL2.getAuctionInformationArrays(address) (src/liquidators/LiquidatorL2.sol#346-361)\n\t- LiquidatorL2.getBidPrice(address,uint256[]) (src/liquidators/LiquidatorL2.sol#444-456)\n\t- auctionInformation_.assetShares = _getAssetShares(assetValues) (src/liquidators/LiquidatorL2.sol#304)\n\tLiquidatorL2.auctionInformation (src/liquidators/LiquidatorL2.sol#60) can be used in cross function reentrancies:\n\t- LiquidatorL2.auctionInformation (src/liquidators/LiquidatorL2.sol#60)\n\t- LiquidatorL2.getAuctionInformationArrays(address) (src/liquidators/LiquidatorL2.sol#346-361)\n\t- LiquidatorL2.getBidPrice(address,uint256[]) (src/liquidators/LiquidatorL2.sol#444-456)",
+          "location": {
+            "file": "src/liquidators/LiquidatorL2.sol",
+            "line": 259
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-no-eth",
+          "type": "reentrancy-no-eth",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "Reentrancy in LiquidatorL2.bid(address,uint256[],bool,bytes) (src/liquidators/LiquidatorL2.sol#381-430):\n\tExternal calls:\n\t- bidAmounts = IAccount(account).auctionBid(auctionInformation_.assetAddresses,auctionInformation_.assetIds,bidAmounts,msg.sender) (src/liquidators/LiquidatorL2.sol#398-399)\n\t- IBidCallback(msg.sender).bidCallback(bidAmounts,price,data) (src/liquidators/LiquidatorL2.sol#410)\n\t- earlyTerminate = ILendingPool(auctionInformation_.creditor).auctionRepay(auctionInformation_.startDebt,auctionInformation_.minimumMargin,price,account,msg.sender) (src/liquidators/LiquidatorL2.sol#416-417)\n\t- _settleAuction(account,auctionInformation_) (src/liquidators/LiquidatorL2.sol#428)\n\t\t- ILendingPool(creditor).settleLiquidationUnhappyFlow(account,startDebt,minimumMargin,msg.sender) (src/liquidators/LiquidatorL2.sol#625)\n\t\t- IAccount(account).auctionBoughtIn(creditorToAccountRecipient[creditor]) (src/liquidators/LiquidatorL2.sol#627)\n\t\t- ILendingPool(creditor).settleLiquidationHappyFlow(account,startDebt,minimumMargin,msg.sender) (src/liquidators/LiquidatorL2.sol#599)\n\t- _endAuction(account) (src/liquidators/LiquidatorL2.sol#428)\n\t\t- IAccount(account).endAuction() (src/liquidators/LiquidatorL2.sol#636)\n\tState variables written after the call(s):\n\t- _endAuction(account) (src/liquidators/LiquidatorL2.sol#428)\n\t\t- delete auctionInformation[account] (src/liquidators/LiquidatorL2.sol#634)\n\tLiquidatorL2.auctionInformation (src/liquidators/LiquidatorL2.sol#60) can be used in cross function reentrancies:\n\t- LiquidatorL2.auctionInformation (src/liquidators/LiquidatorL2.sol#60)\n\t- LiquidatorL2.getAuctionInformationArrays(address) (src/liquidators/LiquidatorL2.sol#346-361)\n\t- LiquidatorL2.getBidPrice(address,uint256[]) (src/liquidators/LiquidatorL2.sol#444-456)",
+          "location": {
+            "file": "src/liquidators/LiquidatorL2.sol",
+            "line": 381
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-no-eth",
+          "type": "reentrancy-no-eth",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "Reentrancy in LiquidatorL2.endAuction(address) (src/liquidators/LiquidatorL2.sol#540-556):\n\tExternal calls:\n\t- ! _settleAuction(account,auctionInformation_) (src/liquidators/LiquidatorL2.sol#553)\n\t\t- ILendingPool(creditor).settleLiquidationUnhappyFlow(account,startDebt,minimumMargin,msg.sender) (src/liquidators/LiquidatorL2.sol#625)\n\t\t- IAccount(account).auctionBoughtIn(creditorToAccountRecipient[creditor]) (src/liquidators/LiquidatorL2.sol#627)\n\t\t- ILendingPool(creditor).settleLiquidationHappyFlow(account,startDebt,minimumMargin,msg.sender) (src/liquidators/LiquidatorL2.sol#599)\n\t- _endAuction(account) (src/liquidators/LiquidatorL2.sol#555)\n\t\t- IAccount(account).endAuction() (src/liquidators/LiquidatorL2.sol#636)\n\tState variables written after the call(s):\n\t- _endAuction(account) (src/liquidators/LiquidatorL2.sol#555)\n\t\t- delete auctionInformation[account] (src/liquidators/LiquidatorL2.sol#634)\n\tLiquidatorL2.auctionInformation (src/liquidators/LiquidatorL2.sol#60) can be used in cross function reentrancies:\n\t- LiquidatorL2.auctionInformation (src/liquidators/LiquidatorL2.sol#60)\n\t- LiquidatorL2.getAuctionInformationArrays(address) (src/liquidators/LiquidatorL2.sol#346-361)\n\t- LiquidatorL2.getBidPrice(address,uint256[]) (src/liquidators/LiquidatorL2.sol#444-456)",
+          "location": {
+            "file": "src/liquidators/LiquidatorL2.sol",
+            "line": 540
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-no-eth",
+          "type": "reentrancy-no-eth",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "Reentrancy in Tranche.deposit(uint256,address) (src/Tranche.sol#158-175):\n\tExternal calls:\n\t- (shares = previewDepositAndSync(assets)) == 0 (src/Tranche.sol#166)\n\t\t- assets = LENDING_POOL.liquidityOfAndSync(address(this)) (src/Tranche.sol#287)\n\t- LENDING_POOL.depositInLendingPool(assets,msg.sender) (src/Tranche.sol#170)\n\tState variables written after the call(s):\n\t- _mint(receiver,shares) (src/Tranche.sol#172)\n\t\t- totalSupply += amount (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#184)\n\tERC20.totalSupply (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#31) can be used in cross function reentrancies:\n\t- ERC20._burn(address,uint256) (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#195-205)\n\t- ERC20._mint(address,uint256) (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#183-193)\n\t- Tranche.convertToAssets(uint256) (src/Tranche.sol#320-325)\n\t- Tranche.convertToAssetsAndSync(uint256) (src/Tranche.sol#333-338)\n\t- Tranche.convertToShares(uint256) (src/Tranche.sol#295-300)\n\t- Tranche.convertToSharesAndSync(uint256) (src/Tranche.sol#308-313)\n\t- Tranche.previewMint(uint256) (src/Tranche.sol#355-360)\n\t- Tranche.previewMintAndSync(uint256) (src/Tranche.sol#368-373)\n\t- Tranche.previewWithdraw(uint256) (src/Tranche.sol#380-385)\n\t- Tranche.previewWithdrawAndSync(uint256) (src/Tranche.sol#393-398)\n\t- ERC20.totalSupply (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#31)",
+          "location": {
+            "file": "src/Tranche.sol",
+            "line": 158
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "unused-return",
+          "type": "unused-return",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "TrancheWrapper.mint(uint256,address) (src/periphery/tranche-wrapper/TrancheWrapper.sol#82-95) ignores return value by ERC4626(TRANCHE).mint(shares,address(this)) (src/periphery/tranche-wrapper/TrancheWrapper.sol#91)",
+          "location": {
+            "file": "src/periphery/tranche-wrapper/TrancheWrapper.sol",
+            "line": 82
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "unused-return",
+          "type": "unused-return",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "LiquidatorL1.setAuctionCurveParameters(uint32,uint32,uint16,uint16) (src/liquidators/LiquidatorL1.sol#164-197) ignores return value by LogExpMath.pow(base_,uint256(cutoffTime_) * 1e18) (src/liquidators/LiquidatorL1.sol#183)",
+          "location": {
+            "file": "src/liquidators/LiquidatorL1.sol",
+            "line": 164
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "unused-return",
+          "type": "unused-return",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "TrancheWrapper.withdraw(uint256,address,address) (src/periphery/tranche-wrapper/TrancheWrapper.sol#104-118) ignores return value by ERC4626(TRANCHE).withdraw(assets,address(this),address(this)) (src/periphery/tranche-wrapper/TrancheWrapper.sol#113)",
+          "location": {
+            "file": "src/periphery/tranche-wrapper/TrancheWrapper.sol",
+            "line": 104
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "unused-return",
+          "type": "unused-return",
+          "severity": "Medium",
+          "confidence": 0.6,
+          "description": "LiquidatorL2.setAuctionCurveParameters(uint32,uint32,uint16,uint16) (src/liquidators/LiquidatorL2.sol#216-249) ignores return value by LogExpMath.pow(base_,uint256(cutoffTime_) * 1e18) (src/liquidators/LiquidatorL2.sol#235)",
+          "location": {
+            "file": "src/liquidators/LiquidatorL2.sol",
+            "line": 216
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "events-maths",
+          "type": "events-maths",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "LendingPool.setOriginationFee(uint8) (src/LendingPool.sol#327-330) should emit an event for: \n\t- originationFee = originationFee_ (src/LendingPool.sol#329)",
+          "location": {
+            "file": "src/LendingPool.sol",
+            "line": 327
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "events-maths",
+          "type": "events-maths",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "LendingPool.setLiquidationParameters(uint16,uint16,uint16,uint16,uint80) (src/LendingPool.sol#1241-1267) should emit an event for: \n\t- initiationWeight = initiationWeight_ (src/LendingPool.sol#1262) \n\t- penaltyWeight = penaltyWeight_ (src/LendingPool.sol#1263) \n\t- terminationWeight = terminationWeight_ (src/LendingPool.sol#1264) \n\t- minRewardWeight = minRewardWeight_ (src/LendingPool.sol#1265) \n\t- maxReward = maxReward_ (src/LendingPool.sol#1266)",
+          "location": {
+            "file": "src/LendingPool.sol",
+            "line": 1241
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "events-maths",
+          "type": "events-maths",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "LendingPool.setInterestParameters(uint72,uint72,uint72,uint16) (src/LendingPool.sol#834-844) should emit an event for: \n\t- baseRatePerYear = baseRatePerYear_ (src/LendingPool.sol#840) \n\t- lowSlopePerYear = lowSlopePerYear_ (src/LendingPool.sol#841) \n\t- highSlopePerYear = highSlopePerYear_ (src/LendingPool.sol#842) \n\t- utilisationThreshold = utilisationThreshold_ (src/LendingPool.sol#843)",
+          "location": {
+            "file": "src/LendingPool.sol",
+            "line": 834
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "events-maths",
+          "type": "events-maths",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "LendingPool.setMinimumMargin(uint96) (src/LendingPool.sol#1276-1278) should emit an event for: \n\t- minimumMargin = minimumMargin_ (src/LendingPool.sol#1277)",
+          "location": {
+            "file": "src/LendingPool.sol",
+            "line": 1276
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "missing-zero-check",
+          "type": "missing-zero-check",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "LendingPool.constructor(address,address,ERC20,address,address,address).treasury_ (src/LendingPool.sol#201) lacks a zero-check on :\n\t\t- treasury = treasury_ (src/LendingPool.sol#205)",
+          "location": {
+            "file": "src/LendingPool.sol",
+            "line": 201
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "missing-zero-check",
+          "type": "missing-zero-check",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "LendingPool.constructor(address,address,ERC20,address,address,address).liquidator (src/LendingPool.sol#203) lacks a zero-check on :\n\t\t- LIQUIDATOR = liquidator (src/LendingPool.sol#207)",
+          "location": {
+            "file": "src/LendingPool.sol",
+            "line": 203
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "missing-zero-check",
+          "type": "missing-zero-check",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "LendingPool.constructor(address,address,ERC20,address,address,address).accountFactory (src/LendingPool.sol#202) lacks a zero-check on :\n\t\t- ACCOUNT_FACTORY = accountFactory (src/LendingPool.sol#206)",
+          "location": {
+            "file": "src/LendingPool.sol",
+            "line": 202
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "calls-loop",
+          "type": "calls-loop",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "LendingPool._processDefault(uint256) (src/LendingPool.sol#1120-1154) has external calls inside a loop: ITranche(tranches[i - 1]).setAuctionInProgress(true) (src/LendingPool.sol#1151)\n\tCalls stack containing the loop:\n\t\tLendingPool.settleLiquidationUnhappyFlow(address,uint256,uint256,address)",
+          "location": {
+            "file": "src/LendingPool.sol",
+            "line": 1120
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-benign",
+          "type": "reentrancy-benign",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in TrancheWrapper.withdraw(uint256,address,address) (src/periphery/tranche-wrapper/TrancheWrapper.sol#104-118):\n\tExternal calls:\n\t- shares = ITranche(TRANCHE).previewWithdrawAndSync(assets) (src/periphery/tranche-wrapper/TrancheWrapper.sol#105)\n\tState variables written after the call(s):\n\t- allowance[owner][msg.sender] = allowed - shares (src/periphery/tranche-wrapper/TrancheWrapper.sol#109)\n\t- _burn(owner,shares) (src/periphery/tranche-wrapper/TrancheWrapper.sol#112)\n\t\t- balanceOf[from] -= amount (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#196)\n\t- _burn(owner,shares) (src/periphery/tranche-wrapper/TrancheWrapper.sol#112)\n\t\t- totalSupply -= amount (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#201)",
+          "location": {
+            "file": "src/periphery/tranche-wrapper/TrancheWrapper.sol",
+            "line": 104
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-benign",
+          "type": "reentrancy-benign",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in Tranche.redeem(uint256,address,address) (src/Tranche.sol#243-265):\n\tExternal calls:\n\t- (assets = previewRedeemAndSync(shares)) == 0 (src/Tranche.sol#258)\n\t\t- assets = LENDING_POOL.liquidityOfAndSync(address(this)) (src/Tranche.sol#287)\n\tState variables written after the call(s):\n\t- _burn(owner_,shares) (src/Tranche.sol#260)\n\t\t- balanceOf[from] -= amount (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#196)",
+          "location": {
+            "file": "src/Tranche.sol",
+            "line": 243
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-benign",
+          "type": "reentrancy-benign",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in Tranche.withdraw(uint256,address,address) (src/Tranche.sol#212-234):\n\tExternal calls:\n\t- shares = previewWithdrawAndSync(assets) (src/Tranche.sol#220)\n\t\t- assets = LENDING_POOL.liquidityOfAndSync(address(this)) (src/Tranche.sol#287)\n\tState variables written after the call(s):\n\t- allowance[owner_][msg.sender] = allowed - shares (src/Tranche.sol#226)\n\t- _burn(owner_,shares) (src/Tranche.sol#229)\n\t\t- balanceOf[from] -= amount (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#196)",
+          "location": {
+            "file": "src/Tranche.sol",
+            "line": 212
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-benign",
+          "type": "reentrancy-benign",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in Tranche.mint(uint256,address) (src/Tranche.sol#186-203):\n\tExternal calls:\n\t- assets = previewMintAndSync(shares) (src/Tranche.sol#194)\n\t\t- assets = LENDING_POOL.liquidityOfAndSync(address(this)) (src/Tranche.sol#287)\n\t- LENDING_POOL.depositInLendingPool(assets,msg.sender) (src/Tranche.sol#198)\n\tState variables written after the call(s):\n\t- _mint(receiver,shares) (src/Tranche.sol#200)\n\t\t- balanceOf[to] += amount (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#189)",
+          "location": {
+            "file": "src/Tranche.sol",
+            "line": 186
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-benign",
+          "type": "reentrancy-benign",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in Tranche.deposit(uint256,address) (src/Tranche.sol#158-175):\n\tExternal calls:\n\t- (shares = previewDepositAndSync(assets)) == 0 (src/Tranche.sol#166)\n\t\t- assets = LENDING_POOL.liquidityOfAndSync(address(this)) (src/Tranche.sol#287)\n\t- LENDING_POOL.depositInLendingPool(assets,msg.sender) (src/Tranche.sol#170)\n\tState variables written after the call(s):\n\t- _mint(receiver,shares) (src/Tranche.sol#172)\n\t\t- balanceOf[to] += amount (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#189)",
+          "location": {
+            "file": "src/Tranche.sol",
+            "line": 158
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-benign",
+          "type": "reentrancy-benign",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in LendingPool._processDefault(uint256) (src/LendingPool.sol#1120-1154):\n\tExternal calls:\n\t- ITranche(tranche).lock() (src/LendingPool.sol#1148)\n\t- ITranche(tranches[i - 1]).setAuctionInProgress(true) (src/LendingPool.sol#1151)\n\tState variables written after the call(s):\n\t- _popTranche(i,tranche) (src/LendingPool.sol#1143)\n\t\t- interestWeight[tranche] = 0 (src/LendingPool.sol#281)\n\t- _popTranche(i,tranche) (src/LendingPool.sol#1143)\n\t\t- isTranche[tranche] = false (src/LendingPool.sol#278)",
+          "location": {
+            "file": "src/LendingPool.sol",
+            "line": 1120
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-benign",
+          "type": "reentrancy-benign",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in TrancheWrapper.mint(uint256,address) (src/periphery/tranche-wrapper/TrancheWrapper.sol#82-95):\n\tExternal calls:\n\t- assets = ITranche(TRANCHE).previewMintAndSync(shares) (src/periphery/tranche-wrapper/TrancheWrapper.sol#83)\n\t- ERC4626(TRANCHE).mint(shares,address(this)) (src/periphery/tranche-wrapper/TrancheWrapper.sol#91)\n\tState variables written after the call(s):\n\t- _mint(receiver,shares) (src/periphery/tranche-wrapper/TrancheWrapper.sol#92)\n\t\t- balanceOf[to] += amount (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#189)\n\t- _mint(receiver,shares) (src/periphery/tranche-wrapper/TrancheWrapper.sol#92)\n\t\t- totalSupply += amount (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#184)",
+          "location": {
+            "file": "src/periphery/tranche-wrapper/TrancheWrapper.sol",
+            "line": 82
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-benign",
+          "type": "reentrancy-benign",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in TrancheWrapper.deposit(uint256,address) (src/periphery/tranche-wrapper/TrancheWrapper.sol#62-74):\n\tExternal calls:\n\t- shares = ERC4626(TRANCHE).deposit(assets,address(this)) (src/periphery/tranche-wrapper/TrancheWrapper.sol#70)\n\tState variables written after the call(s):\n\t- _mint(receiver,shares) (src/periphery/tranche-wrapper/TrancheWrapper.sol#71)\n\t\t- balanceOf[to] += amount (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#189)\n\t- _mint(receiver,shares) (src/periphery/tranche-wrapper/TrancheWrapper.sol#71)\n\t\t- totalSupply += amount (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#184)",
+          "location": {
+            "file": "src/periphery/tranche-wrapper/TrancheWrapper.sol",
+            "line": 62
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in Tranche.withdraw(uint256,address,address) (src/Tranche.sol#212-234):\n\tExternal calls:\n\t- shares = previewWithdrawAndSync(assets) (src/Tranche.sol#220)\n\t\t- assets = LENDING_POOL.liquidityOfAndSync(address(this)) (src/Tranche.sol#287)\n\tEvent emitted after the call(s):\n\t- Transfer(from,address(0),amount) (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#204)\n\t\t- _burn(owner_,shares) (src/Tranche.sol#229)",
+          "location": {
+            "file": "src/Tranche.sol",
+            "line": 212
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in LendingPool.startLiquidation(address,uint256) (src/LendingPool.sol#912-954):\n\tExternal calls:\n\t- ITranche(tranches[tranches.length - 1]).setAuctionInProgress(true) (src/LendingPool.sol#943)\n\tEvent emitted after the call(s):\n\t- AuctionStarted(msg.sender,address(this),uint128(startDebt)) (src/LendingPool.sol#953)",
+          "location": {
+            "file": "src/LendingPool.sol",
+            "line": 912
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in LendingPool._processDefault(uint256) (src/LendingPool.sol#1120-1154):\n\tExternal calls:\n\t- ITranche(tranche).lock() (src/LendingPool.sol#1148)\n\t- ITranche(tranches[i - 1]).setAuctionInProgress(true) (src/LendingPool.sol#1151)\n\tEvent emitted after the call(s):\n\t- TranchePopped(tranche) (src/LendingPool.sol#283)\n\t\t- _popTranche(i,tranche) (src/LendingPool.sol#1143)",
+          "location": {
+            "file": "src/LendingPool.sol",
+            "line": 1120
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in TrancheWrapper.deposit(uint256,address) (src/periphery/tranche-wrapper/TrancheWrapper.sol#62-74):\n\tExternal calls:\n\t- shares = ERC4626(TRANCHE).deposit(assets,address(this)) (src/periphery/tranche-wrapper/TrancheWrapper.sol#70)\n\tEvent emitted after the call(s):\n\t- Deposit(msg.sender,receiver,assets,shares) (src/periphery/tranche-wrapper/TrancheWrapper.sol#73)\n\t- Transfer(address(0),to,amount) (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#192)\n\t\t- _mint(receiver,shares) (src/periphery/tranche-wrapper/TrancheWrapper.sol#71)",
+          "location": {
+            "file": "src/periphery/tranche-wrapper/TrancheWrapper.sol",
+            "line": 62
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in LendingPool._settleLiquidationHappyFlow(address,uint256,uint256,address,uint256) (src/LendingPool.sol#991-1019):\n\tExternal calls:\n\t- _endLiquidation() (src/LendingPool.sol#1014)\n\t\t- ITranche(tranches[tranches.length - 1]).setAuctionInProgress(false) (src/LendingPool.sol#1105)\n\tEvent emitted after the call(s):\n\t- AuctionFinished(account,address(this),startDebt,initiationReward,terminationReward,liquidationPenalty,0,surplus) (src/LendingPool.sol#1016-1018)",
+          "location": {
+            "file": "src/LendingPool.sol",
+            "line": 991
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in Tranche.redeem(uint256,address,address) (src/Tranche.sol#243-265):\n\tExternal calls:\n\t- (assets = previewRedeemAndSync(shares)) == 0 (src/Tranche.sol#258)\n\t\t- assets = LENDING_POOL.liquidityOfAndSync(address(this)) (src/Tranche.sol#287)\n\t- LENDING_POOL.withdrawFromLendingPool(assets,receiver) (src/Tranche.sol#262)\n\tEvent emitted after the call(s):\n\t- Withdraw(msg.sender,receiver,owner_,assets,shares) (src/Tranche.sol#264)",
+          "location": {
+            "file": "src/Tranche.sol",
+            "line": 243
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in LendingPool.settleLiquidationUnhappyFlow(address,uint256,uint256,address) (src/LendingPool.sol#1036-1089):\n\tExternal calls:\n\t- _processDefault(badDebt) (src/LendingPool.sol#1060)\n\t\t- ITranche(tranche).lock() (src/LendingPool.sol#1148)\n\t\t- ITranche(tranches[i - 1]).setAuctionInProgress(true) (src/LendingPool.sol#1151)\n\t- _endLiquidation() (src/LendingPool.sol#1084)\n\t\t- ITranche(tranches[tranches.length - 1]).setAuctionInProgress(false) (src/LendingPool.sol#1105)\n\tEvent emitted after the call(s):\n\t- AuctionFinished(account,address(this),startDebt,initiationReward,terminationReward,liquidationPenalty,badDebt,0) (src/LendingPool.sol#1086-1088)",
+          "location": {
+            "file": "src/LendingPool.sol",
+            "line": 1036
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in Tranche.deposit(uint256,address) (src/Tranche.sol#158-175):\n\tExternal calls:\n\t- (shares = previewDepositAndSync(assets)) == 0 (src/Tranche.sol#166)\n\t\t- assets = LENDING_POOL.liquidityOfAndSync(address(this)) (src/Tranche.sol#287)\n\t- LENDING_POOL.depositInLendingPool(assets,msg.sender) (src/Tranche.sol#170)\n\tEvent emitted after the call(s):\n\t- Deposit(msg.sender,receiver,assets,shares) (src/Tranche.sol#174)\n\t- Transfer(address(0),to,amount) (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#192)\n\t\t- _mint(receiver,shares) (src/Tranche.sol#172)",
+          "location": {
+            "file": "src/Tranche.sol",
+            "line": 158
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in TrancheWrapper.redeem(uint256,address,address) (src/periphery/tranche-wrapper/TrancheWrapper.sol#127-139):\n\tExternal calls:\n\t- assets = ERC4626(TRANCHE).redeem(shares,address(this),address(this)) (src/periphery/tranche-wrapper/TrancheWrapper.sol#134)\n\tEvent emitted after the call(s):\n\t- Withdraw(msg.sender,receiver,owner,assets,shares) (src/periphery/tranche-wrapper/TrancheWrapper.sol#138)",
+          "location": {
+            "file": "src/periphery/tranche-wrapper/TrancheWrapper.sol",
+            "line": 127
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in LendingPool.auctionRepay(uint256,uint256,uint256,address,address) (src/LendingPool.sol#510-537):\n\tExternal calls:\n\t- _settleLiquidationHappyFlow(account,startDebt,minimumMargin_,bidder,(amount - accountDebt)) (src/LendingPool.sol#529)\n\t\t- ITranche(tranches[tranches.length - 1]).setAuctionInProgress(false) (src/LendingPool.sol#1105)\n\tEvent emitted after the call(s):\n\t- Repay(account,bidder,amount) (src/LendingPool.sol#536)\n\t- Transfer(from,address(0),amount) (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#204)\n\t\t- _withdraw(amount,address(this),account) (src/LendingPool.sol#534)\n\t- Withdraw(msg.sender,receiver,account,assets,shares) (src/DebtToken.sol#120)\n\t\t- _withdraw(amount,address(this),account) (src/LendingPool.sol#534)",
+          "location": {
+            "file": "src/LendingPool.sol",
+            "line": 510
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in TrancheWrapper.withdraw(uint256,address,address) (src/periphery/tranche-wrapper/TrancheWrapper.sol#104-118):\n\tExternal calls:\n\t- shares = ITranche(TRANCHE).previewWithdrawAndSync(assets) (src/periphery/tranche-wrapper/TrancheWrapper.sol#105)\n\tEvent emitted after the call(s):\n\t- Transfer(from,address(0),amount) (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#204)\n\t\t- _burn(owner,shares) (src/periphery/tranche-wrapper/TrancheWrapper.sol#112)",
+          "location": {
+            "file": "src/periphery/tranche-wrapper/TrancheWrapper.sol",
+            "line": 104
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in Tranche.mint(uint256,address) (src/Tranche.sol#186-203):\n\tExternal calls:\n\t- assets = previewMintAndSync(shares) (src/Tranche.sol#194)\n\t\t- assets = LENDING_POOL.liquidityOfAndSync(address(this)) (src/Tranche.sol#287)\n\t- LENDING_POOL.depositInLendingPool(assets,msg.sender) (src/Tranche.sol#198)\n\tEvent emitted after the call(s):\n\t- Deposit(msg.sender,receiver,assets,shares) (src/Tranche.sol#202)\n\t- Transfer(address(0),to,amount) (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#192)\n\t\t- _mint(receiver,shares) (src/Tranche.sol#200)",
+          "location": {
+            "file": "src/Tranche.sol",
+            "line": 186
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in TrancheWrapper.mint(uint256,address) (src/periphery/tranche-wrapper/TrancheWrapper.sol#82-95):\n\tExternal calls:\n\t- assets = ITranche(TRANCHE).previewMintAndSync(shares) (src/periphery/tranche-wrapper/TrancheWrapper.sol#83)\n\t- ERC4626(TRANCHE).mint(shares,address(this)) (src/periphery/tranche-wrapper/TrancheWrapper.sol#91)\n\tEvent emitted after the call(s):\n\t- Deposit(msg.sender,receiver,assets,shares) (src/periphery/tranche-wrapper/TrancheWrapper.sol#94)\n\t- Transfer(address(0),to,amount) (lib/accounts-v2/lib/solmate/src/tokens/ERC20.sol#192)\n\t\t- _mint(receiver,shares) (src/periphery/tranche-wrapper/TrancheWrapper.sol#92)",
+          "location": {
+            "file": "src/periphery/tranche-wrapper/TrancheWrapper.sol",
+            "line": 82
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "reentrancy-events",
+          "type": "reentrancy-events",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "Reentrancy in LendingPool.borrow(uint256,address,address,bytes3) (src/LendingPool.sol#430-476):\n\tExternal calls:\n\t- accountVersion = IAccount(account).increaseOpenPosition(maxWithdraw(account)) (src/LendingPool.sol#466)\n\tEvent emitted after the call(s):\n\t- Borrow(account,msg.sender,to,amount,amountWithFee - amount,referrer) (src/LendingPool.sol#474)",
+          "location": {
+            "file": "src/LendingPool.sol",
+            "line": 430
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "timestamp",
+          "type": "timestamp",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "LiquidatorL2._settleAuction(address,LiquidatorL2.AuctionInformation) (src/liquidators/LiquidatorL2.sol#577-611) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- block.timestamp > auctionInformation_.startTime + auctionInformation_.cutoffTime (src/liquidators/LiquidatorL2.sol#588)",
+          "location": {
+            "file": "src/liquidators/LiquidatorL2.sol",
+            "line": 577
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "timestamp",
+          "type": "timestamp",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "LendingPool._settleLiquidationHappyFlow(address,uint256,uint256,address,uint256) (src/LendingPool.sol#991-1019) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- surplus > 0 (src/LendingPool.sol#1009)",
+          "location": {
+            "file": "src/LendingPool.sol",
+            "line": 991
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "timestamp",
+          "type": "timestamp",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "LendingPool.repay(uint256,address) (src/LendingPool.sol#486-498) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- accountDebt > amount (src/LendingPool.sol#488)",
+          "location": {
+            "file": "src/LendingPool.sol",
+            "line": 486
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "timestamp",
+          "type": "timestamp",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "LendingPool._calculateRewards(uint256,uint256) (src/LendingPool.sol#1203-1223) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- initiationReward > minReward (src/LendingPool.sol#1214)\n\t- initiationReward > maxReward_ (src/LendingPool.sol#1215)\n\t- terminationReward > minReward (src/LendingPool.sol#1219)\n\t- terminationReward > maxReward_ (src/LendingPool.sol#1220)",
+          "location": {
+            "file": "src/LendingPool.sol",
+            "line": 1203
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "timestamp",
+          "type": "timestamp",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "LendingPool._syncLiquidationFee(uint256) (src/LendingPool.sol#1163-1190) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- realisedLiquidity > 0 (src/LendingPool.sol#1177)",
+          "location": {
+            "file": "src/LendingPool.sol",
+            "line": 1163
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "timestamp",
+          "type": "timestamp",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "LendingPool.settleLiquidationUnhappyFlow(address,uint256,uint256,address) (src/LendingPool.sol#1036-1089) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- openDebt > terminationReward + liquidationPenalty (src/LendingPool.sol#1050)\n\t- openDebt >= liquidationPenalty (src/LendingPool.sol#1064)",
+          "location": {
+            "file": "src/LendingPool.sol",
+            "line": 1036
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "timestamp",
+          "type": "timestamp",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "LendingPool.liquidityOf(address) (src/LendingPool.sol#685-699) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- lastSyncedTimestamp != uint32(block.timestamp) (src/LendingPool.sol#689)",
+          "location": {
+            "file": "src/LendingPool.sol",
+            "line": 685
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "timestamp",
+          "type": "timestamp",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "LendingPool._updateInterestRate(uint256,uint256) (src/LendingPool.sol#857-867) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- utilisation <= ONE_4 (src/LendingPool.sol#864)",
+          "location": {
+            "file": "src/LendingPool.sol",
+            "line": 857
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "timestamp",
+          "type": "timestamp",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "LiquidatorL1._settleAuction(address,LiquidatorL1.AuctionInformation) (src/liquidators/LiquidatorL1.sol#508-541) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- block.timestamp > auctionInformation_.startTime + auctionInformation_.cutoffTime (src/liquidators/LiquidatorL1.sol#519)",
+          "location": {
+            "file": "src/liquidators/LiquidatorL1.sol",
+            "line": 508
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "timestamp",
+          "type": "timestamp",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "LendingPool._calculateInterestRate(uint256) (src/LendingPool.sol#876-894) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- utilisation >= utilisationThreshold (src/LendingPool.sol#882)",
+          "location": {
+            "file": "src/LendingPool.sol",
+            "line": 876
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "timestamp",
+          "type": "timestamp",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "LendingPool.auctionRepay(uint256,uint256,uint256,address,address) (src/LendingPool.sol#510-537) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- accountDebt == 0 (src/LendingPool.sol#523)\n\t- accountDebt <= amount (src/LendingPool.sol#524)",
+          "location": {
+            "file": "src/LendingPool.sol",
+            "line": 510
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "timestamp",
+          "type": "timestamp",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "LendingPool.totalLiquidity() (src/LendingPool.sol#650-662) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- lastSyncedTimestamp != uint32(block.timestamp) (src/LendingPool.sol#654)",
+          "location": {
+            "file": "src/LendingPool.sol",
+            "line": 650
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "timestamp",
+          "type": "timestamp",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "LendingPool._syncInterests() (src/LendingPool.sol#736-754) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- lastSyncedTimestamp != uint32(block.timestamp) (src/LendingPool.sol#739)",
+          "location": {
+            "file": "src/LendingPool.sol",
+            "line": 736
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "timestamp",
+          "type": "timestamp",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "LendingPool._syncInterestsToLiquidityProviders(uint256) (src/LendingPool.sol#794-820) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- realisedLiquidity == 0 (src/LendingPool.sol#806)",
+          "location": {
+            "file": "src/LendingPool.sol",
+            "line": 794
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "timestamp",
+          "type": "timestamp",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "LendingPool._processDefault(uint256) (src/LendingPool.sol#1120-1154) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- badDebt < maxBurnable (src/LendingPool.sol#1130)",
+          "location": {
+            "file": "src/LendingPool.sol",
+            "line": 1120
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "timestamp",
+          "type": "timestamp",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "LendingPool.totalAssets() (src/LendingPool.sol#635-644) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- lastSyncedTimestamp != uint32(block.timestamp) (src/LendingPool.sol#639)",
+          "location": {
+            "file": "src/LendingPool.sol",
+            "line": 635
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "timestamp",
+          "type": "timestamp",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "LendingPool.startLiquidation(address,uint256) (src/LendingPool.sol#912-954) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- startDebt == 0 (src/LendingPool.sol#923)",
+          "location": {
+            "file": "src/LendingPool.sol",
+            "line": 912
+          },
+          "tool": "slither"
+        },
+        {
+          "title": "timestamp",
+          "type": "timestamp",
+          "severity": "Low",
+          "confidence": 0.6,
+          "description": "LendingPool.closeMarginAccount(address) (src/LendingPool.sol#1321-1323) uses timestamp for comparisons\n\tDangerous comparisons:\n\t- maxWithdraw(account) != 0 (src/LendingPool.sol#1322)",
+          "location": {
+            "file": "src/LendingPool.sol",
+            "line": 1321
+          },
+          "tool": "slither"
+        }
+      ],
+      "execution_time": 0.0,
+      "metadata": {}
+    }
+  ],
+  "summary": {
+    "CRITICAL": 0,
+    "HIGH": 2,
+    "MEDIUM": 35,
+    "LOW": 48,
+    "INFO": 0
+  },
+  "tools_run": [
+    "slither"
+  ],
+  "version": "6.x"
+}

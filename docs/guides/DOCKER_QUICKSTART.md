@@ -23,10 +23,8 @@ brew install ollama
 # Linux
 curl -fsSL https://ollama.com/install.sh | sh
 
-# Download AI models (one-time, ~8GB total)
-ollama pull deepseek-coder:6.7b
-ollama pull codellama
-ollama pull mistral
+# Download the default AI model (one-time, ~9GB)
+ollama pull qwen2.5-coder:14b
 
 # Start Ollama (keep running in background)
 ollama serve

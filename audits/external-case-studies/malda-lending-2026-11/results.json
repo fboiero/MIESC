@@ -1,0 +1,2367 @@
+{
+  "contract": "Malda malda-lending (malda-protocol/malda-lending, Sherlock contest scope)",
+  "results": [
+    {
+      "tool": "slither",
+      "contract": "src/ (contest scope)",
+      "status": "success",
+      "findings": [
+        {
+          "confidence": 0.6,
+          "description": "Reentrancy in Migrator.migrateAllPositions() (src/migration/Migrator.sol#83-153): External call allowing reentrancy: - underlying_scope_6.safeTransfer(position_scope_5.maldaMarket,position_scope_5.collateralUnderlyingAmount) (src/migration/Migrator.sol#150) Balance read before the call: - underlyingBalanceAfter = underlying_scope_6.balanceOf(address(this)) (src/migration/Migrator.sol#144) Possible stale balance used after the call in a condition: - require(bool,string)(underlyingBalanceAfter - underlyingBalanceBefore >= v1Balance,[Migrator] Redeem amount not valid) (src/migration/Migrator.sol#145-147) - stale variable `underlyingBalanceAfter`",
+          "location": {
+            "file": "src/migration/Migrator.sol",
+            "line": 83
+          },
+          "severity": "High",
+          "title": "reentrancy-balance",
+          "tool": "slither",
+          "type": "reentrancy-balance"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Rebalancer.saveEth() (src/rebalancer/Rebalancer.sol#88-96) sends eth to arbitrary user Dangerous calls: - (success,None) = saveAddress.call{value: amount}() (src/rebalancer/Rebalancer.sol#93)",
+          "location": {
+            "file": "src/rebalancer/Rebalancer.sol",
+            "line": 88
+          },
+          "severity": "High",
+          "title": "arbitrary-send-eth",
+          "tool": "slither",
+          "type": "arbitrary-send-eth"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Operator.exitMarket(address) (src/Operator/Operator.sol#469-510) ignores return value by (tokensHeld,amountOwed,None) = ImToken(_mToken).getAccountSnapshot(msg.sender) (src/Operator/Operator.sol#475)",
+          "location": {
+            "file": "src/Operator/Operator.sol",
+            "line": 469
+          },
+          "severity": "Medium",
+          "title": "unused-return",
+          "tool": "slither",
+          "type": "unused-return"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Operator.getUSDValueForAllMarkets().sum (src/Operator/Operator.sol#551) is a local variable never initialized",
+          "location": {
+            "file": "src/Operator/Operator.sol",
+            "line": 551
+          },
+          "severity": "Medium",
+          "title": "uninitialized-local",
+          "tool": "slither",
+          "type": "uninitialized-local"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Operator._getHypotheticalAccountLiquidity(address,address,uint256,uint256).vars (src/Operator/Operator.sol#755) is a local variable never initialized",
+          "location": {
+            "file": "src/Operator/Operator.sol",
+            "line": 755
+          },
+          "severity": "Medium",
+          "title": "uninitialized-local",
+          "tool": "slither",
+          "type": "uninitialized-local"
+        },
+        {
+          "confidence": 0.6,
+          "description": "JumpRateModelV4.getSupplyRate(uint256,uint256,uint256,uint256) (src/interest/JumpRateModelV4.sol#155-165) performs a multiplication on the result of a division: - rateToPool = borrowRate * oneMinusReserveFactor / 1e18 (src/interest/JumpRateModelV4.sol#163) - utilizationRate(cash,borrows,reserves) * rateToPool / 1e18 (src/interest/JumpRateModelV4.sol#164)",
+          "location": {
+            "file": "src/interest/JumpRateModelV4.sol",
+            "line": 155
+          },
+          "severity": "Medium",
+          "title": "divide-before-multiply",
+          "tool": "slither",
+          "type": "divide-before-multiply"
+        },
+        {
+          "confidence": 0.6,
+          "description": "mTokenGateway._outHere(bytes,uint256,address) (src/mToken/extension/mTokenGateway.sol#281-313) ignores return value by (_sender,_market,None,_accAmountOut,_chainId,_dstChainId,None) = mTokenProofDecoderLib.decodeJournal(journalData) (src/mToken/extension/mTokenGateway.sol#282-283)",
+          "location": {
+            "file": "src/mToken/extension/mTokenGateway.sol",
+            "line": 281
+          },
+          "severity": "Medium",
+          "title": "unused-return",
+          "tool": "slither",
+          "type": "unused-return"
+        },
+        {
+          "confidence": 0.6,
+          "description": "mTokenGateway._verifyProof(bytes,bytes) (src/mToken/extension/mTokenGateway.sol#316-337) ignores return value by (None,None,None,None,None,None,L1Inclusion) = mTokenProofDecoderLib.decodeJournal(journals[i]) (src/mToken/extension/mTokenGateway.sol#328)",
+          "location": {
+            "file": "src/mToken/extension/mTokenGateway.sol",
+            "line": 316
+          },
+          "severity": "Medium",
+          "title": "unused-return",
+          "tool": "slither",
+          "type": "unused-return"
+        },
+        {
+          "confidence": 0.6,
+          "description": "mErc20Host._verifyProof(bytes,bytes) (src/mToken/host/mErc20Host.sol#378-399) ignores return value by (None,None,None,None,None,None,L1Inclusion) = mTokenProofDecoderLib.decodeJournal(journals[i]) (src/mToken/host/mErc20Host.sol#390)",
+          "location": {
+            "file": "src/mToken/host/mErc20Host.sol",
+            "line": 378
+          },
+          "severity": "Medium",
+          "title": "unused-return",
+          "tool": "slither",
+          "type": "unused-return"
+        },
+        {
+          "confidence": 0.6,
+          "description": "mErc20Host._liquidateExternal(bytes,address,uint256,address,address) (src/mToken/host/mErc20Host.sol#401-432) ignores return value by (_sender,_market,_accAmountIn,None,_chainId,_dstChainId,None) = mTokenProofDecoderLib.decodeJournal(singleJournal) (src/mToken/host/mErc20Host.sol#408-409)",
+          "location": {
+            "file": "src/mToken/host/mErc20Host.sol",
+            "line": 401
+          },
+          "severity": "Medium",
+          "title": "unused-return",
+          "tool": "slither",
+          "type": "unused-return"
+        },
+        {
+          "confidence": 0.6,
+          "description": "mErc20Host._mintExternal(bytes,uint256,uint256,address) (src/mToken/host/mErc20Host.sol#434-457) ignores return value by (_sender,_market,_accAmountIn,None,_chainId,_dstChainId,None) = mTokenProofDecoderLib.decodeJournal(singleJournal) (src/mToken/host/mErc20Host.sol#437-438)",
+          "location": {
+            "file": "src/mToken/host/mErc20Host.sol",
+            "line": 434
+          },
+          "severity": "Medium",
+          "title": "unused-return",
+          "tool": "slither",
+          "type": "unused-return"
+        },
+        {
+          "confidence": 0.6,
+          "description": "mErc20Host._repayExternal(bytes,uint256,address) (src/mToken/host/mErc20Host.sol#459-481) ignores return value by (_sender,_market,_accAmountIn,None,_chainId,_dstChainId,None) = mTokenProofDecoderLib.decodeJournal(singleJournal) (src/mToken/host/mErc20Host.sol#460-461)",
+          "location": {
+            "file": "src/mToken/host/mErc20Host.sol",
+            "line": 459
+          },
+          "severity": "Medium",
+          "title": "unused-return",
+          "tool": "slither",
+          "type": "unused-return"
+        },
+        {
+          "confidence": 0.6,
+          "description": "mErc20._initializeMErc20(address,address,address,uint256,string,string,uint8) (src/mToken/mErc20.sol#61-76) ignores return value by ImTokenMinimal(underlying).totalSupply() (src/mToken/mErc20.sol#75)",
+          "location": {
+            "file": "src/mToken/mErc20.sol",
+            "line": 61
+          },
+          "severity": "Medium",
+          "title": "unused-return",
+          "tool": "slither",
+          "type": "unused-return"
+        },
+        {
+          "confidence": 0.9,
+          "description": "mToken._initializeMToken(address,address,uint256,string,string,uint8) (src/mToken/mToken.sol#49-72) uses a dangerous strict equality: - require(bool,error)(accrualBlockTimestamp == 0 && borrowIndex == 0,revert mt_AlreadyInitialized()()) (src/mToken/mToken.sol#57)",
+          "location": {
+            "file": "src/mToken/mToken.sol",
+            "line": 49
+          },
+          "severity": "Medium",
+          "title": "incorrect-equality",
+          "tool": "slither",
+          "type": "incorrect-equality"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Reentrancy in mToken._liquidate(address,address,uint256,address,bool) (src/mToken/mToken.sol#364-377): External calls: - ImToken(mTokenCollateral).accrueInterest() (src/mToken/mToken.sol#373) - __liquidate(liquidator,borrower,repayAmount,mTokenCollateral,doTransfer) (src/mToken/mToken.sol#376) - IOperatorDefender(operator).beforeMTokenRepay(address(this),borrower) (src/mToken/mToken.sol#515) - IOperatorDefender(operator).beforeMTokenSeize(address(this),seizerToken,liquidator,borrower) (src/mToken/mToken.sol#389) - ImToken(mTokenCollateral).seize(liquidator,borrower,seizeTokens) (src/mToken/mToken.sol#500) State variables written after the call(s): - __liquidate(liquidator,borrower,repayAmount,mTokenCollateral,doTransfer) (src/mToken/mToken.sol#376) - totalBorrows = totalBorrowsNew (src/mToken/mToken.sol#548) mTokenStorage.totalBorrows (src/mToken/mTokenStorage.sol#96) can be used in cross function reentrancies: - mTokenStorage._accrueInterest() (src/mToken/mTokenStorage.sol#337-389) - mTokenStorage._exchangeRateStored() (src/mToken/mTokenStorage.sol#295-314) - mToken.borrowRatePerBlock() (src/mToken/mToken.sol#108-110) - mToken.supplyRatePerBlock() (src/mToken/mToken.sol#115-119) - mTokenStorage.totalBorrows (src/mToken/mTokenStorage.sol#96) - __liquidate(liquidator,borrower,repayAmount,mTokenCollateral,doTransfer) (src/mToken/mToken.sol#376) - totalReserves = totalReservesNew (src/mToken/mToken.sol#409) mTokenStorage.totalReserves (src/mToken/mTokenStorage.sol#101) can be used in cross function reentrancies: - mTokenStorage._accrueInterest() (src/mToken/mTokenStorage.sol#337-389) - mTokenStorage._exchangeRateStored() (src/mToken/mTokenStorage.sol#295-314) - mToken.borrowRatePerBlock() (src/mToken/mToken.sol#108-110) - mToken.supplyRatePerBlock() (src/mToken/mToken.sol#115-119) - mTokenStorage.totalReserves (src/mToken/mTokenStorage.sol#101)",
+          "location": {
+            "file": "src/mToken/mToken.sol",
+            "line": 364
+          },
+          "severity": "Medium",
+          "title": "reentrancy-no-eth",
+          "tool": "slither",
+          "type": "reentrancy-no-eth"
+        },
+        {
+          "confidence": 0.9,
+          "description": "mToken.__liquidate(address,address,uint256,address,bool) (src/mToken/mToken.sol#465-505) uses a dangerous strict equality: - require(bool,error)(ImToken(mTokenCollateral).accrualBlockTimestamp() == _getBlockTimestamp(),revert mt_CollateralBlockTimestampNotValid()()) (src/mToken/mToken.sol#477-480)",
+          "location": {
+            "file": "src/mToken/mToken.sol",
+            "line": 465
+          },
+          "severity": "Medium",
+          "title": "incorrect-equality",
+          "tool": "slither",
+          "type": "incorrect-equality"
+        },
+        {
+          "confidence": 0.9,
+          "description": "mToken.__redeem(address,uint256,uint256,bool) (src/mToken/mToken.sol#603-661) uses a dangerous strict equality: - redeemTokens == 0 && redeemAmount == 0 (src/mToken/mToken.sol#631)",
+          "location": {
+            "file": "src/mToken/mToken.sol",
+            "line": 603
+          },
+          "severity": "Medium",
+          "title": "incorrect-equality",
+          "tool": "slither",
+          "type": "incorrect-equality"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Reentrancy in mToken.__redeem(address,uint256,uint256,bool) (src/mToken/mToken.sol#603-661): External calls: - IOperatorDefender(operator).beforeMTokenRedeem(address(this),redeemer,redeemTokens) (src/mToken/mToken.sol#634) State variables written after the call(s): - totalSupply = totalSupply - redeemTokens (src/mToken/mToken.sol#646) mTokenStorage.totalSupply (src/mToken/mTokenStorage.sol#106) can be used in cross function reentrancies: - mTokenStorage._exchangeRateStored() (src/mToken/mTokenStorage.sol#295-314) - mTokenConfiguration.setBorrowRateMaxMantissa(uint256) (src/mToken/mTokenConfiguration.sol#72-82) - mTokenStorage.totalSupply (src/mToken/mTokenStorage.sol#106)",
+          "location": {
+            "file": "src/mToken/mToken.sol",
+            "line": 603
+          },
+          "severity": "Medium",
+          "title": "reentrancy-no-eth",
+          "tool": "slither",
+          "type": "reentrancy-no-eth"
+        },
+        {
+          "confidence": 0.9,
+          "description": "mTokenStorage._exchangeRateStored() (src/mToken/mTokenStorage.sol#295-314) uses a dangerous strict equality: - _totalSupply == 0 (src/mToken/mTokenStorage.sol#297)",
+          "location": {
+            "file": "src/mToken/mTokenStorage.sol",
+            "line": 295
+          },
+          "severity": "Medium",
+          "title": "incorrect-equality",
+          "tool": "slither",
+          "type": "incorrect-equality"
+        },
+        {
+          "confidence": 0.9,
+          "description": "mTokenStorage._accrueInterest() (src/mToken/mTokenStorage.sol#337-389) uses a dangerous strict equality: - accrualBlockTimestampPrior == currentBlockTimestamp (src/mToken/mTokenStorage.sol#343)",
+          "location": {
+            "file": "src/mToken/mTokenStorage.sol",
+            "line": 337
+          },
+          "severity": "Medium",
+          "title": "incorrect-equality",
+          "tool": "slither",
+          "type": "incorrect-equality"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Migrator.migrateAllPositions() (src/migration/Migrator.sol#83-153) ignores return value by underlying.approve(position_scope_3.mendiMarket,position_scope_3.borrowAmount) (src/migration/Migrator.sol#117)",
+          "location": {
+            "file": "src/migration/Migrator.sol",
+            "line": 83
+          },
+          "severity": "Medium",
+          "title": "unused-return",
+          "tool": "slither",
+          "type": "unused-return"
+        },
+        {
+          "confidence": 0.6,
+          "description": "MixedPriceOracleV3._getLatestPrice(string,IDefaultAdapter.PriceConfig) (src/oracles/MixedPriceOracleV3.sol#95-115) ignores return value by (None,price,None,updatedAt,None) = feed.latestRoundData() (src/oracles/MixedPriceOracleV3.sol#105)",
+          "location": {
+            "file": "src/oracles/MixedPriceOracleV3.sol",
+            "line": 95
+          },
+          "severity": "Medium",
+          "title": "unused-return",
+          "tool": "slither",
+          "type": "unused-return"
+        },
+        {
+          "confidence": 0.6,
+          "description": "MixedPriceOracleV4._getLatestPrice(string,MixedPriceOracleV4.PriceConfig) (src/oracles/MixedPriceOracleV4.sol#130-167) ignores return value by (None,eOraclePrice,None,eOracleUpdatedAt,None) = IDefaultAdapter(config.eOracleFeed).latestRoundData() (src/oracles/MixedPriceOracleV4.sol#139)",
+          "location": {
+            "file": "src/oracles/MixedPriceOracleV4.sol",
+            "line": 130
+          },
+          "severity": "Medium",
+          "title": "unused-return",
+          "tool": "slither",
+          "type": "unused-return"
+        },
+        {
+          "confidence": 0.6,
+          "description": "EverclearBridge.sendMsg(uint256,address,uint32,address,bytes,bytes) (src/rebalancer/bridges/EverclearBridge.sol#79-123) ignores return value by (id,None) = everclearFeeAdapter.newIntent(params.destinations,params.receiver,params.inputAsset,params.outputAsset,params.amount,params.maxFee,params.ttl,params.data,params.feeParams) (src/rebalancer/bridges/EverclearBridge.sol#111-121)",
+          "location": {
+            "file": "src/rebalancer/bridges/EverclearBridge.sol",
+            "line": 79
+          },
+          "severity": "Medium",
+          "title": "unused-return",
+          "tool": "slither",
+          "type": "unused-return"
+        },
+        {
+          "confidence": 0.6,
+          "description": "EverclearBridge.sendMsg(uint256,address,uint32,address,bytes,bytes).found (src/rebalancer/bridges/EverclearBridge.sol#95) is a local variable never initialized",
+          "location": {
+            "file": "src/rebalancer/bridges/EverclearBridge.sol",
+            "line": 95
+          },
+          "severity": "Medium",
+          "title": "uninitialized-local",
+          "tool": "slither",
+          "type": "uninitialized-local"
+        },
+        {
+          "confidence": 0.6,
+          "description": "WrapAndSupply.wrapAndSupplyOnHostMarket(address,address,uint256) (src/utils/WrapAndSupply.sol#59-70) ignores return value by IERC20(underlying).approve(mToken,amount) (src/utils/WrapAndSupply.sol#66)",
+          "location": {
+            "file": "src/utils/WrapAndSupply.sol",
+            "line": 59
+          },
+          "severity": "Medium",
+          "title": "unused-return",
+          "tool": "slither",
+          "type": "unused-return"
+        },
+        {
+          "confidence": 0.6,
+          "description": "WrapAndSupply.wrapAndSupplyOnExtensionMarket(address,address,bytes4) (src/utils/WrapAndSupply.sol#78-90) ignores return value by IERC20(underlying).approve(mTokenGateway,amount) (src/utils/WrapAndSupply.sol#88)",
+          "location": {
+            "file": "src/utils/WrapAndSupply.sol",
+            "line": 78
+          },
+          "severity": "Medium",
+          "title": "unused-return",
+          "tool": "slither",
+          "type": "unused-return"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Operator.checkOutflowVolumeLimit(uint256) (src/Operator/Operator.sol#232-250) uses timestamp for comparisons Dangerous comparisons: - block.timestamp > lastOutflowResetTimestamp + outflowResetTimeWindow (src/Operator/Operator.sol#238)",
+          "location": {
+            "file": "src/Operator/Operator.sol",
+            "line": 232
+          },
+          "severity": "Low",
+          "title": "timestamp",
+          "tool": "slither",
+          "type": "timestamp"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Operator.setRewardDistributor(address).newRewardDistributor (src/Operator/Operator.sol#325) lacks a zero-check on : - rewardDistributor = newRewardDistributor (src/Operator/Operator.sol#330)",
+          "location": {
+            "file": "src/Operator/Operator.sol",
+            "line": 325
+          },
+          "severity": "Low",
+          "title": "missing-zero-check",
+          "tool": "slither",
+          "type": "missing-zero-check"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Operator.getUSDValueForAllMarkets() (src/Operator/Operator.sol#550-562) has external calls inside a loop: totalMarketVolume = _market.totalUnderlying() (src/Operator/Operator.sol#555)",
+          "location": {
+            "file": "src/Operator/Operator.sol",
+            "line": 550
+          },
+          "severity": "Low",
+          "title": "calls-loop",
+          "tool": "slither",
+          "type": "calls-loop"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Operator._convertMarketAmountToUSDValue(uint256,address) (src/Operator/Operator.sol#718-724) has external calls inside a loop: oraclePriceMantissa = IOracleOperator(oracleOperator).getUnderlyingPrice(mToken) (src/Operator/Operator.sol#719) Calls stack containing the loop: Operator.getUSDValueForAllMarkets()",
+          "location": {
+            "file": "src/Operator/Operator.sol",
+            "line": 718
+          },
+          "severity": "Low",
+          "title": "calls-loop",
+          "tool": "slither",
+          "type": "calls-loop"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Operator._getHypotheticalAccountLiquidity(address,address,uint256,uint256) (src/Operator/Operator.sol#749-807) has external calls inside a loop: (vars.mTokenBalance,vars.borrowBalance,vars.exchangeRateMantissa) = ImToken(_asset).getAccountSnapshot(account) (src/Operator/Operator.sol#762-763) Calls stack containing the loop: Operator.beforeMTokenRedeem(address,address,uint256) Operator._beforeRedeem(address,address,uint256)",
+          "location": {
+            "file": "src/Operator/Operator.sol",
+            "line": 749
+          },
+          "severity": "Low",
+          "title": "calls-loop",
+          "tool": "slither",
+          "type": "calls-loop"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Operator._updateMaldaSupplyIndex(address) (src/Operator/Operator.sol#813-815) has external calls inside a loop: IRewardDistributor(rewardDistributor).notifySupplyIndex(mToken) (src/Operator/Operator.sol#814) Calls stack containing the loop: Operator.claimMalda(address[],address[],bool,bool) Operator._claim(address[],address[],bool,bool)",
+          "location": {
+            "file": "src/Operator/Operator.sol",
+            "line": 813
+          },
+          "severity": "Low",
+          "title": "calls-loop",
+          "tool": "slither",
+          "type": "calls-loop"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Operator._updateMaldaBorrowIndex(address) (src/Operator/Operator.sol#821-823) has external calls inside a loop: IRewardDistributor(rewardDistributor).notifyBorrowIndex(mToken) (src/Operator/Operator.sol#822) Calls stack containing the loop: Operator.claimMalda(address[],address[],bool,bool) Operator._claim(address[],address[],bool,bool)",
+          "location": {
+            "file": "src/Operator/Operator.sol",
+            "line": 821
+          },
+          "severity": "Low",
+          "title": "calls-loop",
+          "tool": "slither",
+          "type": "calls-loop"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Operator._distributeSupplierMalda(address,address) (src/Operator/Operator.sol#830-832) has external calls inside a loop: IRewardDistributor(rewardDistributor).notifySupplier(mToken,supplier) (src/Operator/Operator.sol#831) Calls stack containing the loop: Operator.claimMalda(address,address[]) Operator._claim(address[],address[],bool,bool)",
+          "location": {
+            "file": "src/Operator/Operator.sol",
+            "line": 830
+          },
+          "severity": "Low",
+          "title": "calls-loop",
+          "tool": "slither",
+          "type": "calls-loop"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Operator._distributeBorrowerMalda(address,address) (src/Operator/Operator.sol#840-842) has external calls inside a loop: IRewardDistributor(rewardDistributor).notifyBorrower(mToken,borrower) (src/Operator/Operator.sol#841) Calls stack containing the loop: Operator.claimMalda(address[],address[],bool,bool) Operator._claim(address[],address[],bool,bool)",
+          "location": {
+            "file": "src/Operator/Operator.sol",
+            "line": 840
+          },
+          "severity": "Low",
+          "title": "calls-loop",
+          "tool": "slither",
+          "type": "calls-loop"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Operator._isDeprecated(address) (src/Operator/Operator.sol#878-881) has external calls inside a loop: markets[mToken].collateralFactorMantissa == 0 && _paused[mToken][OperationType.Borrow] && ImToken(mToken).reserveFactorMantissa() == 1e18 (src/Operator/Operator.sol#879-880) Calls stack containing the loop: Operator.getUSDValueForAllMarkets()",
+          "location": {
+            "file": "src/Operator/Operator.sol",
+            "line": 878
+          },
+          "severity": "Low",
+          "title": "calls-loop",
+          "tool": "slither",
+          "type": "calls-loop"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Roles.constructor(address)._owner (src/Roles.sol#55) shadows: - Ownable._owner (lib/openzeppelin-contracts/contracts/access/Ownable.sol#21) (state variable)",
+          "location": {
+            "file": "src/Roles.sol",
+            "line": 55
+          },
+          "severity": "Low",
+          "title": "shadowing-local",
+          "tool": "slither",
+          "type": "shadowing-local"
+        },
+        {
+          "confidence": 0.6,
+          "description": "JumpRateModelV4.updateBlocksPerYear(uint256) (src/interest/JumpRateModelV4.sol#115-117) should emit an event for: - blocksPerYear = blocksPerYear_ (src/interest/JumpRateModelV4.sol#116)",
+          "location": {
+            "file": "src/interest/JumpRateModelV4.sol",
+            "line": 115
+          },
+          "severity": "Low",
+          "title": "events-maths",
+          "tool": "slither",
+          "type": "events-maths"
+        },
+        {
+          "confidence": 0.9,
+          "description": "BatchSubmitter.constructor(address,address,address)._owner (src/mToken/BatchSubmitter.sol#80) shadows: - Ownable._owner (lib/openzeppelin-contracts/contracts/access/Ownable.sol#21) (state variable)",
+          "location": {
+            "file": "src/mToken/BatchSubmitter.sol",
+            "line": 80
+          },
+          "severity": "Low",
+          "title": "shadowing-local",
+          "tool": "slither",
+          "type": "shadowing-local"
+        },
+        {
+          "confidence": 0.6,
+          "description": "BatchSubmitter.batchProcess(BatchSubmitter.BatchProcessMsg) (src/mToken/BatchSubmitter.sol#102-197) has external calls inside a loop: ImTokenGateway(data.mTokens[i]).outHere(encodedJournal,,singleAmount,data.receivers[i]) (src/mToken/BatchSubmitter.sol#169-188)",
+          "location": {
+            "file": "src/mToken/BatchSubmitter.sol",
+            "line": 102
+          },
+          "severity": "Low",
+          "title": "calls-loop",
+          "tool": "slither",
+          "type": "calls-loop"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Reentrancy in BatchSubmitter.batchProcess(BatchSubmitter.BatchProcessMsg) (src/mToken/BatchSubmitter.sol#102-197): External calls: - ImErc20Host(data.mTokens[i]).mintExternal(encodedJournal,,singleAmount,singleMinAmounts,data.receivers[i]) (src/mToken/BatchSubmitter.sol#125-146) - ImErc20Host(data.mTokens[i]).repayExternal(encodedJournal,,singleAmount,data.receivers[i]) (src/mToken/BatchSubmitter.sol#148-167) - ImTokenGateway(data.mTokens[i]).outHere(encodedJournal,,singleAmount,data.receivers[i]) (src/mToken/BatchSubmitter.sol#169-188) Event emitted after the call(s): - BatchProcessFailed(data.initHashes[i],data.receivers[i],data.mTokens[i],data.amounts[i],data.minAmountsOut[i],selector,reason) (src/mToken/BatchSubmitter.sol#137-145) - BatchProcessFailed(data.initHashes[i],data.receivers[i],data.mTokens[i],data.amounts[i],data.minAmountsOut[i],selector,reason_scope_0) (src/mToken/BatchSubmitter.sol#158-166) - BatchProcessFailed(data.initHashes[i],data.receivers[i],data.mTokens[i],data.amounts[i],data.minAmountsOut[i],selector,reason_scope_1) (src/mToken/BatchSubmitter.sol#179-187) - BatchProcessSuccess(data.initHashes[i],data.receivers[i],data.mTokens[i],data.amounts[i],data.minAmountsOut[i],selector) (src/mToken/BatchSubmitter.sol#128-135) - BatchProcessSuccess(data.initHashes[i],data.receivers[i],data.mTokens[i],data.amounts[i],data.minAmountsOut[i],selector) (src/mToken/BatchSubmitter.sol#149-156) - BatchProcessSuccess(data.initHashes[i],data.receivers[i],data.mTokens[i],data.amounts[i],data.minAmountsOut[i],selector) (src/mToken/BatchSubmitter.sol#170-177)",
+          "location": {
+            "file": "src/mToken/BatchSubmitter.sol",
+            "line": 102
+          },
+          "severity": "Low",
+          "title": "reentrancy-events",
+          "tool": "slither",
+          "type": "reentrancy-events"
+        },
+        {
+          "confidence": 0.6,
+          "description": "mTokenGateway.withdrawGasFees(address).receiver (src/mToken/extension/mTokenGateway.sol#194) lacks a zero-check on : - receiver.transfer(balance) (src/mToken/extension/mTokenGateway.sol#199)",
+          "location": {
+            "file": "src/mToken/extension/mTokenGateway.sol",
+            "line": 194
+          },
+          "severity": "Low",
+          "title": "missing-zero-check",
+          "tool": "slither",
+          "type": "missing-zero-check"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Reentrancy in mTokenGateway.supplyOnHost(uint256,address,bytes4) (src/mToken/extension/mTokenGateway.sol#224-252): External calls: - IERC20(underlying).safeTransferFrom(msg.sender,address(this),amount) (src/mToken/extension/mTokenGateway.sol#237) State variables written after the call(s): - accAmountIn[receiver] += amount (src/mToken/extension/mTokenGateway.sol#240)",
+          "location": {
+            "file": "src/mToken/extension/mTokenGateway.sol",
+            "line": 224
+          },
+          "severity": "Low",
+          "title": "reentrancy-benign",
+          "tool": "slither",
+          "type": "reentrancy-benign"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Reentrancy in mTokenGateway.supplyOnHost(uint256,address,bytes4) (src/mToken/extension/mTokenGateway.sol#224-252): External calls: - IERC20(underlying).safeTransferFrom(msg.sender,address(this),amount) (src/mToken/extension/mTokenGateway.sol#237) Event emitted after the call(s): - mTokenGateway_Supplied(msg.sender,receiver,accAmountIn[receiver],accAmountOut[receiver],amount,uint32(block.chainid),LINEA_CHAIN_ID,lineaSelector) (src/mToken/extension/mTokenGateway.sol#242-251)",
+          "location": {
+            "file": "src/mToken/extension/mTokenGateway.sol",
+            "line": 224
+          },
+          "severity": "Low",
+          "title": "reentrancy-events",
+          "tool": "slither",
+          "type": "reentrancy-events"
+        },
+        {
+          "confidence": 0.6,
+          "description": "mTokenGateway._outHere(bytes,uint256,address) (src/mToken/extension/mTokenGateway.sol#281-313) has external calls inside a loop: require(bool,error)(IERC20(underlying).balanceOf(address(this)) >= amount,revert mTokenGateway_ReleaseCashNotAvailable()()) (src/mToken/extension/mTokenGateway.sol#295) Calls stack containing the loop: mTokenGateway.outHere(bytes,bytes,uint256[],address)",
+          "location": {
+            "file": "src/mToken/extension/mTokenGateway.sol",
+            "line": 281
+          },
+          "severity": "Low",
+          "title": "calls-loop",
+          "tool": "slither",
+          "type": "calls-loop"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Reentrancy in mTokenGateway._outHere(bytes,uint256,address) (src/mToken/extension/mTokenGateway.sol#281-313): External calls: - IERC20(underlying).safeTransfer(_sender,amount) (src/mToken/extension/mTokenGateway.sol#301) Event emitted after the call(s): - mTokenGateway_Extracted(msg.sender,_sender,receiver,accAmountIn[_sender],accAmountOut[_sender],amount,uint32(_chainId),uint32(block.chainid)) (src/mToken/extension/mTokenGateway.sol#303-312)",
+          "location": {
+            "file": "src/mToken/extension/mTokenGateway.sol",
+            "line": 281
+          },
+          "severity": "Low",
+          "title": "reentrancy-events",
+          "tool": "slither",
+          "type": "reentrancy-events"
+        },
+        {
+          "confidence": 0.9,
+          "description": "mErc20Host.updateAllowedChain(uint32,bool)._status (src/mToken/host/mErc20Host.sol#129) shadows: - ReentrancyGuard._status (lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol#37) (state variable)",
+          "location": {
+            "file": "src/mToken/host/mErc20Host.sol",
+            "line": 129
+          },
+          "severity": "Low",
+          "title": "shadowing-local",
+          "tool": "slither",
+          "type": "shadowing-local"
+        },
+        {
+          "confidence": 0.6,
+          "description": "mErc20Host.setMigrator(address) (src/mToken/host/mErc20Host.sol#150-153) should emit an event for: - migrator = _migrator (src/mToken/host/mErc20Host.sol#152)",
+          "location": {
+            "file": "src/mToken/host/mErc20Host.sol",
+            "line": 150
+          },
+          "severity": "Low",
+          "title": "events-access",
+          "tool": "slither",
+          "type": "events-access"
+        },
+        {
+          "confidence": 0.6,
+          "description": "mErc20Host.withdrawGasFees(address).receiver (src/mToken/host/mErc20Host.sol#168) lacks a zero-check on : - receiver.transfer(balance) (src/mToken/host/mErc20Host.sol#172)",
+          "location": {
+            "file": "src/mToken/host/mErc20Host.sol",
+            "line": 168
+          },
+          "severity": "Low",
+          "title": "missing-zero-check",
+          "tool": "slither",
+          "type": "missing-zero-check"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Reentrancy in mErc20Host.mintExternal(bytes,bytes,uint256[],uint256[],address) (src/mToken/host/mErc20Host.sol#227-250): External calls: - _checkOutflow(CommonLib.computeSum(mintAmount)) (src/mToken/host/mErc20Host.sol#238) - IOperatorDefender(operator).checkOutflowVolumeLimit(amount) (src/mToken/host/mErc20Host.sol#332) - _mintExternal(journals[i],mintAmount[i],minAmountsOut[i],receiver) (src/mToken/host/mErc20Host.sol#245) - IOperatorDefender(operator).beforeMTokenMint(address(this),minter) (src/mToken/mToken.sol#675) - returndata = address(token).functionCall(data) (lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol#96) - IERC20(underlying).safeTransferFrom(from,address(this),amount) (src/mToken/mErc20.sol#161) - (success,returndata) = target.call{value: value}(data) (lib/openzeppelin-contracts/contracts/utils/Address.sol#87) - IOperator(operator).enterMarketsWithSender(minter) (src/mToken/mToken.sol#728) External calls sending eth: - _mintExternal(journals[i],mintAmount[i],minAmountsOut[i],receiver) (src/mToken/host/mErc20Host.sol#245) - (success,returndata) = target.call{value: value}(data) (lib/openzeppelin-contracts/contracts/utils/Address.sol#87) Event emitted after the call(s): - AccrueInterest(cashPrior,interestAccumulated,borrowIndexNew,totalBorrowsNew) (src/mToken/mTokenStorage.sol#388) - _mintExternal(journals[i],mintAmount[i],minAmountsOut[i],receiver) (src/mToken/host/mErc20Host.sol#245) - Mint(minter,receiver,actualMintAmount,mintTokens) (src/mToken/mToken.sol#719) - _mintExternal(journals[i],mintAmount[i],minAmountsOut[i],receiver) (src/mToken/host/mErc20Host.sol#245) - Transfer(address(this),receiver,mintTokens) (src/mToken/mToken.sol#720) - _mintExternal(journals[i],mintAmount[i],minAmountsOut[i],receiver) (src/mToken/host/mErc20Host.sol#245) - mErc20Host_MintExternal(msg.sender,_sender,receiver,_chainId,mintAmount) (src/mToken/host/mErc20Host.sol#456) - _mintExternal(journals[i],mintAmount[i],minAmountsOut[i],receiver) (src/mToken/host/mErc20Host.sol#245)",
+          "location": {
+            "file": "src/mToken/host/mErc20Host.sol",
+            "line": 227
+          },
+          "severity": "Low",
+          "title": "reentrancy-events",
+          "tool": "slither",
+          "type": "reentrancy-events"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Reentrancy in mErc20Host.repayExternal(bytes,bytes,uint256[],address) (src/mToken/host/mErc20Host.sol#255-277): External calls: - _checkOutflow(CommonLib.computeSum(repayAmount)) (src/mToken/host/mErc20Host.sol#265) - IOperatorDefender(operator).checkOutflowVolumeLimit(amount) (src/mToken/host/mErc20Host.sol#332) - _repayExternal(journals[i],repayAmount[i],receiver) (src/mToken/host/mErc20Host.sol#272) - returndata = address(token).functionCall(data) (lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol#96) - IOperatorDefender(operator).beforeMTokenRepay(address(this),borrower) (src/mToken/mToken.sol#515) - IERC20(underlying).safeTransferFrom(from,address(this),amount) (src/mToken/mErc20.sol#161) - (success,returndata) = target.call{value: value}(data) (lib/openzeppelin-contracts/contracts/utils/Address.sol#87) External calls sending eth: - _repayExternal(journals[i],repayAmount[i],receiver) (src/mToken/host/mErc20Host.sol#272) - (success,returndata) = target.call{value: value}(data) (lib/openzeppelin-contracts/contracts/utils/Address.sol#87) Event emitted after the call(s): - AccrueInterest(cashPrior,interestAccumulated,borrowIndexNew,totalBorrowsNew) (src/mToken/mTokenStorage.sol#388) - _repayExternal(journals[i],repayAmount[i],receiver) (src/mToken/host/mErc20Host.sol#272) - RepayBorrow(payer,borrower,actualRepayAmount,accountBorrowsNew,totalBorrowsNew) (src/mToken/mToken.sol#551) - _repayExternal(journals[i],repayAmount[i],receiver) (src/mToken/host/mErc20Host.sol#272) - mErc20Host_RepayExternal(msg.sender,_sender,receiver,_chainId,actualRepayAmount) (src/mToken/host/mErc20Host.sol#480) - _repayExternal(journals[i],repayAmount[i],receiver) (src/mToken/host/mErc20Host.sol#272)",
+          "location": {
+            "file": "src/mToken/host/mErc20Host.sol",
+            "line": 255
+          },
+          "severity": "Low",
+          "title": "reentrancy-events",
+          "tool": "slither",
+          "type": "reentrancy-events"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Reentrancy in mErc20Host.performExtensionCall(uint256,uint256,uint32) (src/mToken/host/mErc20Host.sol#282-300): External calls: - _checkOutflow(amount) (src/mToken/host/mErc20Host.sol#287) - IOperatorDefender(operator).checkOutflowVolumeLimit(amount) (src/mToken/host/mErc20Host.sol#332) - _amount = _redeem(msg.sender,amount,false) (src/mToken/host/mErc20Host.sol#291) - returndata = address(token).functionCall(data) (lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol#96) - IERC20(underlying).safeTransfer(to,amount) (src/mToken/mErc20.sol#172) - (success,returndata) = target.call{value: value}(data) (lib/openzeppelin-contracts/contracts/utils/Address.sol#87) - IOperatorDefender(operator).beforeMTokenRedeem(address(this),redeemer,redeemTokens) (src/mToken/mToken.sol#634) - _borrow(msg.sender,amount,false) (src/mToken/host/mErc20Host.sol#294) - IOperatorDefender(operator).beforeMTokenBorrow(address(this),borrower,borrowAmount) (src/mToken/mToken.sol#563) - IERC20(underlying).safeTransfer(to,amount) (src/mToken/mErc20.sol#172) - returndata = address(token).functionCall(data) (lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol#96) - (success,returndata) = target.call{value: value}(data) (lib/openzeppelin-contracts/contracts/utils/Address.sol#87) External calls sending eth: - _amount = _redeem(msg.sender,amount,false) (src/mToken/host/mErc20Host.sol#291) - (success,returndata) = target.call{value: value}(data) (lib/openzeppelin-contracts/contracts/utils/Address.sol#87) - _borrow(msg.sender,amount,false) (src/mToken/host/mErc20Host.sol#294) - (success,returndata) = target.call{value: value}(data) (lib/openzeppelin-contracts/contracts/utils/Address.sol#87) State variables written after the call(s): - acc[dstChainId].outPerChain[msg.sender] += _amount (src/mToken/host/mErc20Host.sol#299)",
+          "location": {
+            "file": "src/mToken/host/mErc20Host.sol",
+            "line": 282
+          },
+          "severity": "Low",
+          "title": "reentrancy-benign",
+          "tool": "slither",
+          "type": "reentrancy-benign"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Reentrancy in mErc20Host.performExtensionCall(uint256,uint256,uint32) (src/mToken/host/mErc20Host.sol#282-300): External calls: - _checkOutflow(amount) (src/mToken/host/mErc20Host.sol#287) - IOperatorDefender(operator).checkOutflowVolumeLimit(amount) (src/mToken/host/mErc20Host.sol#332) - _amount = _redeem(msg.sender,amount,false) (src/mToken/host/mErc20Host.sol#291) - returndata = address(token).functionCall(data) (lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol#96) - IERC20(underlying).safeTransfer(to,amount) (src/mToken/mErc20.sol#172) - (success,returndata) = target.call{value: value}(data) (lib/openzeppelin-contracts/contracts/utils/Address.sol#87) - IOperatorDefender(operator).beforeMTokenRedeem(address(this),redeemer,redeemTokens) (src/mToken/mToken.sol#634) External calls sending eth: - _amount = _redeem(msg.sender,amount,false) (src/mToken/host/mErc20Host.sol#291) - (success,returndata) = target.call{value: value}(data) (lib/openzeppelin-contracts/contracts/utils/Address.sol#87) Event emitted after the call(s): - AccrueInterest(cashPrior,interestAccumulated,borrowIndexNew,totalBorrowsNew) (src/mToken/mTokenStorage.sol#388) - _amount = _redeem(msg.sender,amount,false) (src/mToken/host/mErc20Host.sol#291) - Redeem(redeemer,redeemAmount,redeemTokens) (src/mToken/mToken.sol#660) - _amount = _redeem(msg.sender,amount,false) (src/mToken/host/mErc20Host.sol#291) - Transfer(redeemer,address(this),redeemTokens) (src/mToken/mToken.sol#659) - _amount = _redeem(msg.sender,amount,false) (src/mToken/host/mErc20Host.sol#291) - mErc20Host_WithdrawOnExtensionChain(msg.sender,dstChainId,_amount) (src/mToken/host/mErc20Host.sol#292)",
+          "location": {
+            "file": "src/mToken/host/mErc20Host.sol",
+            "line": 282
+          },
+          "severity": "Low",
+          "title": "reentrancy-events",
+          "tool": "slither",
+          "type": "reentrancy-events"
+        },
+        {
+          "confidence": 0.9,
+          "description": "mErc20Host.mintOrBorrowMigration(bool,uint256,address,address,uint256).mint (src/mToken/host/mErc20Host.sol#305) shadows: - mErc20.mint(uint256,address,uint256) (src/mToken/mErc20.sol#92-94) (function) - ImErc20.mint(uint256,address,uint256) (src/interfaces/ImErc20.sol#34) (function)",
+          "location": {
+            "file": "src/mToken/host/mErc20Host.sol",
+            "line": 305
+          },
+          "severity": "Low",
+          "title": "shadowing-local",
+          "tool": "slither",
+          "type": "shadowing-local"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Reentrancy in mErc20Host.mintOrBorrowMigration(bool,uint256,address,address,uint256) (src/mToken/host/mErc20Host.sol#305-318): External calls: - _mint(receiver,receiver,amount,minAmount,false) (src/mToken/host/mErc20Host.sol#312) - IOperatorDefender(operator).beforeMTokenMint(address(this),minter) (src/mToken/mToken.sol#675) - returndata = address(token).functionCall(data) (lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol#96) - IERC20(underlying).safeTransferFrom(from,address(this),amount) (src/mToken/mErc20.sol#161) - (success,returndata) = target.call{value: value}(data) (lib/openzeppelin-contracts/contracts/utils/Address.sol#87) - IOperator(operator).enterMarketsWithSender(minter) (src/mToken/mToken.sol#728) External calls sending eth: - _mint(receiver,receiver,amount,minAmount,false) (src/mToken/host/mErc20Host.sol#312) - (success,returndata) = target.call{value: value}(data) (lib/openzeppelin-contracts/contracts/utils/Address.sol#87) Event emitted after the call(s): - mErc20Host_MintMigration(receiver,amount) (src/mToken/host/mErc20Host.sol#313)",
+          "location": {
+            "file": "src/mToken/host/mErc20Host.sol",
+            "line": 305
+          },
+          "severity": "Low",
+          "title": "reentrancy-events",
+          "tool": "slither",
+          "type": "reentrancy-events"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Reentrancy in mErc20Host._liquidateExternal(bytes,address,uint256,address,address) (src/mToken/host/mErc20Host.sol#401-432): External calls: - _liquidate(receiver,userToLiquidate,liquidateAmount,collateral,false) (src/mToken/host/mErc20Host.sol#427) - IOperatorDefender(operator).beforeMTokenSeize(address(this),seizerToken,liquidator,borrower) (src/mToken/mToken.sol#389) - returndata = address(token).functionCall(data) (lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol#96) - IOperatorDefender(operator).beforeMTokenRepay(address(this),borrower) (src/mToken/mToken.sol#515) - IERC20(underlying).safeTransferFrom(from,address(this),amount) (src/mToken/mErc20.sol#161) - ImToken(mTokenCollateral).accrueInterest() (src/mToken/mToken.sol#373) - (success,returndata) = target.call{value: value}(data) (lib/openzeppelin-contracts/contracts/utils/Address.sol#87) - ImToken(mTokenCollateral).seize(liquidator,borrower,seizeTokens) (src/mToken/mToken.sol#500) External calls sending eth: - _liquidate(receiver,userToLiquidate,liquidateAmount,collateral,false) (src/mToken/host/mErc20Host.sol#427) - (success,returndata) = target.call{value: value}(data) (lib/openzeppelin-contracts/contracts/utils/Address.sol#87) Event emitted after the call(s): - mErc20Host_LiquidateExternal(msg.sender,_sender,userToLiquidate,receiver,collateral,_chainId,liquidateAmount) (src/mToken/host/mErc20Host.sol#429-431)",
+          "location": {
+            "file": "src/mToken/host/mErc20Host.sol",
+            "line": 401
+          },
+          "severity": "Low",
+          "title": "reentrancy-events",
+          "tool": "slither",
+          "type": "reentrancy-events"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Reentrancy in mErc20Host._mintExternal(bytes,uint256,uint256,address) (src/mToken/host/mErc20Host.sol#434-457): External calls: - _mint(receiver,receiver,mintAmount,minAmountOut,false) (src/mToken/host/mErc20Host.sol#454) - IOperatorDefender(operator).beforeMTokenMint(address(this),minter) (src/mToken/mToken.sol#675) - returndata = address(token).functionCall(data) (lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol#96) - IERC20(underlying).safeTransferFrom(from,address(this),amount) (src/mToken/mErc20.sol#161) - (success,returndata) = target.call{value: value}(data) (lib/openzeppelin-contracts/contracts/utils/Address.sol#87) - IOperator(operator).enterMarketsWithSender(minter) (src/mToken/mToken.sol#728) External calls sending eth: - _mint(receiver,receiver,mintAmount,minAmountOut,false) (src/mToken/host/mErc20Host.sol#454) - (success,returndata) = target.call{value: value}(data) (lib/openzeppelin-contracts/contracts/utils/Address.sol#87) Event emitted after the call(s): - mErc20Host_MintExternal(msg.sender,_sender,receiver,_chainId,mintAmount) (src/mToken/host/mErc20Host.sol#456)",
+          "location": {
+            "file": "src/mToken/host/mErc20Host.sol",
+            "line": 434
+          },
+          "severity": "Low",
+          "title": "reentrancy-events",
+          "tool": "slither",
+          "type": "reentrancy-events"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Reentrancy in mErc20Host._repayExternal(bytes,uint256,address) (src/mToken/host/mErc20Host.sol#459-481): External calls: - actualRepayAmount = _repayBehalf(receiver,repayAmount,false) (src/mToken/host/mErc20Host.sol#469) - returndata = address(token).functionCall(data) (lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol#96) - IOperatorDefender(operator).beforeMTokenRepay(address(this),borrower) (src/mToken/mToken.sol#515) - IERC20(underlying).safeTransferFrom(from,address(this),amount) (src/mToken/mErc20.sol#161) - (success,returndata) = target.call{value: value}(data) (lib/openzeppelin-contracts/contracts/utils/Address.sol#87) External calls sending eth: - actualRepayAmount = _repayBehalf(receiver,repayAmount,false) (src/mToken/host/mErc20Host.sol#469) - (success,returndata) = target.call{value: value}(data) (lib/openzeppelin-contracts/contracts/utils/Address.sol#87) State variables written after the call(s): - acc[_chainId].inPerChain[_sender] += actualRepayAmount (src/mToken/host/mErc20Host.sol#478)",
+          "location": {
+            "file": "src/mToken/host/mErc20Host.sol",
+            "line": 459
+          },
+          "severity": "Low",
+          "title": "reentrancy-benign",
+          "tool": "slither",
+          "type": "reentrancy-benign"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Reentrancy in mErc20Host._repayExternal(bytes,uint256,address) (src/mToken/host/mErc20Host.sol#459-481): External calls: - actualRepayAmount = _repayBehalf(receiver,repayAmount,false) (src/mToken/host/mErc20Host.sol#469) - returndata = address(token).functionCall(data) (lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol#96) - IOperatorDefender(operator).beforeMTokenRepay(address(this),borrower) (src/mToken/mToken.sol#515) - IERC20(underlying).safeTransferFrom(from,address(this),amount) (src/mToken/mErc20.sol#161) - (success,returndata) = target.call{value: value}(data) (lib/openzeppelin-contracts/contracts/utils/Address.sol#87) External calls sending eth: - actualRepayAmount = _repayBehalf(receiver,repayAmount,false) (src/mToken/host/mErc20Host.sol#469) - (success,returndata) = target.call{value: value}(data) (lib/openzeppelin-contracts/contracts/utils/Address.sol#87) Event emitted after the call(s): - mErc20Host_RepayExternal(msg.sender,_sender,receiver,_chainId,actualRepayAmount) (src/mToken/host/mErc20Host.sol#480)",
+          "location": {
+            "file": "src/mToken/host/mErc20Host.sol",
+            "line": 459
+          },
+          "severity": "Low",
+          "title": "reentrancy-events",
+          "tool": "slither",
+          "type": "reentrancy-events"
+        },
+        {
+          "confidence": 0.6,
+          "description": "mErc20Host._repayExternal(bytes,uint256,address) (src/mToken/host/mErc20Host.sol#459-481) uses timestamp for comparisons Dangerous comparisons: - require(bool,error)(actualRepayAmount <= _accAmountIn - acc[_chainId].inPerChain[_sender],revert mErc20Host_AmountTooBig()()) (src/mToken/host/mErc20Host.sol#474)",
+          "location": {
+            "file": "src/mToken/host/mErc20Host.sol",
+            "line": 459
+          },
+          "severity": "Low",
+          "title": "timestamp",
+          "tool": "slither",
+          "type": "timestamp"
+        },
+        {
+          "confidence": 0.6,
+          "description": "mErc20._doTransferIn(address,uint256) (src/mToken/mErc20.sol#159-164) has external calls inside a loop: balanceAfter = IERC20(underlying).balanceOf(address(this)) (src/mToken/mErc20.sol#162) Calls stack containing the loop: mErc20Host.repayExternal(bytes,bytes,uint256[],address) mErc20Host._repayExternal(bytes,uint256,address) mToken._repayBehalf(address,uint256,bool) mToken.__repay(address,address,uint256,bool)",
+          "location": {
+            "file": "src/mToken/mErc20.sol",
+            "line": 159
+          },
+          "severity": "Low",
+          "title": "calls-loop",
+          "tool": "slither",
+          "type": "calls-loop"
+        },
+        {
+          "confidence": 0.6,
+          "description": "mErc20Immutable.constructor(address,address,address,uint256,string,string,uint8,address).admin_ (src/mToken/mErc20Immutable.sol#48) lacks a zero-check on : - admin = admin_ (src/mToken/mErc20Immutable.sol#58)",
+          "location": {
+            "file": "src/mToken/mErc20Immutable.sol",
+            "line": 48
+          },
+          "severity": "Low",
+          "title": "missing-zero-check",
+          "tool": "slither",
+          "type": "missing-zero-check"
+        },
+        {
+          "confidence": 0.6,
+          "description": "mToken._initializeMToken(address,address,uint256,string,string,uint8) (src/mToken/mToken.sol#49-72) uses timestamp for comparisons Dangerous comparisons: - require(bool,error)(accrualBlockTimestamp == 0 && borrowIndex == 0,revert mt_AlreadyInitialized()()) (src/mToken/mToken.sol#57)",
+          "location": {
+            "file": "src/mToken/mToken.sol",
+            "line": 49
+          },
+          "severity": "Low",
+          "title": "timestamp",
+          "tool": "slither",
+          "type": "timestamp"
+        },
+        {
+          "confidence": 0.6,
+          "description": "mToken.reduceReserves(uint256) (src/mToken/mToken.sol#205-230) uses timestamp for comparisons Dangerous comparisons: - require(bool,error)(reduceAmount <= totalReserves,revert mt_ReserveCashNotAvailable()()) (src/mToken/mToken.sol#214)",
+          "location": {
+            "file": "src/mToken/mToken.sol",
+            "line": 205
+          },
+          "severity": "Low",
+          "title": "timestamp",
+          "tool": "slither",
+          "type": "timestamp"
+        },
+        {
+          "confidence": 0.6,
+          "description": "mToken._liquidate(address,address,uint256,address,bool) (src/mToken/mToken.sol#364-377) has external calls inside a loop: ImToken(mTokenCollateral).accrueInterest() (src/mToken/mToken.sol#373) Calls stack containing the loop: mErc20Host.liquidateExternal(bytes,bytes,address[],uint256[],address[],address) mErc20Host._liquidateExternal(bytes,address,uint256,address,address)",
+          "location": {
+            "file": "src/mToken/mToken.sol",
+            "line": 364
+          },
+          "severity": "Low",
+          "title": "calls-loop",
+          "tool": "slither",
+          "type": "calls-loop"
+        },
+        {
+          "confidence": 0.6,
+          "description": "mToken._seize(address,address,address,uint256) (src/mToken/mToken.sol#388-418) has external calls inside a loop: IOperatorDefender(operator).beforeMTokenSeize(address(this),seizerToken,liquidator,borrower) (src/mToken/mToken.sol#389) Calls stack containing the loop: mErc20Host.liquidateExternal(bytes,bytes,address[],uint256[],address[],address) mErc20Host._liquidateExternal(bytes,address,uint256,address,address) mToken._liquidate(address,address,uint256,address,bool) mToken.__liquidate(address,address,uint256,address,bool)",
+          "location": {
+            "file": "src/mToken/mToken.sol",
+            "line": 388
+          },
+          "severity": "Low",
+          "title": "calls-loop",
+          "tool": "slither",
+          "type": "calls-loop"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Reentrancy in mToken._seize(address,address,address,uint256) (src/mToken/mToken.sol#388-418): External calls: - IOperatorDefender(operator).beforeMTokenSeize(address(this),seizerToken,liquidator,borrower) (src/mToken/mToken.sol#389) State variables written after the call(s): - accountTokens[borrower] = accountTokens[borrower] - seizeTokens (src/mToken/mToken.sol#411) - accountTokens[liquidator] = accountTokens[liquidator] + liquidatorSeizeTokens (src/mToken/mToken.sol#412) - totalReserves = totalReservesNew (src/mToken/mToken.sol#409) - totalSupply = totalSupply - protocolSeizeTokens (src/mToken/mToken.sol#410)",
+          "location": {
+            "file": "src/mToken/mToken.sol",
+            "line": 388
+          },
+          "severity": "Low",
+          "title": "reentrancy-benign",
+          "tool": "slither",
+          "type": "reentrancy-benign"
+        },
+        {
+          "confidence": 0.6,
+          "description": "mToken.__liquidate(address,address,uint256,address,bool) (src/mToken/mToken.sol#465-505) has external calls inside a loop: ImToken(mTokenCollateral).seize(liquidator,borrower,seizeTokens) (src/mToken/mToken.sol#500) Calls stack containing the loop: mErc20Host.liquidateExternal(bytes,bytes,address[],uint256[],address[],address) mErc20Host._liquidateExternal(bytes,address,uint256,address,address) mToken._liquidate(address,address,uint256,address,bool)",
+          "location": {
+            "file": "src/mToken/mToken.sol",
+            "line": 465
+          },
+          "severity": "Low",
+          "title": "calls-loop",
+          "tool": "slither",
+          "type": "calls-loop"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Reentrancy in mToken.__liquidate(address,address,uint256,address,bool) (src/mToken/mToken.sol#465-505): External calls: - actualRepayAmount = __repay(liquidator,borrower,repayAmount,doTransfer) (src/mToken/mToken.sol#483) - IOperatorDefender(operator).beforeMTokenRepay(address(this),borrower) (src/mToken/mToken.sol#515) - _seize(address(this),liquidator,borrower,seizeTokens) (src/mToken/mToken.sol#498) - IOperatorDefender(operator).beforeMTokenSeize(address(this),seizerToken,liquidator,borrower) (src/mToken/mToken.sol#389) Event emitted after the call(s): - ReservesAdded(address(this),protocolSeizeAmount,totalReservesNew) (src/mToken/mToken.sol#417) - _seize(address(this),liquidator,borrower,seizeTokens) (src/mToken/mToken.sol#498) - Transfer(borrower,liquidator,liquidatorSeizeTokens) (src/mToken/mToken.sol#415) - _seize(address(this),liquidator,borrower,seizeTokens) (src/mToken/mToken.sol#498) - Transfer(borrower,address(this),protocolSeizeTokens) (src/mToken/mToken.sol#416) - _seize(address(this),liquidator,borrower,seizeTokens) (src/mToken/mToken.sol#498)",
+          "location": {
+            "file": "src/mToken/mToken.sol",
+            "line": 465
+          },
+          "severity": "Low",
+          "title": "reentrancy-events",
+          "tool": "slither",
+          "type": "reentrancy-events"
+        },
+        {
+          "confidence": 0.6,
+          "description": "mToken.__liquidate(address,address,uint256,address,bool) (src/mToken/mToken.sol#465-505) uses timestamp for comparisons Dangerous comparisons: - require(bool,error)(ImToken(mTokenCollateral).accrualBlockTimestamp() == _getBlockTimestamp(),revert mt_CollateralBlockTimestampNotValid()()) (src/mToken/mToken.sol#477-480) - require(bool,error)(ImToken(mTokenCollateral).balanceOf(borrower) >= seizeTokens,revert mt_LiquidateSeizeTooMuch()()) (src/mToken/mToken.sol#494)",
+          "location": {
+            "file": "src/mToken/mToken.sol",
+            "line": 465
+          },
+          "severity": "Low",
+          "title": "timestamp",
+          "tool": "slither",
+          "type": "timestamp"
+        },
+        {
+          "confidence": 0.6,
+          "description": "mToken.__repay(address,address,uint256,bool) (src/mToken/mToken.sol#514-554) has external calls inside a loop: IOperatorDefender(operator).beforeMTokenRepay(address(this),borrower) (src/mToken/mToken.sol#515) Calls stack containing the loop: mErc20Host.repayExternal(bytes,bytes,uint256[],address) mErc20Host._repayExternal(bytes,uint256,address) mToken._repayBehalf(address,uint256,bool)",
+          "location": {
+            "file": "src/mToken/mToken.sol",
+            "line": 514
+          },
+          "severity": "Low",
+          "title": "calls-loop",
+          "tool": "slither",
+          "type": "calls-loop"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Reentrancy in mToken.__repay(address,address,uint256,bool) (src/mToken/mToken.sol#514-554): External calls: - IOperatorDefender(operator).beforeMTokenRepay(address(this),borrower) (src/mToken/mToken.sol#515) State variables written after the call(s): - accountBorrows[borrower].principal = accountBorrowsNew (src/mToken/mToken.sol#546) - accountBorrows[borrower].interestIndex = borrowIndex (src/mToken/mToken.sol#547) - totalBorrows = totalBorrowsNew (src/mToken/mToken.sol#548) - totalUnderlying += actualRepayAmount (src/mToken/mToken.sol#535)",
+          "location": {
+            "file": "src/mToken/mToken.sol",
+            "line": 514
+          },
+          "severity": "Low",
+          "title": "reentrancy-benign",
+          "tool": "slither",
+          "type": "reentrancy-benign"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Reentrancy in mToken.__repay(address,address,uint256,bool) (src/mToken/mToken.sol#514-554): External calls: - IOperatorDefender(operator).beforeMTokenRepay(address(this),borrower) (src/mToken/mToken.sol#515) Event emitted after the call(s): - RepayBorrow(payer,borrower,actualRepayAmount,accountBorrowsNew,totalBorrowsNew) (src/mToken/mToken.sol#551)",
+          "location": {
+            "file": "src/mToken/mToken.sol",
+            "line": 514
+          },
+          "severity": "Low",
+          "title": "reentrancy-events",
+          "tool": "slither",
+          "type": "reentrancy-events"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Reentrancy in mToken.__borrow(address,address,uint256,bool) (src/mToken/mToken.sol#560-601): External calls: - IOperatorDefender(operator).beforeMTokenBorrow(address(this),borrower,borrowAmount) (src/mToken/mToken.sol#563) State variables written after the call(s): - accountBorrows[borrower].principal = accountBorrowsNew (src/mToken/mToken.sol#584) - accountBorrows[borrower].interestIndex = borrowIndex (src/mToken/mToken.sol#585) - totalBorrows = totalBorrowsNew (src/mToken/mToken.sol#586) - totalUnderlying -= borrowAmount (src/mToken/mToken.sol#597)",
+          "location": {
+            "file": "src/mToken/mToken.sol",
+            "line": 560
+          },
+          "severity": "Low",
+          "title": "reentrancy-benign",
+          "tool": "slither",
+          "type": "reentrancy-benign"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Reentrancy in mToken.__borrow(address,address,uint256,bool) (src/mToken/mToken.sol#560-601): External calls: - IOperatorDefender(operator).beforeMTokenBorrow(address(this),borrower,borrowAmount) (src/mToken/mToken.sol#563) Event emitted after the call(s): - Borrow(borrower,borrowAmount,accountBorrowsNew,totalBorrowsNew) (src/mToken/mToken.sol#600)",
+          "location": {
+            "file": "src/mToken/mToken.sol",
+            "line": 560
+          },
+          "severity": "Low",
+          "title": "reentrancy-events",
+          "tool": "slither",
+          "type": "reentrancy-events"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Reentrancy in mToken.__redeem(address,uint256,uint256,bool) (src/mToken/mToken.sol#603-661): External calls: - IOperatorDefender(operator).beforeMTokenRedeem(address(this),redeemer,redeemTokens) (src/mToken/mToken.sol#634) State variables written after the call(s): - accountTokens[redeemer] = accountTokens[redeemer] - redeemTokens (src/mToken/mToken.sol#647) - totalUnderlying -= redeemAmount (src/mToken/mToken.sol#656)",
+          "location": {
+            "file": "src/mToken/mToken.sol",
+            "line": 603
+          },
+          "severity": "Low",
+          "title": "reentrancy-benign",
+          "tool": "slither",
+          "type": "reentrancy-benign"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Reentrancy in mToken.__redeem(address,uint256,uint256,bool) (src/mToken/mToken.sol#603-661): External calls: - IOperatorDefender(operator).beforeMTokenRedeem(address(this),redeemer,redeemTokens) (src/mToken/mToken.sol#634) Event emitted after the call(s): - Redeem(redeemer,redeemAmount,redeemTokens) (src/mToken/mToken.sol#660) - Transfer(redeemer,address(this),redeemTokens) (src/mToken/mToken.sol#659)",
+          "location": {
+            "file": "src/mToken/mToken.sol",
+            "line": 603
+          },
+          "severity": "Low",
+          "title": "reentrancy-events",
+          "tool": "slither",
+          "type": "reentrancy-events"
+        },
+        {
+          "confidence": 0.6,
+          "description": "mToken.__redeem(address,uint256,uint256,bool) (src/mToken/mToken.sol#603-661) uses timestamp for comparisons Dangerous comparisons: - redeemTokens == 0 && redeemAmount == 0 (src/mToken/mToken.sol#631) - require(bool,error)(_getCashPrior() >= redeemAmount,revert mt_RedeemCashNotAvailable()()) (src/mToken/mToken.sol#636)",
+          "location": {
+            "file": "src/mToken/mToken.sol",
+            "line": 603
+          },
+          "severity": "Low",
+          "title": "timestamp",
+          "tool": "slither",
+          "type": "timestamp"
+        },
+        {
+          "confidence": 0.6,
+          "description": "mToken.__mint(address,address,uint256,uint256,bool) (src/mToken/mToken.sol#672-730) has external calls inside a loop: isEntered = IOperator(operator).checkMembership(minter,address(this)) (src/mToken/mToken.sol#726) Calls stack containing the loop: mErc20Host.mintExternal(bytes,bytes,uint256[],uint256[],address) mErc20Host._mintExternal(bytes,uint256,uint256,address) mToken._mint(address,address,uint256,uint256,bool)",
+          "location": {
+            "file": "src/mToken/mToken.sol",
+            "line": 672
+          },
+          "severity": "Low",
+          "title": "calls-loop",
+          "tool": "slither",
+          "type": "calls-loop"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Reentrancy in mToken.__mint(address,address,uint256,uint256,bool) (src/mToken/mToken.sol#672-730): External calls: - IOperatorDefender(operator).beforeMTokenMint(address(this),minter) (src/mToken/mToken.sol#675) State variables written after the call(s): - accountTokens[address(0)] = 1000 (src/mToken/mToken.sol#705) - accountTokens[receiver] = accountTokens[receiver] + mintTokens (src/mToken/mToken.sol#716) - totalSupply = 1000 (src/mToken/mToken.sol#704) - totalSupply = totalSupply + mintTokens (src/mToken/mToken.sol#715) - totalUnderlying += actualMintAmount (src/mToken/mToken.sol#692)",
+          "location": {
+            "file": "src/mToken/mToken.sol",
+            "line": 672
+          },
+          "severity": "Low",
+          "title": "reentrancy-benign",
+          "tool": "slither",
+          "type": "reentrancy-benign"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Reentrancy in mToken.__mint(address,address,uint256,uint256,bool) (src/mToken/mToken.sol#672-730): External calls: - IOperatorDefender(operator).beforeMTokenMint(address(this),minter) (src/mToken/mToken.sol#675) Event emitted after the call(s): - Mint(minter,receiver,actualMintAmount,mintTokens) (src/mToken/mToken.sol#719) - Transfer(address(this),receiver,mintTokens) (src/mToken/mToken.sol#720)",
+          "location": {
+            "file": "src/mToken/mToken.sol",
+            "line": 672
+          },
+          "severity": "Low",
+          "title": "reentrancy-events",
+          "tool": "slither",
+          "type": "reentrancy-events"
+        },
+        {
+          "confidence": 0.6,
+          "description": "mToken.__mint(address,address,uint256,uint256,bool) (src/mToken/mToken.sol#672-730) uses timestamp for comparisons Dangerous comparisons: - require(bool,error)(mintTokens >= minAmountOut,revert mt_MinAmountNotValid()()) (src/mToken/mToken.sol#700) - totalSupply == 0 (src/mToken/mToken.sol#703)",
+          "location": {
+            "file": "src/mToken/mToken.sol",
+            "line": 672
+          },
+          "severity": "Low",
+          "title": "timestamp",
+          "tool": "slither",
+          "type": "timestamp"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Reentrancy in mToken._transferTokens(address,address,address,uint256) (src/mToken/mToken.sol#740-772): External calls: - IOperatorDefender(operator).beforeMTokenTransfer(address(this),src,dst,tokens) (src/mToken/mToken.sol#741) State variables written after the call(s): - accountTokens[src] = srcTokensNew (src/mToken/mToken.sol#762) - accountTokens[dst] = dstTokensNew (src/mToken/mToken.sol#763) - transferAllowances[src][spender] = allowanceNew (src/mToken/mToken.sol#767)",
+          "location": {
+            "file": "src/mToken/mToken.sol",
+            "line": 740
+          },
+          "severity": "Low",
+          "title": "reentrancy-benign",
+          "tool": "slither",
+          "type": "reentrancy-benign"
+        },
+        {
+          "confidence": 0.6,
+          "description": "mTokenConfiguration.setPendingAdmin(address).newPendingAdmin (src/mToken/mTokenConfiguration.sol#102) lacks a zero-check on : - pendingAdmin = newPendingAdmin (src/mToken/mTokenConfiguration.sol#103)",
+          "location": {
+            "file": "src/mToken/mTokenConfiguration.sol",
+            "line": 102
+          },
+          "severity": "Low",
+          "title": "missing-zero-check",
+          "tool": "slither",
+          "type": "missing-zero-check"
+        },
+        {
+          "confidence": 0.6,
+          "description": "mTokenStorage._accrueInterest() (src/mToken/mTokenStorage.sol#337-389) has external calls inside a loop: borrowRateMantissa = IInterestRateModel(interestRateModel).getBorrowRate(cashPrior,borrowsPrior,reservesPrior) (src/mToken/mTokenStorage.sol#352-353) Calls stack containing the loop: mErc20Host.mintExternal(bytes,bytes,uint256[],uint256[],address) mErc20Host._mintExternal(bytes,uint256,uint256,address) mToken._mint(address,address,uint256,uint256,bool)",
+          "location": {
+            "file": "src/mToken/mTokenStorage.sol",
+            "line": 337
+          },
+          "severity": "Low",
+          "title": "calls-loop",
+          "tool": "slither",
+          "type": "calls-loop"
+        },
+        {
+          "confidence": 0.6,
+          "description": "mTokenStorage._accrueInterest() (src/mToken/mTokenStorage.sol#337-389) uses timestamp for comparisons Dangerous comparisons: - accrualBlockTimestampPrior == currentBlockTimestamp (src/mToken/mTokenStorage.sol#343)",
+          "location": {
+            "file": "src/mToken/mTokenStorage.sol",
+            "line": 337
+          },
+          "severity": "Low",
+          "title": "timestamp",
+          "tool": "slither",
+          "type": "timestamp"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Migrator.constructor(address)._operator (src/migration/Migrator.sol#43) lacks a zero-check on : - MALDA_OPERATOR = _operator (src/migration/Migrator.sol#44)",
+          "location": {
+            "file": "src/migration/Migrator.sol",
+            "line": 43
+          },
+          "severity": "Low",
+          "title": "missing-zero-check",
+          "tool": "slither",
+          "type": "missing-zero-check"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Migrator.getAllCollateralMarkets(address) (src/migration/Migrator.sol#58-71) has external calls inside a loop: balanceOfCTokens = mendiMarket.balanceOf(user) (src/migration/Migrator.sol#66)",
+          "location": {
+            "file": "src/migration/Migrator.sol",
+            "line": 58
+          },
+          "severity": "Low",
+          "title": "calls-loop",
+          "tool": "slither",
+          "type": "calls-loop"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Migrator.migrateAllPositions() (src/migration/Migrator.sol#83-153) has external calls inside a loop: underlying_scope_6 = IERC20(IMendiMarket(position_scope_5.mendiMarket).underlying()) (src/migration/Migrator.sol#132)",
+          "location": {
+            "file": "src/migration/Migrator.sol",
+            "line": 83
+          },
+          "severity": "Low",
+          "title": "calls-loop",
+          "tool": "slither",
+          "type": "calls-loop"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Migrator._collectMendiPositions(address) (src/migration/Migrator.sol#158-188) has external calls inside a loop: collateralUnderlyingAmount = mendiMarket.balanceOfUnderlying(user) (src/migration/Migrator.sol#167) Calls stack containing the loop: Migrator.getAllPositions(address)",
+          "location": {
+            "file": "src/migration/Migrator.sol",
+            "line": 158
+          },
+          "severity": "Low",
+          "title": "calls-loop",
+          "tool": "slither",
+          "type": "calls-loop"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Migrator._getMaldaMarket(address) (src/migration/Migrator.sol#193-206) has external calls inside a loop: ImToken(_market).underlying() == underlying (src/migration/Migrator.sol#198) Calls stack containing the loop: Migrator.getAllPositions(address) Migrator._collectMendiPositions(address)",
+          "location": {
+            "file": "src/migration/Migrator.sol",
+            "line": 193
+          },
+          "severity": "Low",
+          "title": "calls-loop",
+          "tool": "slither",
+          "type": "calls-loop"
+        },
+        {
+          "confidence": 0.6,
+          "description": "MixedPriceOracleV3._getLatestPrice(string,IDefaultAdapter.PriceConfig) (src/oracles/MixedPriceOracleV3.sol#95-115) uses timestamp for comparisons Dangerous comparisons: - require(bool,error)(block.timestamp - updatedAt < _getStaleness(symbol),revert MixedPriceOracle_StalePrice()()) (src/oracles/MixedPriceOracleV3.sol#109)",
+          "location": {
+            "file": "src/oracles/MixedPriceOracleV3.sol",
+            "line": 95
+          },
+          "severity": "Low",
+          "title": "timestamp",
+          "tool": "slither",
+          "type": "timestamp"
+        },
+        {
+          "confidence": 0.6,
+          "description": "MixedPriceOracleV4._getLatestPrice(string,MixedPriceOracleV4.PriceConfig) (src/oracles/MixedPriceOracleV4.sol#130-167) uses timestamp for comparisons Dangerous comparisons: - apiV3Fresh = block.timestamp - apiV3UpdatedAt <= _staleness (src/oracles/MixedPriceOracleV4.sol#143) - ! apiV3Fresh || deltaBps > deltaSymbol (src/oracles/MixedPriceOracleV4.sol#156) - require(bool,error)(block.timestamp - eOracleUpdatedAt < _staleness,revert MixedPriceOracle_eOracleStalePrice()()) (src/oracles/MixedPriceOracleV4.sol#157) - require(bool,error)(block.timestamp - apiV3UpdatedAt < _staleness,revert MixedPriceOracle_ApiV3StalePrice()()) (src/oracles/MixedPriceOracleV4.sol#161)",
+          "location": {
+            "file": "src/oracles/MixedPriceOracleV4.sol",
+            "line": 130
+          },
+          "severity": "Low",
+          "title": "timestamp",
+          "tool": "slither",
+          "type": "timestamp"
+        },
+        {
+          "confidence": 0.9,
+          "description": "DefaultGasHelper.constructor(address)._owner (src/oracles/gas/DefaultGasHelper.sol#31) shadows: - Ownable._owner (lib/openzeppelin-contracts/contracts/access/Ownable.sol#21) (state variable)",
+          "location": {
+            "file": "src/oracles/gas/DefaultGasHelper.sol",
+            "line": 31
+          },
+          "severity": "Low",
+          "title": "shadowing-local",
+          "tool": "slither",
+          "type": "shadowing-local"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Pauser.constructor(address,address,address)._owner (src/pauser/Pauser.sol#45) shadows: - Ownable._owner (lib/openzeppelin-contracts/contracts/access/Ownable.sol#21) (state variable)",
+          "location": {
+            "file": "src/pauser/Pauser.sol",
+            "line": 45
+          },
+          "severity": "Low",
+          "title": "shadowing-local",
+          "tool": "slither",
+          "type": "shadowing-local"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Reentrancy in Pauser.emergencyPauseAll() (src/pauser/Pauser.sol#99-109): External calls: - _pauseAllMarketOperations(pausableContracts[i].market) (src/pauser/Pauser.sol#102) - operator.setPaused(_market,_pauseType,true) (src/pauser/Pauser.sol#137) - ImTokenGateway(_market).setPaused(_pauseType,true) (src/pauser/Pauser.sol#139) Event emitted after the call(s): - PauseAll() (src/pauser/Pauser.sol#108)",
+          "location": {
+            "file": "src/pauser/Pauser.sol",
+            "line": 99
+          },
+          "severity": "Low",
+          "title": "reentrancy-events",
+          "tool": "slither",
+          "type": "reentrancy-events"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Reentrancy in Pauser._pauseAllMarketOperations(address) (src/pauser/Pauser.sol#112-126): External calls: - _pauseMarketOperation(_market,OperationType.AmountIn) (src/pauser/Pauser.sol#113) - operator.setPaused(_market,_pauseType,true) (src/pauser/Pauser.sol#137) - ImTokenGateway(_market).setPaused(_pauseType,true) (src/pauser/Pauser.sol#139) - _pauseMarketOperation(_market,OperationType.AmountOut) (src/pauser/Pauser.sol#114) - operator.setPaused(_market,_pauseType,true) (src/pauser/Pauser.sol#137) - ImTokenGateway(_market).setPaused(_pauseType,true) (src/pauser/Pauser.sol#139) - _pauseMarketOperation(_market,OperationType.AmountInHere) (src/pauser/Pauser.sol#115) - operator.setPaused(_market,_pauseType,true) (src/pauser/Pauser.sol#137) - ImTokenGateway(_market).setPaused(_pauseType,true) (src/pauser/Pauser.sol#139) - _pauseMarketOperation(_market,OperationType.AmountOutHere) (src/pauser/Pauser.sol#116) - operator.setPaused(_market,_pauseType,true) (src/pauser/Pauser.sol#137) - ImTokenGateway(_market).setPaused(_pauseType,true) (src/pauser/Pauser.sol#139) - _pauseMarketOperation(_market,OperationType.Mint) (src/pauser/Pauser.sol#117) - operator.setPaused(_market,_pauseType,true) (src/pauser/Pauser.sol#137) - ImTokenGateway(_market).setPaused(_pauseType,true) (src/pauser/Pauser.sol#139) - _pauseMarketOperation(_market,OperationType.Borrow) (src/pauser/Pauser.sol#118) - operator.setPaused(_market,_pauseType,true) (src/pauser/Pauser.sol#137) - ImTokenGateway(_market).setPaused(_pauseType,true) (src/pauser/Pauser.sol#139) - _pauseMarketOperation(_market,OperationType.Transfer) (src/pauser/Pauser.sol#119) - operator.setPaused(_market,_pauseType,true) (src/pauser/Pauser.sol#137) - ImTokenGateway(_market).setPaused(_pauseType,true) (src/pauser/Pauser.sol#139) Event emitted after the call(s): - MarketPausedFor(_market,_pauseType) (src/pauser/Pauser.sol#130) - _pauseMarketOperation(_market,OperationType.Transfer) (src/pauser/Pauser.sol#119)",
+          "location": {
+            "file": "src/pauser/Pauser.sol",
+            "line": 112
+          },
+          "severity": "Low",
+          "title": "reentrancy-events",
+          "tool": "slither",
+          "type": "reentrancy-events"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Reentrancy in Pauser._pauseMarketOperation(address,ImTokenOperationTypes.OperationType) (src/pauser/Pauser.sol#128-131): External calls: - _pause(_market,_pauseType) (src/pauser/Pauser.sol#129) - operator.setPaused(_market,_pauseType,true) (src/pauser/Pauser.sol#137) - ImTokenGateway(_market).setPaused(_pauseType,true) (src/pauser/Pauser.sol#139) Event emitted after the call(s): - MarketPausedFor(_market,_pauseType) (src/pauser/Pauser.sol#130)",
+          "location": {
+            "file": "src/pauser/Pauser.sol",
+            "line": 128
+          },
+          "severity": "Low",
+          "title": "reentrancy-events",
+          "tool": "slither",
+          "type": "reentrancy-events"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Pauser._pause(address,ImTokenOperationTypes.OperationType) (src/pauser/Pauser.sol#133-143) has external calls inside a loop: ImTokenGateway(_market).setPaused(_pauseType,true) (src/pauser/Pauser.sol#139) Calls stack containing the loop: Pauser.emergencyPauseAll() Pauser._pauseAllMarketOperations(address) Pauser._pauseMarketOperation(address,ImTokenOperationTypes.OperationType)",
+          "location": {
+            "file": "src/pauser/Pauser.sol",
+            "line": 133
+          },
+          "severity": "Low",
+          "title": "calls-loop",
+          "tool": "slither",
+          "type": "calls-loop"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Reentrancy in Rebalancer.saveEth() (src/rebalancer/Rebalancer.sol#88-96): External calls: - (success,None) = saveAddress.call{value: amount}() (src/rebalancer/Rebalancer.sol#93) Event emitted after the call(s): - EthSaved(amount) (src/rebalancer/Rebalancer.sol#95)",
+          "location": {
+            "file": "src/rebalancer/Rebalancer.sol",
+            "line": 88
+          },
+          "severity": "Low",
+          "title": "reentrancy-events",
+          "tool": "slither",
+          "type": "reentrancy-events"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Reentrancy in Rebalancer.sendMsg(address,address,uint256,IRebalancer.Msg) (src/rebalancer/Rebalancer.sol#129-171): External calls: - IRebalanceMarket(_market).extractForRebalancing(_amount) (src/rebalancer/Rebalancer.sol#156) State variables written after the call(s): - logs[_msg.dstChainId][nonce] = _msg (src/rebalancer/Rebalancer.sol#162) - ++ nonce (src/rebalancer/Rebalancer.sol#160)",
+          "location": {
+            "file": "src/rebalancer/Rebalancer.sol",
+            "line": 129
+          },
+          "severity": "Low",
+          "title": "reentrancy-benign",
+          "tool": "slither",
+          "type": "reentrancy-benign"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Reentrancy in Rebalancer.sendMsg(address,address,uint256,IRebalancer.Msg) (src/rebalancer/Rebalancer.sol#129-171): External calls: - IRebalanceMarket(_market).extractForRebalancing(_amount) (src/rebalancer/Rebalancer.sol#156) - SafeApprove.safeApprove(_msg.token,_bridge,_amount) (src/rebalancer/Rebalancer.sol#165) - IBridge(_bridge).sendMsg{value: msg.value}(_amount,_market,_msg.dstChainId,_msg.token,_msg.message,_msg.bridgeData) (src/rebalancer/Rebalancer.sol#166-168) External calls sending eth: - IBridge(_bridge).sendMsg{value: msg.value}(_amount,_market,_msg.dstChainId,_msg.token,_msg.message,_msg.bridgeData) (src/rebalancer/Rebalancer.sol#166-168) Event emitted after the call(s): - MsgSent(_bridge,_msg.dstChainId,_msg.token,_msg.message,_msg.bridgeData) (src/rebalancer/Rebalancer.sol#170)",
+          "location": {
+            "file": "src/rebalancer/Rebalancer.sol",
+            "line": 129
+          },
+          "severity": "Low",
+          "title": "reentrancy-events",
+          "tool": "slither",
+          "type": "reentrancy-events"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Rebalancer.sendMsg(address,address,uint256,IRebalancer.Msg) (src/rebalancer/Rebalancer.sol#129-171) uses timestamp for comparisons Dangerous comparisons: - transferSizeDeadline < block.timestamp (src/rebalancer/Rebalancer.sol#143)",
+          "location": {
+            "file": "src/rebalancer/Rebalancer.sol",
+            "line": 129
+          },
+          "severity": "Low",
+          "title": "timestamp",
+          "tool": "slither",
+          "type": "timestamp"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Reentrancy in EverclearBridge.sendMsg(uint256,address,uint32,address,bytes,bytes) (src/rebalancer/bridges/EverclearBridge.sol#79-123): External calls: - IERC20(_token).safeTransfer(_market,toReturn) (src/rebalancer/bridges/EverclearBridge.sol#106) - SafeApprove.safeApprove(params.inputAsset,address(everclearFeeAdapter),params.amount) (src/rebalancer/bridges/EverclearBridge.sol#110) - (id,None) = everclearFeeAdapter.newIntent(params.destinations,params.receiver,params.inputAsset,params.outputAsset,params.amount,params.maxFee,params.ttl,params.data,params.feeParams) (src/rebalancer/bridges/EverclearBridge.sol#111-121) Event emitted after the call(s): - MsgSent(_dstChainId,_market,params.amount,id) (src/rebalancer/bridges/EverclearBridge.sol#122)",
+          "location": {
+            "file": "src/rebalancer/bridges/EverclearBridge.sol",
+            "line": 79
+          },
+          "severity": "Low",
+          "title": "reentrancy-events",
+          "tool": "slither",
+          "type": "reentrancy-events"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Reentrancy in WrapAndSupply.wrapAndSupplyOnHostMarket(address,address,uint256) (src/utils/WrapAndSupply.sol#59-70): External calls: - amount = _wrap() (src/utils/WrapAndSupply.sol#63) - wrappedNative.deposit{value: amount}() (src/utils/WrapAndSupply.sol#97) - IERC20(underlying).approve(mToken,0) (src/utils/WrapAndSupply.sol#65) - IERC20(underlying).approve(mToken,amount) (src/utils/WrapAndSupply.sol#66) - ImErc20(mToken).mint(amount,receiver,minAmount) (src/utils/WrapAndSupply.sol#67) External calls sending eth: - amount = _wrap() (src/utils/WrapAndSupply.sol#63) - wrappedNative.deposit{value: amount}() (src/utils/WrapAndSupply.sol#97) Event emitted after the call(s): - WrappedAndSupplied(msg.sender,receiver,mToken,amount) (src/utils/WrapAndSupply.sol#69)",
+          "location": {
+            "file": "src/utils/WrapAndSupply.sol",
+            "line": 59
+          },
+          "severity": "Low",
+          "title": "reentrancy-events",
+          "tool": "slither",
+          "type": "reentrancy-events"
+        },
+        {
+          "confidence": 0.9,
+          "description": "ZkVerifier.constructor(address,bytes32,address)._owner (src/verifier/ZkVerifier.sol#50) shadows: - Ownable._owner (lib/openzeppelin-contracts/contracts/access/Ownable.sol#21) (state variable)",
+          "location": {
+            "file": "src/verifier/ZkVerifier.sol",
+            "line": 50
+          },
+          "severity": "Low",
+          "title": "shadowing-local",
+          "tool": "slither",
+          "type": "shadowing-local"
+        },
+        {
+          "confidence": 0.9,
+          "description": "7 different versions of Solidity are used: - Version constraint ^0.8.20 is used by: -^0.8.20 (lib/openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol#4) -^0.8.20 (lib/openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol#4) -^0.8.20 (lib/openzeppelin-contracts-upgradeable/contracts/utils/ContextUpgradeable.sol#4) -^0.8.20 (lib/openzeppelin-contracts-upgradeable/contracts/utils/ReentrancyGuardUpgradeable.sol#4) -^0.8.20 (lib/openzeppelin-contracts/contracts/access/Ownable.sol#4) -^0.8.20 (lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol#4) -^0.8.20 (lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Permit.sol#4) -^0.8.20 (lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol#4) -^0.8.20 (lib/openzeppelin-contracts/contracts/utils/Address.sol#4) -^0.8.20 (lib/openzeppelin-contracts/contracts/utils/Context.sol#4) -^0.8.20 (lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol#4) -^0.8.20 (lib/openzeppelin-contracts/contracts/utils/Strings.sol#4) -^0.8.20 (lib/openzeppelin-contracts/contracts/utils/cryptography/ECDSA.sol#4) -^0.8.20 (lib/openzeppelin-contracts/contracts/utils/cryptography/MessageHashUtils.sol#4) -^0.8.20 (lib/openzeppelin-contracts/contracts/utils/introspection/IERC165.sol#4) -^0.8.20 (lib/openzeppelin-contracts/contracts/utils/math/Math.sol#4) -^0.8.20 (lib/openzeppelin-contracts/contracts/utils/math/SignedMath.sol#4) -^0.8.20 (src/interfaces/external/layerzero/v2/ILayerZeroOFT.sol#3) - Version constraint ^0.8.9 is used by: -^0.8.9 (lib/risc0-ethereum/contracts/src/IRiscZeroVerifier.sol#17) -^0.8.9 (lib/risc0-ethereum/contracts/src/Util.sol#17) -^0.8.9 (lib/risc0-ethereum/contracts/src/steel/Steel.sol#17) - Version constraint =0.8.28 is used by: -=0.8.28 (src/Operator/EmptyOperator.sol#17) -=0.8.28 (src/Operator/Operator.sol#17) -=0.8.28 (src/Operator/OperatorStorage.sol#17) -=0.8.28 (src/Roles.sol#17) -=0.8.28 (src/blacklister/Blacklister.sol#13) -=0.8.28 (src/interest/JumpRateModelV4.sol#17) -=0.8.28 (src/interfaces/IBlacklister.sol#17) -=0.8.28 (src/interfaces/IBridge.sol#17) -=0.8.28 (src/interfaces/IDefaultAdapter.sol#17) -=0.8.28 (src/interfaces/IGasFeesHelper.sol#17) -=0.8.28 (src/interfaces/IInterestRateModel.sol#17) -=0.8.28 (src/interfaces/IOperator.sol#18) -=0.8.28 (src/interfaces/IOracleOperator.sol#17) -=0.8.28 (src/interfaces/IOwnable.sol#17) -=0.8.28 (src/interfaces/IPauser.sol#17) -=0.8.28 (src/interfaces/IRebalancer.sol#17) -=0.8.28 (src/interfaces/IRewardDistributor.sol#17) -=0.8.28 (src/interfaces/IRoles.sol#17) -=0.8.28 (src/interfaces/ImErc20.sol#17) -=0.8.28 (src/interfaces/ImErc20Host.sol#17) -=0.8.28 (src/interfaces/ImToken.sol#17) -=0.8.28 (src/interfaces/ImTokenGateway.sol#17) -=0.8.28 (src/interfaces/external/across/IAcrossReceiverV3.sol#2) -=0.8.28 (src/interfaces/external/chainlink/IAggregatorV3.sol#2) -=0.8.28 (src/interfaces/external/connext/IConnext.sol#2) -=0.8.28 (src/interfaces/external/everclear/IEverclearSpoke.sol#2) -=0.8.28 (src/interfaces/external/everclear/IFeeAdapter.sol#2) -=0.8.28 (src/interfaces/external/poh/IPohVerifier.sol#2) -=0.8.28 (src/libraries/Bytes32AddressLib.sol#2) -=0.8.28 (src/libraries/BytesLib.sol#9) -=0.8.28 (src/libraries/CREATE3.sol#2) -=0.8.28 (src/libraries/CommonLib.sol#17) -=0.8.28 (src/libraries/SafeApprove.sol#2) -=0.8.28 (src/libraries/mTokenProofDecoderLib.sol#17) -=0.8.28 (src/mToken/BatchSubmitter.sol#17) -=0.8.28 (src/mToken/extension/mTokenGateway.sol#17) -=0.8.28 (src/mToken/host/mErc20Host.sol#17) -=0.8.28 (src/mToken/mErc20.sol#17) -=0.8.28 (src/mToken/mErc20Immutable.sol#17) -=0.8.28 (src/mToken/mErc20Upgradable.sol#17) -=0.8.28 (src/mToken/mToken.sol#17) -=0.8.28 (src/mToken/mTokenConfiguration.sol#17) -=0.8.28 (src/mToken/mTokenStorage.sol#17) -=0.8.28 (src/oracles/ChainlinkOracle.sol#13) -=0.8.28 (src/oracles/MixedPriceOracleV3.sol#13) -=0.8.28 (src/oracles/MixedPriceOracleV4.sol#13) -=0.8.28 (src/oracles/gas/DefaultGasHelper.sol#13) -=0.8.28 (src/pauser/Pauser.sol#17) -=0.8.28 (src/rebalancer/Rebalancer.sol#17) -=0.8.28 (src/rebalancer/bridges/AcrossBridge.sol#13) -=0.8.28 (src/rebalancer/bridges/BaseBridge.sol#13) -=0.8.28 (src/rebalancer/bridges/EverclearBridge.sol#13) -=0.8.28 (src/referral/ReferralSigning.sol#17) -=0.8.28 (src/rewards/RewardDistributor.sol#17) -=0.8.28 (src/utils/Deployer.sol#17) -=0.8.28 (src/utils/ExponentialNoError.sol#17) -=0.8.28 (src/utils/LiquidationHelper.sol#17) -=0.8.28 (src/utils/WrapAndSupply.sol#17) -=0.8.28 (src/verifier/ZkVerifier.sol#17) - Version constraint >=0.8.28 is used by: ->=0.8.28 (src/interfaces/external/across/IAcrossSpokePoolV3.sol#2) - Version constraint >=0.5.0 is used by: ->=0.5.0 (src/interfaces/external/layerzero/ILayerZeroEndpoint.sol#2) ->=0.5.0 (src/interfaces/external/layerzero/ILayerZeroReceiver.sol#2) ->=0.5.0 (src/interfaces/external/layerzero/ILayerZeroUserApplicationConfig.sol#2) - Version constraint >=0.8.0 is used by: ->=0.8.0 (src/interfaces/external/layerzero/v2/ILayerZeroEndpointV2.sol#3) ->=0.8.0 (src/interfaces/external/layerzero/v2/ILayerZeroReceiverV2.sol#3) ->=0.8.0 (src/interfaces/external/layerzero/v2/IMessageLib.sol#3) ->=0.8.0 (src/interfaces/external/layerzero/v2/IMessageLibManager.sol#3) ->=0.8.0 (src/interfaces/external/layerzero/v2/IMessagingChannel.sol#3) ->=0.8.0 (src/interfaces/external/layerzero/v2/IMessagingComposer.sol#3) ->=0.8.0 (src/interfaces/external/layerzero/v2/IMessagingContext.sol#3) - Version constraint ^0.8.10 is used by: -^0.8.10 (src/migration/IMigrator.sol#17) -^0.8.10 (src/migration/Migrator.sol#17)",
+          "location": {
+            "file": "src/Operator/Operator.sol",
+            "line": 17
+          },
+          "severity": "Info",
+          "title": "pragma",
+          "tool": "slither",
+          "type": "pragma"
+        },
+        {
+          "confidence": 0.9,
+          "description": "ExponentialNoError.mantissaOne (src/utils/ExponentialNoError.sol#37) is never used in Operator (src/Operator/Operator.sol#38-882)",
+          "location": {
+            "file": "src/Operator/Operator.sol",
+            "line": 38
+          },
+          "severity": "Info",
+          "title": "unused-state",
+          "tool": "slither",
+          "type": "unused-state"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter Operator.initialize(address,address,address,address)._blacklistOperator (src/Operator/Operator.sol#44) is not in mixedCase",
+          "location": {
+            "file": "src/Operator/Operator.sol",
+            "line": 44
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter Operator.setRolesOperator(address)._roles (src/Operator/Operator.sol#101) is not in mixedCase",
+          "location": {
+            "file": "src/Operator/Operator.sol",
+            "line": 101
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Loop condition i < allMarkets.length (src/Operator/Operator.sol#189) should use cached array length instead of referencing `length` member of the storage array.",
+          "location": {
+            "file": "src/Operator/Operator.sol",
+            "line": 189
+          },
+          "severity": "Info",
+          "title": "cache-array-length",
+          "tool": "slither",
+          "type": "cache-array-length"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter Operator.setPaused(address,ImTokenOperationTypes.OperationType,bool)._type (src/Operator/Operator.sol#306) is not in mixedCase",
+          "location": {
+            "file": "src/Operator/Operator.sol",
+            "line": 306
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter Operator.isPaused(address,ImTokenOperationTypes.OperationType)._type (src/Operator/Operator.sol#344) is not in mixedCase",
+          "location": {
+            "file": "src/Operator/Operator.sol",
+            "line": 344
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter Operator.getAssetsIn(address)._user (src/Operator/Operator.sol#356) is not in mixedCase",
+          "location": {
+            "file": "src/Operator/Operator.sol",
+            "line": 356
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter Operator.enterMarkets(address[])._mTokens (src/Operator/Operator.sol#444) is not in mixedCase",
+          "location": {
+            "file": "src/Operator/Operator.sol",
+            "line": 444
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter Operator.enterMarketsWithSender(address)._account (src/Operator/Operator.sol#459) is not in mixedCase",
+          "location": {
+            "file": "src/Operator/Operator.sol",
+            "line": 459
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter Operator.exitMarket(address)._mToken (src/Operator/Operator.sol#469) is not in mixedCase",
+          "location": {
+            "file": "src/Operator/Operator.sol",
+            "line": 469
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Loop condition i < allMarkets.length (src/Operator/Operator.sol#552) should use cached array length instead of referencing `length` member of the storage array.",
+          "location": {
+            "file": "src/Operator/Operator.sol",
+            "line": 552
+          },
+          "severity": "Info",
+          "title": "cache-array-length",
+          "tool": "slither",
+          "type": "cache-array-length"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Event OperatorStorage.MarketListed(address) (src/Operator/OperatorStorage.sol#206) has address parameters but no indexed parameters",
+          "location": {
+            "file": "src/Operator/OperatorStorage.sol",
+            "line": 206
+          },
+          "severity": "Info",
+          "title": "unindexed-event-address",
+          "tool": "slither",
+          "type": "unindexed-event-address"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Event OperatorStorage.NewLiquidationIncentive(address,uint256,uint256) (src/Operator/OperatorStorage.sol#228-230) has address parameters but no indexed parameters",
+          "location": {
+            "file": "src/Operator/OperatorStorage.sol",
+            "line": 228
+          },
+          "severity": "Info",
+          "title": "unindexed-event-address",
+          "tool": "slither",
+          "type": "unindexed-event-address"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter Roles.isAllowedFor(address,bytes32)._contract (src/Roles.sol#58) is not in mixedCase",
+          "location": {
+            "file": "src/Roles.sol",
+            "line": 58
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter Roles.allowFor(address,bytes32,bool)._role (src/Roles.sol#69) is not in mixedCase",
+          "location": {
+            "file": "src/Roles.sol",
+            "line": 69
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter Blacklister.initialize(address,address)._roles (src/blacklister/Blacklister.sol#45) is not in mixedCase",
+          "location": {
+            "file": "src/blacklister/Blacklister.sol",
+            "line": 45
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Event BatchSubmitter.BatchProcessFailed(bytes32,address,address,uint256,uint256,bytes4,bytes) (src/mToken/BatchSubmitter.sol#32-40) has address parameters but no indexed parameters",
+          "location": {
+            "file": "src/mToken/BatchSubmitter.sol",
+            "line": 32
+          },
+          "severity": "Info",
+          "title": "unindexed-event-address",
+          "tool": "slither",
+          "type": "unindexed-event-address"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Event BatchSubmitter.BatchProcessSuccess(bytes32,address,address,uint256,uint256,bytes4) (src/mToken/BatchSubmitter.sol#41-43) has address parameters but no indexed parameters",
+          "location": {
+            "file": "src/mToken/BatchSubmitter.sol",
+            "line": 41
+          },
+          "severity": "Info",
+          "title": "unindexed-event-address",
+          "tool": "slither",
+          "type": "unindexed-event-address"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter BatchSubmitter.updateZkVerifier(address)._zkVerifier (src/mToken/BatchSubmitter.sol#92) is not in mixedCase",
+          "location": {
+            "file": "src/mToken/BatchSubmitter.sol",
+            "line": 92
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "BatchSubmitter.batchProcess(BatchSubmitter.BatchProcessMsg) (src/mToken/BatchSubmitter.sol#102-197) has a high cyclomatic complexity (12).",
+          "location": {
+            "file": "src/mToken/BatchSubmitter.sol",
+            "line": 102
+          },
+          "severity": "Info",
+          "title": "cyclomatic-complexity",
+          "tool": "slither",
+          "type": "cyclomatic-complexity"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Contract mTokenGateway (src/mToken/extension/mTokenGateway.sol#40-365) is not in CapWords",
+          "location": {
+            "file": "src/mToken/extension/mTokenGateway.sol",
+            "line": 40
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter mTokenGateway.initialize(address,address,address,address,address)._owner (src/mToken/extension/mTokenGateway.sol#79) is not in mixedCase",
+          "location": {
+            "file": "src/mToken/extension/mTokenGateway.sol",
+            "line": 79
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter mTokenGateway.isPaused(ImTokenOperationTypes.OperationType)._type (src/mToken/extension/mTokenGateway.sol#118) is not in mixedCase",
+          "location": {
+            "file": "src/mToken/extension/mTokenGateway.sol",
+            "line": 118
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter mTokenGateway.setPaused(ImTokenOperationTypes.OperationType,bool)._type (src/mToken/extension/mTokenGateway.sol#159) is not in mixedCase",
+          "location": {
+            "file": "src/mToken/extension/mTokenGateway.sol",
+            "line": 159
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter mTokenGateway.updateZkVerifier(address)._zkVerifier (src/mToken/extension/mTokenGateway.sol#206) is not in mixedCase",
+          "location": {
+            "file": "src/mToken/extension/mTokenGateway.sol",
+            "line": 206
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Contract mErc20Host (src/mToken/host/mErc20Host.sol#46-482) is not in CapWords",
+          "location": {
+            "file": "src/mToken/host/mErc20Host.sol",
+            "line": 46
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "ExponentialNoError.halfExpScale (src/utils/ExponentialNoError.sol#36) is never used in mErc20Host (src/mToken/host/mErc20Host.sol#46-482)",
+          "location": {
+            "file": "src/mToken/host/mErc20Host.sol",
+            "line": 46
+          },
+          "severity": "Info",
+          "title": "unused-state",
+          "tool": "slither",
+          "type": "unused-state"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter mErc20Host.updateAllowedChain(uint32,bool)._status (src/mToken/host/mErc20Host.sol#129) is not in mixedCase",
+          "location": {
+            "file": "src/mToken/host/mErc20Host.sol",
+            "line": 129
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter mErc20Host.setMigrator(address)._migrator (src/mToken/host/mErc20Host.sol#150) is not in mixedCase",
+          "location": {
+            "file": "src/mToken/host/mErc20Host.sol",
+            "line": 150
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter mErc20Host.setGasHelper(address)._helper (src/mToken/host/mErc20Host.sol#159) is not in mixedCase",
+          "location": {
+            "file": "src/mToken/host/mErc20Host.sol",
+            "line": 159
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter mErc20Host.updateZkVerifier(address)._zkVerifier (src/mToken/host/mErc20Host.sol#179) is not in mixedCase",
+          "location": {
+            "file": "src/mToken/host/mErc20Host.sol",
+            "line": 179
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.6,
+          "description": "mErc20Host._getGasFees(uint32) (src/mToken/host/mErc20Host.sol#353-356) is never used and should be removed",
+          "location": {
+            "file": "src/mToken/host/mErc20Host.sol",
+            "line": 353
+          },
+          "severity": "Info",
+          "title": "dead-code",
+          "tool": "slither",
+          "type": "dead-code"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Contract mErc20 (src/mToken/mErc20.sol#39-174) is not in CapWords",
+          "location": {
+            "file": "src/mToken/mErc20.sol",
+            "line": 39
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Contract mErc20Immutable (src/mToken/mErc20Immutable.sol#28-60) is not in CapWords",
+          "location": {
+            "file": "src/mToken/mErc20Immutable.sol",
+            "line": 28
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "ExponentialNoError.halfExpScale (src/utils/ExponentialNoError.sol#36) is never used in mErc20Immutable (src/mToken/mErc20Immutable.sol#28-60)",
+          "location": {
+            "file": "src/mToken/mErc20Immutable.sol",
+            "line": 28
+          },
+          "severity": "Info",
+          "title": "unused-state",
+          "tool": "slither",
+          "type": "unused-state"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Contract mErc20Upgradable (src/mToken/mErc20Upgradable.sol#29-60) is not in CapWords",
+          "location": {
+            "file": "src/mToken/mErc20Upgradable.sol",
+            "line": 29
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Contract mToken (src/mToken/mToken.sol#35-773) is not in CapWords",
+          "location": {
+            "file": "src/mToken/mToken.sol",
+            "line": 35
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.6,
+          "description": "mToken._seize(address,address,address,uint256) (src/mToken/mToken.sol#388-418) has costly operations inside a loop: - totalSupply = totalSupply - protocolSeizeTokens (src/mToken/mToken.sol#410) Calls stack containing the loop: mErc20Host.liquidateExternal(bytes,bytes,address[],uint256[],address[],address) mErc20Host._liquidateExternal(bytes,address,uint256,address,address) mToken._liquidate(address,address,uint256,address,bool) mToken.__liquidate(address,address,uint256,address,bool)",
+          "location": {
+            "file": "src/mToken/mToken.sol",
+            "line": 388
+          },
+          "severity": "Info",
+          "title": "costly-loop",
+          "tool": "slither",
+          "type": "costly-loop"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Function mToken.__liquidate(address,address,uint256,address,bool) (src/mToken/mToken.sol#465-505) is not in mixedCase",
+          "location": {
+            "file": "src/mToken/mToken.sol",
+            "line": 465
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.6,
+          "description": "mToken.__repay(address,address,uint256,bool) (src/mToken/mToken.sol#514-554) has costly operations inside a loop: - totalUnderlying += actualRepayAmount (src/mToken/mToken.sol#535) Calls stack containing the loop: mErc20Host.repayExternal(bytes,bytes,uint256[],address) mErc20Host._repayExternal(bytes,uint256,address) mToken._repayBehalf(address,uint256,bool)",
+          "location": {
+            "file": "src/mToken/mToken.sol",
+            "line": 514
+          },
+          "severity": "Info",
+          "title": "costly-loop",
+          "tool": "slither",
+          "type": "costly-loop"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Function mToken.__repay(address,address,uint256,bool) (src/mToken/mToken.sol#514-554) is not in mixedCase",
+          "location": {
+            "file": "src/mToken/mToken.sol",
+            "line": 514
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Function mToken.__borrow(address,address,uint256,bool) (src/mToken/mToken.sol#560-601) is not in mixedCase",
+          "location": {
+            "file": "src/mToken/mToken.sol",
+            "line": 560
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Function mToken.__redeem(address,uint256,uint256,bool) (src/mToken/mToken.sol#603-661) is not in mixedCase",
+          "location": {
+            "file": "src/mToken/mToken.sol",
+            "line": 603
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.6,
+          "description": "mToken.__mint(address,address,uint256,uint256,bool) (src/mToken/mToken.sol#672-730) has costly operations inside a loop: - totalUnderlying += actualMintAmount (src/mToken/mToken.sol#692) Calls stack containing the loop: mErc20Host.mintExternal(bytes,bytes,uint256[],uint256[],address) mErc20Host._mintExternal(bytes,uint256,uint256,address) mToken._mint(address,address,uint256,uint256,bool)",
+          "location": {
+            "file": "src/mToken/mToken.sol",
+            "line": 672
+          },
+          "severity": "Info",
+          "title": "costly-loop",
+          "tool": "slither",
+          "type": "costly-loop"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Function mToken.__mint(address,address,uint256,uint256,bool) (src/mToken/mToken.sol#672-730) is not in mixedCase",
+          "location": {
+            "file": "src/mToken/mToken.sol",
+            "line": 672
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Contract mTokenConfiguration (src/mToken/mTokenConfiguration.sol#33-142) is not in CapWords",
+          "location": {
+            "file": "src/mToken/mTokenConfiguration.sol",
+            "line": 33
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter mTokenConfiguration.setOperator(address)._operator (src/mToken/mTokenConfiguration.sol#45) is not in mixedCase",
+          "location": {
+            "file": "src/mToken/mTokenConfiguration.sol",
+            "line": 45
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter mTokenConfiguration.setRolesOperator(address)._roles (src/mToken/mTokenConfiguration.sol#53) is not in mixedCase",
+          "location": {
+            "file": "src/mToken/mTokenConfiguration.sol",
+            "line": 53
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Contract mTokenStorage (src/mToken/mTokenStorage.sol#34-390) is not in CapWords",
+          "location": {
+            "file": "src/mToken/mTokenStorage.sol",
+            "line": 34
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.6,
+          "description": "mTokenStorage._accrueInterest() (src/mToken/mTokenStorage.sol#337-389) has costly operations inside a loop: - borrowIndex = borrowIndexNew (src/mToken/mTokenStorage.sol#383) Calls stack containing the loop: mErc20Host.mintExternal(bytes,bytes,uint256[],uint256[],address) mErc20Host._mintExternal(bytes,uint256,uint256,address) mToken._mint(address,address,uint256,uint256,bool)",
+          "location": {
+            "file": "src/mToken/mTokenStorage.sol",
+            "line": 337
+          },
+          "severity": "Info",
+          "title": "costly-loop",
+          "tool": "slither",
+          "type": "costly-loop"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Version constraint ^0.8.10 contains known severe issues (https://solidity.readthedocs.io/en/latest/bugs.html) - VerbatimInvalidDeduplication - FullInlinerNonExpressionSplitArgumentEvaluationOrder - MissingSideEffectsOnSelectorAccess - AbiReencodingHeadOverflowWithStaticArrayCleanup - DirtyBytesArrayToStorage - DataLocationChangeInInternalOverride - NestedCalldataArrayAbiReencodingSizeValidation. It is used by: - ^0.8.10 (src/migration/IMigrator.sol#17) - ^0.8.10 (src/migration/Migrator.sol#17)",
+          "location": {
+            "file": "src/migration/IMigrator.sol",
+            "line": 17
+          },
+          "severity": "Info",
+          "title": "solc-version",
+          "tool": "slither",
+          "type": "solc-version"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Variable Migrator.MALDA_OPERATOR (src/migration/Migrator.sol#34) is not in mixedCase",
+          "location": {
+            "file": "src/migration/Migrator.sol",
+            "line": 34
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Migrator._collectMendiPositions(address) (src/migration/Migrator.sol#158-188) uses assembly - INLINE ASM (src/migration/Migrator.sol#184-186)",
+          "location": {
+            "file": "src/migration/Migrator.sol",
+            "line": 158
+          },
+          "severity": "Info",
+          "title": "assembly",
+          "tool": "slither",
+          "type": "assembly"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Variable MixedPriceOracleV3.STALENESS_PERIOD (src/oracles/MixedPriceOracleV3.sol#21) is not in mixedCase",
+          "location": {
+            "file": "src/oracles/MixedPriceOracleV3.sol",
+            "line": 21
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Variable MixedPriceOracleV4.STALENESS_PERIOD (src/oracles/MixedPriceOracleV4.sol#21) is not in mixedCase",
+          "location": {
+            "file": "src/oracles/MixedPriceOracleV4.sol",
+            "line": 21
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter MixedPriceOracleV4.setMaxPriceDelta(uint256)._delta (src/oracles/MixedPriceOracleV4.sol#82) is not in mixedCase",
+          "location": {
+            "file": "src/oracles/MixedPriceOracleV4.sol",
+            "line": 82
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter MixedPriceOracleV4.setSymbolMaxPriceDelta(uint256,string)._delta (src/oracles/MixedPriceOracleV4.sol#93) is not in mixedCase",
+          "location": {
+            "file": "src/oracles/MixedPriceOracleV4.sol",
+            "line": 93
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter Pauser.addPausableMarket(address,IPauser.PausableType)._contractType (src/pauser/Pauser.sol#58) is not in mixedCase",
+          "location": {
+            "file": "src/pauser/Pauser.sol",
+            "line": 58
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter Pauser.removePausableMarket(address)._contract (src/pauser/Pauser.sol#71) is not in mixedCase",
+          "location": {
+            "file": "src/pauser/Pauser.sol",
+            "line": 71
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter Pauser.emergencyPauseMarket(address)._market (src/pauser/Pauser.sol#85) is not in mixedCase",
+          "location": {
+            "file": "src/pauser/Pauser.sol",
+            "line": 85
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter Pauser.emergencyPauseMarketFor(address,ImTokenOperationTypes.OperationType)._pauseType (src/pauser/Pauser.sol#92) is not in mixedCase",
+          "location": {
+            "file": "src/pauser/Pauser.sol",
+            "line": 92
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Rebalancer.roles (src/rebalancer/Rebalancer.sol#36) should be immutable",
+          "location": {
+            "file": "src/rebalancer/Rebalancer.sol",
+            "line": 36
+          },
+          "severity": "Info",
+          "title": "immutable-states",
+          "tool": "slither",
+          "type": "immutable-states"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Rebalancer.saveAddress (src/rebalancer/Rebalancer.sol#43) should be immutable",
+          "location": {
+            "file": "src/rebalancer/Rebalancer.sol",
+            "line": 43
+          },
+          "severity": "Info",
+          "title": "immutable-states",
+          "tool": "slither",
+          "type": "immutable-states"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Rebalancer.transferTimeWindow (src/rebalancer/Rebalancer.sol#53) should be immutable",
+          "location": {
+            "file": "src/rebalancer/Rebalancer.sol",
+            "line": 53
+          },
+          "severity": "Info",
+          "title": "immutable-states",
+          "tool": "slither",
+          "type": "immutable-states"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter Rebalancer.setWhitelistedBridgeStatus(address,bool)._status (src/rebalancer/Rebalancer.sol#75) is not in mixedCase",
+          "location": {
+            "file": "src/rebalancer/Rebalancer.sol",
+            "line": 75
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter Rebalancer.setWhitelistedDestination(uint32,bool)._status (src/rebalancer/Rebalancer.sol#82) is not in mixedCase",
+          "location": {
+            "file": "src/rebalancer/Rebalancer.sol",
+            "line": 82
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Low level call in Rebalancer.saveEth() (src/rebalancer/Rebalancer.sol#88-96): - (success,None) = saveAddress.call{value: amount}() (src/rebalancer/Rebalancer.sol#93)",
+          "location": {
+            "file": "src/rebalancer/Rebalancer.sol",
+            "line": 88
+          },
+          "severity": "Info",
+          "title": "low-level-calls",
+          "tool": "slither",
+          "type": "low-level-calls"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter Rebalancer.setMinTransferSize(uint32,address,uint256)._dstChainId (src/rebalancer/Rebalancer.sol#98) is not in mixedCase",
+          "location": {
+            "file": "src/rebalancer/Rebalancer.sol",
+            "line": 98
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter Rebalancer.setMaxTransferSize(uint32,address,uint256)._token (src/rebalancer/Rebalancer.sol#104) is not in mixedCase",
+          "location": {
+            "file": "src/rebalancer/Rebalancer.sol",
+            "line": 104
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter Rebalancer.sendMsg(address,address,uint256,IRebalancer.Msg)._market (src/rebalancer/Rebalancer.sol#129) is not in mixedCase",
+          "location": {
+            "file": "src/rebalancer/Rebalancer.sol",
+            "line": 129
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "AccrossBridge (src/rebalancer/bridges/AcrossBridge.sol#34-181) should inherit from IAcrossReceiverV3 (src/interfaces/external/across/IAcrossReceiverV3.sol#11-13)",
+          "location": {
+            "file": "src/rebalancer/bridges/AcrossBridge.sol",
+            "line": 34
+          },
+          "severity": "Info",
+          "title": "missing-inheritance",
+          "tool": "slither",
+          "type": "missing-inheritance"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter AccrossBridge.setWhitelistedRelayer(uint32,address,bool)._relayer (src/rebalancer/bridges/AcrossBridge.sol#81) is not in mixedCase",
+          "location": {
+            "file": "src/rebalancer/bridges/AcrossBridge.sol",
+            "line": 81
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter AccrossBridge.sendMsg(uint256,address,uint32,address,bytes,bytes)._extractedAmount (src/rebalancer/bridges/AcrossBridge.sol#107) is not in mixedCase",
+          "location": {
+            "file": "src/rebalancer/bridges/AcrossBridge.sol",
+            "line": 107
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter AccrossBridge.sendMsg(uint256,address,uint32,address,bytes,bytes)._market (src/rebalancer/bridges/AcrossBridge.sol#108) is not in mixedCase",
+          "location": {
+            "file": "src/rebalancer/bridges/AcrossBridge.sol",
+            "line": 108
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter AccrossBridge.sendMsg(uint256,address,uint32,address,bytes,bytes)._dstChainId (src/rebalancer/bridges/AcrossBridge.sol#109) is not in mixedCase",
+          "location": {
+            "file": "src/rebalancer/bridges/AcrossBridge.sol",
+            "line": 109
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter AccrossBridge.sendMsg(uint256,address,uint32,address,bytes,bytes)._token (src/rebalancer/bridges/AcrossBridge.sol#110) is not in mixedCase",
+          "location": {
+            "file": "src/rebalancer/bridges/AcrossBridge.sol",
+            "line": 110
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter AccrossBridge.sendMsg(uint256,address,uint32,address,bytes,bytes)._message (src/rebalancer/bridges/AcrossBridge.sol#111) is not in mixedCase",
+          "location": {
+            "file": "src/rebalancer/bridges/AcrossBridge.sol",
+            "line": 111
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "BaseBridge.roles (src/rebalancer/bridges/BaseBridge.sol#26) should be immutable",
+          "location": {
+            "file": "src/rebalancer/bridges/BaseBridge.sol",
+            "line": 26
+          },
+          "severity": "Info",
+          "title": "immutable-states",
+          "tool": "slither",
+          "type": "immutable-states"
+        },
+        {
+          "confidence": 0.9,
+          "description": "EverclearBridge.everclearFeeAdapter (src/rebalancer/bridges/EverclearBridge.sol#38) should be immutable",
+          "location": {
+            "file": "src/rebalancer/bridges/EverclearBridge.sol",
+            "line": 38
+          },
+          "severity": "Info",
+          "title": "immutable-states",
+          "tool": "slither",
+          "type": "immutable-states"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter EverclearBridge.sendMsg(uint256,address,uint32,address,bytes,bytes)._extractedAmount (src/rebalancer/bridges/EverclearBridge.sol#80) is not in mixedCase",
+          "location": {
+            "file": "src/rebalancer/bridges/EverclearBridge.sol",
+            "line": 80
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter EverclearBridge.sendMsg(uint256,address,uint32,address,bytes,bytes)._market (src/rebalancer/bridges/EverclearBridge.sol#81) is not in mixedCase",
+          "location": {
+            "file": "src/rebalancer/bridges/EverclearBridge.sol",
+            "line": 81
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter EverclearBridge.sendMsg(uint256,address,uint32,address,bytes,bytes)._dstChainId (src/rebalancer/bridges/EverclearBridge.sol#82) is not in mixedCase",
+          "location": {
+            "file": "src/rebalancer/bridges/EverclearBridge.sol",
+            "line": 82
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter EverclearBridge.sendMsg(uint256,address,uint32,address,bytes,bytes)._token (src/rebalancer/bridges/EverclearBridge.sol#83) is not in mixedCase",
+          "location": {
+            "file": "src/rebalancer/bridges/EverclearBridge.sol",
+            "line": 83
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter EverclearBridge.sendMsg(uint256,address,uint32,address,bytes,bytes)._message (src/rebalancer/bridges/EverclearBridge.sol#84) is not in mixedCase",
+          "location": {
+            "file": "src/rebalancer/bridges/EverclearBridge.sol",
+            "line": 84
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter ZkVerifier.setVerifier(address)._risc0Verifier (src/verifier/ZkVerifier.sol#63) is not in mixedCase",
+          "location": {
+            "file": "src/verifier/ZkVerifier.sol",
+            "line": 63
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter ZkVerifier.setImageId(bytes32)._imageId (src/verifier/ZkVerifier.sol#74) is not in mixedCase",
+          "location": {
+            "file": "src/verifier/ZkVerifier.sol",
+            "line": 74
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Function ZkVerifier.__verify(bytes,bytes) (src/verifier/ZkVerifier.sol#99-101) is not in mixedCase",
+          "location": {
+            "file": "src/verifier/ZkVerifier.sol",
+            "line": 99
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        }
+      ],
+      "execution_time": 0.0,
+      "metadata": {
+        "detectors": "slither default (project foundry [lint] not applied)"
+      }
+    }
+  ],
+  "summary": {
+    "CRITICAL": 0,
+    "HIGH": 2,
+    "MEDIUM": 25,
+    "LOW": 80,
+    "INFO": 88
+  },
+  "tools_run": [
+    "slither"
+  ],
+  "version": "6.x"
+}

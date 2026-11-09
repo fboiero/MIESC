@@ -408,6 +408,7 @@ class LLMProvider(Enum):
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
     DEEPSEEK = "deepseek"
+    KIMI = "kimi"
     LOCAL = "local"
 
 
@@ -630,6 +631,9 @@ class OpenAIBackend(LLMBackend):
     def __init__(self, config: LLMConfig):
         super().__init__(config)
         self.api_key = config.api_key or os.getenv("OPENAI_API_KEY")
+        # A configured OpenAI-compatible endpoint (Kimi, a gateway, vLLM) sets base_url;
+        # None keeps the SDK default (api.openai.com or OPENAI_BASE_URL).
+        self.base_url = config.base_url or None
 
     async def health_check(self) -> bool:
         """Check if OpenAI is configured."""
@@ -644,7 +648,7 @@ class OpenAIBackend(LLMBackend):
             raise ImportError("openai package not installed. Run: pip install openai") from e
 
         start_time = time.time()
-        client = openai.AsyncOpenAI(api_key=self.api_key)
+        client = openai.AsyncOpenAI(api_key=self.api_key, base_url=self.base_url)
 
         system_prompt = self.get_system_prompt()
         if context:
@@ -673,7 +677,7 @@ class OpenAIBackend(LLMBackend):
 
         return LLMResponse(
             content=_openai_compatible_chat_content(response, "OpenAI response"),
-            provider="openai",
+            provider=self.config.provider.value,
             model=self.config.model,
             tokens_used=tokens,
             latency_ms=(time.time() - start_time) * 1000,
@@ -804,6 +808,36 @@ class AnthropicBackend(LLMBackend):
         )
 
 
+def config_for_provider(name: str, model: Optional[str] = None) -> Optional[LLMConfig]:
+    """Build an :class:`LLMConfig` from the provider registry (``miesc.core.llm_providers``).
+
+    ``name`` is a registry name (built-in or declared under ``llm.providers``); the
+    backend is chosen by the provider's client protocol, so a configured
+    OpenAI-compatible endpoint runs through :class:`OpenAIBackend` with its own
+    ``base_url`` and key. Returns ``None`` for an unknown name.
+    """
+    from miesc.core.llm_providers import UnknownProviderError, api_key_for, get_provider
+
+    try:
+        spec = get_provider(name)
+    except UnknownProviderError:
+        return None
+    try:
+        provider = LLMProvider(spec.name)
+    except ValueError:
+        provider = {"anthropic": LLMProvider.ANTHROPIC, "ollama": LLMProvider.OLLAMA}.get(
+            spec.kind, LLMProvider.OPENAI
+        )
+    chosen = _normalized_model_identifier(model) if model else None
+    return LLMConfig(
+        provider=provider,
+        model=chosen or spec.default_model,
+        api_key=api_key_for(spec),
+        base_url=spec.base_url,
+        timeout=spec.timeout,
+    )
+
+
 class LLMOrchestrator:
     """
     Orchestrates multiple LLM backends for security analysis.
@@ -833,8 +867,22 @@ class LLMOrchestrator:
             self._add_backend(config)
 
     def _default_config_from_env(self) -> LLMConfig:
-        """Build the default backend config from MIESC_LLM_* environment variables."""
+        """Build the default backend config from MIESC_LLM_* environment variables.
+
+        Any provider known to the registry (built-in or from ``llm.providers``) is
+        accepted; ``MIESC_LLM_MODEL`` and ``MIESC_LLM_BASE_URL`` override its defaults.
+        """
         provider_name_raw = _safe_text(os.getenv("MIESC_LLM_PROVIDER", LLMProvider.OLLAMA.value))
+        if provider_name_raw and provider_name_raw.lower() not in ("ollama", "local"):
+            from_registry = config_for_provider(
+                provider_name_raw.lower(),
+                _normalized_model_identifier(os.getenv("MIESC_LLM_MODEL")),
+            )
+            if from_registry is not None:
+                base_url_override = _safe_text(os.getenv("MIESC_LLM_BASE_URL"))
+                if base_url_override:
+                    from_registry = replace(from_registry, base_url=base_url_override)
+                return from_registry
         provider = LLMProvider.OLLAMA
         provider_from_env_is_valid = False
         if provider_name_raw:
@@ -910,6 +958,9 @@ class LLMOrchestrator:
             backend = AnthropicBackend(config)
         elif config.provider == LLMProvider.DEEPSEEK:
             backend = DeepSeekBackend(config)
+        elif config.provider == LLMProvider.KIMI:
+            # Moonshot's API is OpenAI-compatible; base_url/key come from the registry.
+            backend = OpenAIBackend(config)
         else:
             logger.warning(f"Unknown provider: {config.provider}")
             return

@@ -160,6 +160,7 @@ nav:
   - Developer Guide:
     - Architecture: ARCHITECTURE.md
     - Custom Detectors: CUSTOM_DETECTORS.md
+    - Revert-Invariant Mining: guides/REVERT_INVARIANT_MINING.md
     - Contributing: CONTRIBUTING.md
     - Security Policy: SECURITY.md
 

@@ -144,6 +144,7 @@ class DeFiAdapter:
                 "description": finding.description,
                 "severity": self.SEVERITY_MAP.get(finding.severity.value, "Medium"),
                 "confidence": finding.confidence,
+                "type": finding.category.value,
                 "category": finding.category.value,
                 "swc_id": swc_id,
                 "location": {
@@ -176,6 +177,7 @@ class DeFiAdapter:
                     "description": finding.description,
                     "severity": self.SEVERITY_MAP.get(finding.severity.value, "Medium"),
                     "confidence": finding.confidence,
+                    "type": finding.category.value,
                     "category": finding.category.value,
                     "swc_id": swc_id,
                     "location": {"line": finding.line, "snippet": finding.code_snippet},
@@ -215,6 +217,10 @@ class DeFiAdapter:
                 "mev_exposure",
                 "slippage",
                 "liquidity",
+                "rounding",
+                "fee_on_transfer",
+                "erc4626",
+                "business_logic",
             ],
             "supported_vulnerabilities": [
                 "Flash Loan Attacks",
@@ -224,6 +230,10 @@ class DeFiAdapter:
                 "MEV Exposure",
                 "Slippage Issues",
                 "Liquidity Vulnerabilities",
+                "Rounding Errors (fixed-point math chains)",
+                "Fee-on-Transfer / Rebasing Token Issues",
+                "EIP-4626 Signature Non-Compliance",
+                "Unrefunded Excess Payment",
             ],
         }
 

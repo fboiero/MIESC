@@ -110,3 +110,126 @@ class TestParseResponse:
     def test_unparseable_returns_empty(self):
         a = FrontierLLMAdapter()
         assert a._parse_response("no structured findings here") == []
+
+
+class TestParseResponseRepairFallback:
+    """Local models often emit unescaped double quotes inside Solidity snippets
+    (e.g. ``call{value: balance}("")``), producing JSON that the built-in
+    strategies cannot recover. The optional json-repair fallback (miesc[llm])
+    rescues the findings instead of returning zero. Regression for the E2E
+    finding where ``--model ollama`` yielded 0 LLM findings on valid output."""
+
+    def test_recovers_unescaped_quotes_in_snippet(self):
+
+        a = FrontierLLMAdapter()
+        text = (
+            "```json\n[\n"
+            '  {"title": "Reentrancy", "severity": "Critical", '
+            '"description": "external call msg.sender.call{value: balance}("") '
+            'before state update"}\n'
+            "]\n```"
+        )
+        # Sanity: the extracted array is genuinely invalid JSON.
+        inner = text[text.find("[") : text.rfind("]") + 1]
+        import pytest as _pytest
+
+        with _pytest.raises(json.JSONDecodeError):
+            json.loads(inner)
+
+        out = a._parse_response(text)
+        assert len(out) == 1
+        assert out[0]["title"] == "Reentrancy"
+
+    def test_valid_json_still_parses_without_repair_regression(self):
+        a = FrontierLLMAdapter()
+        text = '[{"title": "Overflow", "severity": "medium", "line": 3}]'
+        out = a._parse_response(text)
+        assert len(out) == 1
+        assert out[0]["title"] == "Overflow"
+
+
+class TestRegistryProviders:
+    """Kimi and DeepSeek go through the registry: availability by key, auto-detect order."""
+
+    def _fake_openai(self, monkeypatch):
+        import sys
+        import types
+
+        monkeypatch.setitem(
+            sys.modules, "openai", types.SimpleNamespace(OpenAI=object, AsyncOpenAI=object)
+        )
+
+    def test_kimi_available_with_either_moonshot_variable(self, monkeypatch):
+        self._fake_openai(monkeypatch)
+        with patch.dict("os.environ", {"KIMI_API_KEY": "k"}, clear=True):
+            assert FrontierLLMAdapter(provider="kimi").is_available() == ToolStatus.AVAILABLE
+        with patch.dict("os.environ", {"MOONSHOT_API_KEY": "m"}, clear=True):
+            assert FrontierLLMAdapter(provider="kimi").is_available() == ToolStatus.AVAILABLE
+
+    def test_kimi_without_key_is_a_configuration_error(self, monkeypatch):
+        self._fake_openai(monkeypatch)
+        with patch.dict("os.environ", {}, clear=True):
+            assert (
+                FrontierLLMAdapter(provider="kimi").is_available() == ToolStatus.CONFIGURATION_ERROR
+            )
+
+    def test_unknown_provider_is_a_configuration_error(self):
+        with patch.dict("os.environ", {}, clear=True):
+            assert (
+                FrontierLLMAdapter(provider="nope").is_available() == ToolStatus.CONFIGURATION_ERROR
+            )
+
+    def test_auto_detect_reaches_deepseek_and_kimi(self):
+        a = FrontierLLMAdapter()
+        with patch.dict("os.environ", {"MOONSHOT_API_KEY": "m"}, clear=True):
+            assert a._detect_provider() == "kimi"
+        with patch.dict("os.environ", {"DEEPSEEK_API_KEY": "d", "KIMI_API_KEY": "k"}, clear=True):
+            assert a._detect_provider() == "deepseek"
+        with patch.dict("os.environ", {"OPENAI_API_KEY": "o", "DEEPSEEK_API_KEY": "d"}, clear=True):
+            assert a._detect_provider() == "openai"
+
+
+class TestOllamaContextWindow:
+    """The /api/chat request must set an explicit num_ctx, otherwise Ollama's
+    per-request default (4096) silently truncates contracts larger than ~12 KB."""
+
+    def _captured_body(self, adapter):
+        captured = {}
+
+        def fake_urlopen(req, timeout=None):
+            captured["data"] = req.data
+            resp = MagicMock()
+            resp.read.return_value = json.dumps({"message": {"content": "[]"}}).encode()
+            return resp
+
+        with patch.object(FrontierLLMAdapter, "_ensure_ollama_model", lambda self, m: None):
+            with patch("urllib.request.urlopen", side_effect=fake_urlopen):
+                adapter._analyze_ollama("contract C {}", model="qwen2.5-coder:32b")
+        return json.loads(captured["data"])
+
+    def test_num_ctx_default(self):
+        a = FrontierLLMAdapter(provider="ollama")
+        with patch.dict("os.environ", {}, clear=True):
+            body = self._captured_body(a)
+        assert body["options"]["num_ctx"] == 32768
+
+    def test_num_ctx_env_override(self):
+        a = FrontierLLMAdapter(provider="ollama")
+        with patch.dict("os.environ", {"MIESC_OLLAMA_NUM_CTX": "16000"}, clear=True):
+            body = self._captured_body(a)
+        assert body["options"]["num_ctx"] == 16000
+
+    def test_num_ctx_non_integer_falls_back(self):
+        # A malformed value (e.g. "32k") must not abort the analysis mid-request;
+        # it falls back to the default so _analyze_ollama still runs.
+        a = FrontierLLMAdapter(provider="ollama")
+        with patch.dict("os.environ", {"MIESC_OLLAMA_NUM_CTX": "32k"}, clear=True):
+            body = self._captured_body(a)
+        assert body["options"]["num_ctx"] == 32768
+
+    def test_seed_non_integer_falls_back(self):
+        # Same guard for the adjacent seed read in the /api/chat options.
+        a = FrontierLLMAdapter(provider="ollama")
+        with patch.dict("os.environ", {"MIESC_LLM_SEED": "not-a-number"}, clear=True):
+            body = self._captured_body(a)
+        assert body["options"]["seed"] == 42

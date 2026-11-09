@@ -2,11 +2,6 @@
   <!-- Background -->
   <rect width="900" height="500" fill="#f8f9fa"/>
   
-  <!-- Title -->
-  <text x="450" y="35" text-anchor="middle" font-size="18" font-weight="bold" fill="#333">
-    Figura 2.2. Ejecución Simbólica vs Concreta
-  </text>
-  
   <!-- Dividing lines -->
   <line x1="300" y1="50" x2="300" y2="480" stroke="#ccc" stroke-width="1" stroke-dasharray="5,5"/>
   <line x1="600" y1="50" x2="600" y2="480" stroke="#ccc" stroke-width="1" stroke-dasharray="5,5"/>

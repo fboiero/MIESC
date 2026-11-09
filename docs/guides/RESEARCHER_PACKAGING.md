@@ -80,7 +80,6 @@ Local environment files are intentionally excluded from version control:
 | `.tools/` | Isolated heavyweight tool runtimes |
 | `apik.sh` | Optional local credentials |
 | `diagnostic-report.json` | Generated diagnostic result |
-| `.paper-freeze-local/` | Local reproducibility freeze checks |
 
 Do not use `ollama list` as the only Ollama health check on macOS. Some native Ollama CLI builds can fail before listing models because of MLX/Metal initialization, while the running HTTP service remains healthy. Prefer:
 

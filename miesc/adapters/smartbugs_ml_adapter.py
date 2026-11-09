@@ -12,14 +12,32 @@ Version: 1.0.0
 import hashlib
 import json
 import logging
+import re
 import tempfile
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, cast
 
 from miesc.core.tool_protocol import ToolCapability, ToolCategory, ToolMetadata, ToolStatus
+from miesc.detectors.chain_attribute_flow import has_weak_randomness
 
 logger = logging.getLogger(__name__)
+
+
+def _rules_fingerprint() -> str:
+    """Hash of the modules that define the fallback rules (this one and the data flow)."""
+    from miesc.detectors import chain_attribute_flow
+
+    digest = hashlib.sha256()
+    for module_file in (__file__, chain_attribute_flow.__file__):
+        try:
+            digest.update(Path(module_file).read_bytes())
+        except OSError:
+            digest.update(str(module_file).encode())
+    return digest.hexdigest()[:8]
+
+
+_RULES_FINGERPRINT = _rules_fingerprint()
 
 
 class SmartBugsMLAdapter:
@@ -258,8 +276,9 @@ class SmartBugsMLAdapter:
         features["uses_blockhash"] = (
             1.0 if "blockhash" in contract_code or "block.blockhash" in contract_code else 0.0
         )
+        # ``now`` as a word: the substring test matched "known", "snow", "unknown".
         features["uses_timestamp"] = (
-            1.0 if "block.timestamp" in contract_code or "now" in contract_code else 0.0
+            1.0 if re.search(r"block\.timestamp|\bnow\b", contract_code) else 0.0
         )
         features["uses_block_number"] = 1.0 if "block.number" in contract_code else 0.0
 
@@ -291,6 +310,28 @@ class SmartBugsMLAdapter:
                     if "=" in lines[j] and "==" not in lines[j]:
                         count += 1
         return float(count)
+
+    _FINANCIAL_TERMS = re.compile(
+        r"balance|amount|total|supply|credit|debit|deposit|withdraw|reward|stake|token|fund|price|fee",
+        re.IGNORECASE,
+    )
+    _RAW_ARITH_WRITE = re.compile(r"[+\-*]=|=\s*\w+(?:\s*(?:\[[^\]]*\]|\([^)]*\)))*\s*[+\-*]")
+
+    def _has_financial_arithmetic(self, code: str) -> bool:
+        """True when some line writes a balance-like state variable with raw arithmetic."""
+        for line in code.split("\n"):
+            stripped = line.strip()
+            if stripped.startswith("//") or stripped.startswith("*"):
+                continue
+            if "require" in stripped or "assert" in stripped:
+                continue
+            if re.search(r"\.(add|sub|mul|div)\s*\(", stripped):
+                continue
+            if not self._RAW_ARITH_WRITE.search(stripped):
+                continue
+            if self._FINANCIAL_TERMS.search(stripped) and re.search(r"\w+\s*\[[^\]]+\]", stripped):
+                return True
+        return False
 
     def _detect_unchecked_math(self, code: str) -> float:
         """
@@ -362,9 +403,12 @@ class SmartBugsMLAdapter:
                     }
                 )
 
-        # Bad randomness
+        # Bad randomness. Presence of a chain attribute is not a finding: the value
+        # has to reach an entropy sink (hash, modulo) or be a strong entropy source
+        # (blockhash, difficulty, coinbase). Measured on SmartBugs-curated
+        # (2026-10-21): the presence-only rule fired on 46 non-randomness contracts.
         if features["uses_blockhash"] > 0.5 or features["uses_timestamp"] > 0.5:
-            confidence = 0.8
+            confidence = 0.8 if has_weak_randomness(contract_code) else 0.5
             if confidence >= self.confidence_threshold:
                 findings.append(
                     {
@@ -377,9 +421,12 @@ class SmartBugsMLAdapter:
                     }
                 )
 
-        # Integer overflow (for pre-0.8.0 contracts)
+        # Integer overflow (for pre-0.8.0 contracts). Without a trained model this
+        # is a heuristic; "pre-0.8 code without SafeMath" alone flagged every such
+        # contract, so it only counts when a balance-like state variable is written
+        # with raw arithmetic (the BECToken shape), otherwise it stays below threshold.
         if features["has_unchecked_math"] > 0.5:
-            confidence = 0.75
+            confidence = 0.75 if self._has_financial_arithmetic(contract_code) else 0.5
             if confidence >= self.confidence_threshold:
                 findings.append(
                     {
@@ -436,13 +483,18 @@ class SmartBugsMLAdapter:
             logger.warning(f"Failed to cache result: {e}")
 
     def _get_cache_key(self, contract_path: str) -> str:
-        """Generate cache key from contract content hash"""
+        """Cache key: contract content hash + fingerprint of the rule code.
+
+        The cache lives in the system temp dir (not under ``HOME``) for 24 h, so an
+        entry written by older rules would otherwise be served after a rule change
+        and silently void a benchmark comparison (it did, 2026-10-21).
+        """
         try:
             with open(contract_path, "rb") as f:
                 content = f.read()
-            return hashlib.sha256(content).hexdigest()[:16]
         except Exception:
-            return hashlib.sha256(contract_path.encode()).hexdigest()[:16]
+            content = contract_path.encode()
+        return hashlib.sha256(content + _RULES_FINGERPRINT.encode()).hexdigest()[:16]
 
 
 # Adapter registration

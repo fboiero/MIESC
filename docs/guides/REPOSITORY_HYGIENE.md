@@ -8,8 +8,7 @@ researchers, security engineers, and package users.
 
 | Area | Purpose | Keep in Git |
 | --- | --- | --- |
-| `miesc/` | Public Python package and CLI entry points | Yes |
-| `src/` | Research engine, adapters, orchestration, and compatibility modules | Yes |
+| `miesc/` | The single Python package: CLI, adapters, orchestration, ML/RAG, reports | Yes |
 | `tests/` | Unit, regression, and integration tests | Yes |
 | `benchmarks/` | Reproducible benchmark code, curated fixtures, and claim matrices | Yes, only curated inputs and selected final evidence |
 | `paper/` | Paper sources, final PDFs, reproducibility notes, and source criteria | Yes, not LaTeX build outputs |

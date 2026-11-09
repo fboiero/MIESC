@@ -120,6 +120,29 @@ benchmarks/results/evmbench/*
 !benchmarks/results/paper1_smartbugs_eval.jsonl
 !benchmarks/results/paper1_smartbugs_eval_layers_1_6_7.json
 !benchmarks/results/paper1_smartbugs_eval_layers_1_6_7.jsonl
+# Dated re-runs of the Paper 1 profile kept as evidence (see REPRODUCE.md)
+!benchmarks/results/smartbugs_eval_layers_1_6_7_20261020.json
+!benchmarks/results/smartbugs_eval_layers_1_6_7_20261020.jsonl
+!benchmarks/results/smartbugs_eval_layers_1_6_7_20261020_fp_tightened.json
+!benchmarks/results/smartbugs_eval_layers_1_6_7_20261020_fp_tightened.jsonl
+!benchmarks/results/smartbugs_eval_layers_1_6_7_20261020_trust_findings.json
+!benchmarks/results/smartbugs_eval_layers_1_6_7_20261020_trust_findings.jsonl
+!benchmarks/results/smartbugs_eval_layers_1_6_7_20261020_c4.json
+!benchmarks/results/smartbugs_eval_layers_1_6_7_20261020_c4.jsonl
+!benchmarks/results/smartbugs_eval_layers_1_6_7_20261021_main_after_188.json
+!benchmarks/results/smartbugs_eval_layers_1_6_7_20261021_main_after_188.jsonl
+!benchmarks/results/smartbugs_eval_layers_1_6_7_20261021_intel_fix.json
+!benchmarks/results/smartbugs_eval_layers_1_6_7_20261021_intel_fix.jsonl
+!benchmarks/results/smartbugs_eval_layers_1_6_7_20261021_arith_fp2.json
+!benchmarks/results/smartbugs_eval_layers_1_6_7_20261021_arith_fp2.jsonl
+!benchmarks/results/smartbugs_eval_layers_1_6_7_20261021_time_rand_flow.json
+!benchmarks/results/smartbugs_eval_layers_1_6_7_20261021_time_rand_flow.jsonl
+!benchmarks/results/smartbugs_eval_layers_1_6_7_20261023_access_control_fp.json
+!benchmarks/results/smartbugs_eval_layers_1_6_7_20261023_access_control_fp.jsonl
+!benchmarks/results/smartbugs_eval_layers_1_6_7_20261024_post_pr211_213.json
+!benchmarks/results/smartbugs_eval_layers_1_6_7_20261024_post_pr211_213.jsonl
+!benchmarks/results/smartbugs_eval_layers_1_6_7_20261026_fp_precision.json
+!benchmarks/results/smartbugs_eval_layers_1_6_7_20261026_fp_precision.jsonl
 !benchmarks/results/paper1_smartbugs_full_all_layers_smoke_20260506.json
 !benchmarks/results/paper1_smartbugs_full_all_layers_smoke_20260506.jsonl
 !benchmarks/results/fix_eval_results.json
@@ -134,6 +157,13 @@ benchmarks/results/evmbench/*
 !benchmarks/results/v5.1.6_deep_audit_rekt_report.md
 !benchmarks/results/v5.1.6_fp_dataset_pilot.md
 !benchmarks/results/v5.1.7_gates_report.md
+!benchmarks/results/v6.0.0_benchmark_report_20260811.md
+!benchmarks/results/v6.0.0_arena_defihacklabs_20260811.md
+!benchmarks/results/v6.0.0_arena_repaired_etherscan_20260811.md
+!benchmarks/results/v6.0.0_arena_fullscan_rescored_20260812.md
+!benchmarks/results/arena_fullscan_20260812.json
+!benchmarks/results/arena_repaired_20260811.json
+!benchmarks/results/extended_exploit_eval_20260811_120407.json
 !benchmarks/results/evmbench/evmbench_ensemble_40.json
 !benchmarks/results/evmbench/evmbench_static_40.json
 data/benchmark_history/
@@ -340,3 +370,36 @@ mutants/
 .mutmut-cache
 mutmut-stats.json
 mutmut-cicd-stats.json
+
+# -----------------------------------------------------------------------------
+# RIBCi-CYTED 2026 camera-ready artifacts (tracked benchmark results)
+# -----------------------------------------------------------------------------
+!benchmarks/results/paper1_ablation_20261015_README.md
+!benchmarks/results/paper1_ablation_l1_raw_20261015.json
+!benchmarks/results/paper1_ablation_l167_intel_20261015.json
+!benchmarks/results/paper1_ablation_l167_raw_20261015.json
+!benchmarks/results/paper1_smartbugs_eval_layers_1_6_7_corrected_20261016.json
+!benchmarks/results/paper2_prepatch_slither_baseline.json
+!benchmarks/results/evmbench/same_run_claude_20261016/
+!benchmarks/results/evmbench/same_run_claude_20261016/**
+!benchmarks/results/evmbench/same_run_claude_20261016.log
+!benchmarks/results/evmbench/ENTREGABLE_run2_20261016.md
+
+# Camera-ready Word versions sent to the editors (override any global *.docx ignore)
+!paper/ribci-cyted-2026/paper1-camera-ready.docx
+!paper/ribci-cyted-2026/paper2-camera-ready.docx
+
+# Discarded victim-code downloads (Etherscan sources); keep only victims/README.md
+data/datasets/rekt_exploits/victims/REKT-*/
+
+# LaTeX build intermediates, preview scratch, and regenerable arXiv bundles
+paper/ribci-cyted-2026/figs/*.aux
+paper/ribci-cyted-2026/preview/
+paper/ribci-cyted-2026/arxiv/*.tar.gz
+
+# Local archive of superseded/temporary working files (never tracked)
+_archive/
+!benchmarks/results/smartbugs_fp_filter_effect_20260710.json
+
+# Thesis delivery PDF build artifacts
+docs/tesis/build/

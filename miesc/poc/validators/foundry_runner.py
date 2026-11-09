@@ -299,8 +299,12 @@ class FoundryRunner:
         """Append options shared by all forge test invocations."""
         cmd.append(f"-{'v' * self.verbosity}")
 
-        if self.gas_report:
-            cmd.append("--gas-report")
+        # NOTE: --gas-report is intentionally NOT emitted. In forge >=1.x
+        # `--gas-report --json` prints only the gas-report JSON and SUPPRESSES
+        # the per-test results JSON this runner parses to detect which PoC tests
+        # passed/failed. Test outcomes matter more than gas for PoC validation,
+        # and forge's test JSON carries no per-test gas anyway. self.gas_report
+        # is retained for config/compat.
 
         if isinstance(self.fork_url, str) and self.fork_url:
             cmd.extend(["--fork-url", self.fork_url])
@@ -722,8 +726,20 @@ class FoundryRunner:
         if not isinstance(data, dict):
             return tests
 
-        # Handle different JSON formats from forge
+        # Handle different JSON shapes from forge. forge >=1.x nests the per-test
+        # map under each suite id ({"path:Contract": {"test_results": {...}}}),
+        # whereas older forge used a single top-level "test_results" map keyed by
+        # contract. Normalize both to {contract_or_suite: {test: result}}.
         test_results = _safe_mapping_get(data, "test_results")
+        if not isinstance(test_results, Mapping):
+            nested: Dict[str, Any] = {}
+            for suite_id, suite in _bounded_mapping_items(data, MAX_JSON_CONTRACT_RESULTS):
+                if isinstance(suite, Mapping):
+                    suite_tests = _safe_mapping_get(suite, "test_results")
+                    if isinstance(suite_tests, Mapping):
+                        nested[suite_id] = suite_tests
+            if nested:
+                test_results = nested
         if isinstance(test_results, Mapping):
             for contract, results in _bounded_mapping_items(
                 test_results, MAX_JSON_CONTRACT_RESULTS
@@ -739,7 +755,13 @@ class FoundryRunner:
                     if not isinstance(result, Mapping):
                         continue
                     test_name = self._normalize_test_name(test_name)
-                    status = self._normalize_success_status(_safe_mapping_get(result, "success"))
+                    # forge >=1.x reports pass/fail as a "status" string; older
+                    # forge used a boolean "success". _normalize_success_status
+                    # accepts both value kinds.
+                    raw_status = _safe_mapping_get(result, "success")
+                    if raw_status is None:
+                        raw_status = _safe_mapping_get(result, "status")
+                    status = self._normalize_success_status(raw_status)
                     if test_name is None or status is None:
                         continue
                     logs = self._normalize_logs(_safe_mapping_get(result, "logs"))

@@ -15,17 +15,33 @@ License: AGPL-3.0
 """
 
 import logging
+import math
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple, cast
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, cast
 
 from miesc.agents.base_agent import BaseAgent
 
 logger = logging.getLogger(__name__)
+
+
+# Directories skipped when `audit deep` gets a project directory: dependencies,
+# build output, tests and deploy scripts are not the protocol's own source.
+_SKIPPED_DIR_NAMES = {
+    "lib",
+    "node_modules",
+    "out",
+    "cache",
+    "artifacts",
+    "broadcast",
+    "test",
+    "tests",
+    "script",
+}
 
 
 # ---------------------------------------------------------------------------
@@ -56,6 +72,25 @@ class DeepAuditConfig:
     enable_exploit_chains: bool = True
     enable_agentic_invariants: bool = False
     agentic_invariants_allow_remote: bool = False
+    enable_advisory_plans: bool = False
+    # Opt-in: actually run access-control gap probes with Foundry (adds wall-clock; needs forge).
+    # SECURITY: the audited contract EXECUTES with Foundry cheatcodes. The executor pins
+    # ffi/fs_permissions off, scrubs the environment and denies network where the host can,
+    # but only enable this on code you are willing to run, ideally in a network-less container.
+    enable_gap_execution: bool = False
+    # Opt-in: also execute pause/freshness gap probes via the reasoning executor. REQUIRES
+    # enable_gap_execution (it is a no-op when that is off). The precision invariant is in
+    # miesc/llm/revert_invariant_reasoning.py: a counterexample needs a control probe to confirm
+    # the rejectable state AND a target probe to show the unguarded call succeeded+wrote, so a wrong
+    # fact fails closed. The remote gate reuses agentic_invariants_allow_remote (no new flag); this
+    # first slice runs the deterministic local fallback only.
+    enable_gap_reasoning: bool = False
+    # Opt-in: promote trust-boundary gap hypotheses (an unvalidated recipient forwarded into an
+    # external call while its sibling fields are validated) to Medium, advisory findings. Static
+    # and forge-free -- inferred, not execution-reproduced -- so the findings are Medium and marked
+    # as such. Off by default like the other invariant capabilities; when on, they pass through the
+    # same FP filter and correlation as every other finding.
+    enable_trust_boundary_findings: bool = False
     fp_threshold: float = 0.5
     max_workers: int = 4
 
@@ -195,7 +230,10 @@ class DeepAuditAgent(BaseAgent):
     # -----------------------------------------------------------------------
 
     def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
-        """Run the 4-phase agentic deep audit."""
+        """Run the 4-phase agentic deep audit on a file, or on every .sol file of a directory."""
+        if Path(contract_path).is_dir():
+            return self._analyze_directory(Path(contract_path))
+
         self._start_time = time.monotonic()
         self.contract_path = contract_path
         source_code = Path(contract_path).read_text()
@@ -282,6 +320,11 @@ class DeepAuditAgent(BaseAgent):
             report["phases"]["agentic_invariants"] = invariant_phase
             report["metadata"]["agentic_invariants_count"] = invariant_phase.get("count", 0)
 
+        if self.config.enable_advisory_plans and not self._timeout_exceeded():
+            advisory_phase = self._extract_advisory_plans(source_code, contract_path)
+            report["phases"]["advisory_plans"] = advisory_phase
+            report["metadata"]["advisory_plan_count"] = advisory_phase.get("count", 0)
+
         # Phase 4: Synthesis
         self._current_phase = AuditPhase.SYNTHESIS
         logger.info("Phase 4: Synthesis")
@@ -305,6 +348,105 @@ class DeepAuditAgent(BaseAgent):
             f"{len(report['exploit_chains'])} chains, {elapsed:.0f}ms"
         )
         return report
+
+    def _analyze_directory(self, dir_path: Path) -> Dict[str, Any]:
+        """Run the single-file pipeline on each .sol file and merge the reports.
+
+        The timeout is the budget for the whole directory: each file gets what is left,
+        and no file starts once it runs out. The report adds the protocol's contracts and
+        what each contract inherits and which function of another contract it calls.
+        """
+        from miesc.ml.protocol_graph import build_protocol_graph, cross_contract_calls
+
+        start = time.monotonic()
+        sol_files = sorted(
+            str(p)
+            for p in dir_path.rglob("*.sol")
+            if p.is_file()
+            and not _SKIPPED_DIR_NAMES.intersection(p.relative_to(dir_path).parts[:-1])
+        )
+        graph = build_protocol_graph(sol_files)
+
+        file_reports: List[Dict[str, Any]] = []
+        failed = 0
+        for sol_file in sol_files:
+            remaining = self.config.timeout_seconds - (time.monotonic() - start)
+            if remaining <= 0:
+                break
+            budget = max(1, math.ceil(remaining))
+            agent = DeepAuditAgent(config=replace(self.config, timeout_seconds=budget))
+            try:
+                file_report = agent.analyze(sol_file)
+            except Exception as e:
+                # One unreadable/undecodable file must not abort the whole directory run and
+                # discard every report already gathered.
+                logger.warning(f"Skipping {sol_file}: {e}")
+                failed += 1
+                file_reports.append({"contract": sol_file, "error": str(e), "findings": []})
+                continue
+            file_reports.append(file_report)
+
+        # Each file's run also reports what it imports (Slither and Aderyn compile the
+        # imports), so a base contract imported by n files comes back n times.
+        findings: List[Dict[str, Any]] = []
+        seen: Set[Tuple[Any, ...]] = set()
+        for idx, finding in enumerate(f for r in file_reports for f in r.get("findings", [])):
+            loc = finding.get("location") or {}
+            file_name = loc.get("file")
+            if file_name:
+                key: Tuple[Any, ...] = (
+                    finding.get("tool"),
+                    finding.get("type"),
+                    file_name,
+                    loc.get("line"),
+                )
+            else:
+                # A finding with no resolvable location (enriched/LLM-normalized to location {})
+                # must not collapse into one row per (tool, type) across every file: key it on its
+                # own id, or keep it as distinct when it has none.
+                key = ("__noloc__", finding.get("id", idx))
+            if key not in seen:
+                seen.add(key)
+                findings.append(finding)
+        # Counted from the findings, not summed from each file's summary: a file
+        # that times out before synthesis returns findings but no summary.
+        summary: Dict[str, Any] = dict.fromkeys(["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"], 0)
+        for finding in findings:
+            severity = str(finding.get("severity", "")).upper()
+            if severity in summary:
+                summary[severity] += 1
+        summary["total"] = sum(summary.values())
+        # Same for the chains: one id per chain, whichever file's run found it.
+        exploit_chains = list(
+            {c.get("id"): c for r in file_reports for c in r.get("exploit_chains", [])}.values()
+        )
+        summary["exploit_chains"] = len(exploit_chains)
+        summary["tools_used"] = sorted(
+            {t for r in file_reports for t in r.get("summary", {}).get("tools_used", [])}
+        )
+
+        return {
+            "contract": str(dir_path),
+            "agent": "DeepAuditAgent",
+            "files": file_reports,
+            "protocol": {
+                "contracts": {
+                    name: {"file": c["file"], "bases": c["bases"]}
+                    for name, c in graph.contracts.items()
+                },
+                "calls": cross_contract_calls(graph),
+            },
+            "findings": findings,
+            "exploit_chains": exploit_chains,
+            "summary": summary,
+            "metadata": {
+                "files_analyzed": len(file_reports),
+                "files_total": len(sol_files),
+                "files_failed": failed,
+                "timed_out": len(file_reports) < len(sol_files),
+                "total_duration_ms": (time.monotonic() - start) * 1000,
+            },
+        }
 
     # -----------------------------------------------------------------------
     # Phase 1: Reconnaissance
@@ -633,6 +775,60 @@ class DeepAuditAgent(BaseAgent):
             logger.debug(f"{tool_name} error: {e}")
             return []
 
+    def _counterexample_findings(self, source_code: str, contract_path: str) -> List[Dict]:
+        """Execute gap probes and turn confirmed counterexamples into findings.
+
+        Deterministic and execution-gated: only a call that actually behaved as the gap predicted
+        under Foundry becomes a finding, and the result passes through the same FP filter as the
+        rest. Access-control gaps always run here; pause/freshness gaps run too when
+        ``enable_gap_reasoning`` is on (their precision invariant needs a control probe to confirm
+        the rejectable state before any target result is trusted). Returns [] when forge is absent,
+        nothing is eligible, or no counterexample is found.
+        """
+        try:
+            from miesc.llm import (
+                execute_access_control_gaps,
+                execute_reasoning_gaps,
+                mine_revert_invariants,
+            )
+            from miesc.llm.revert_invariant_findings import counterexample_findings
+
+            plans = mine_revert_invariants(
+                source_code, Path(contract_path) if contract_path else None
+            )
+            executions = execute_access_control_gaps(plans, source_code)
+            if self.config.enable_gap_reasoning:
+                executions = executions + execute_reasoning_gaps(
+                    plans,
+                    source_code,
+                    allow_remote=self.config.agentic_invariants_allow_remote,
+                )
+            emitted = counterexample_findings(executions, source_code, contract_path)
+            return self._filter_false_positives(emitted) if emitted else []
+        except Exception as e:  # never let gap execution break synthesis
+            logger.debug(f"Counterexample finding emission skipped: {e}")
+            return []
+
+    def _trust_boundary_findings(self, source_code: str, contract_path: str) -> List[Dict]:
+        """Promote trust-boundary gap hypotheses to Medium advisory findings (static, forge-free).
+
+        Deterministic and inferred (not execution-reproduced): mines the plans, emits a Medium
+        finding per ``trust_boundary`` hypothesis, and runs the same FP filter as every other
+        finding. Returns [] when nothing is eligible. Never raises into synthesis.
+        """
+        try:
+            from miesc.llm import mine_revert_invariants
+            from miesc.llm.revert_invariant_findings import trust_boundary_findings
+
+            plans = mine_revert_invariants(
+                source_code, Path(contract_path) if contract_path else None
+            )
+            emitted = trust_boundary_findings(plans, source_code, contract_path)
+            return self._filter_false_positives(emitted) if emitted else []
+        except Exception as e:  # never let a static emitter break synthesis
+            logger.debug(f"Trust-boundary finding emission skipped: {e}")
+            return []
+
     def _filter_false_positives(self, findings: List[Dict]) -> List[Dict]:
         """Apply FP filter to findings."""
         try:
@@ -914,6 +1110,69 @@ class DeepAuditAgent(BaseAgent):
                 "candidates": [],
                 "error": str(e),
             }
+
+    def _extract_advisory_plans(self, source_code: str, contract_path: str) -> Dict[str, Any]:
+        """Run the deterministic, LLM-free advisory-plan miners for report metadata.
+
+        Unlike ``_extract_agentic_invariants`` this needs no reasoning provider: each
+        miner statically inspects the source and returns provider-neutral plans, never
+        ``Finding`` objects, so the phase adds zero precision risk. A miner that raises
+        is recorded with its error and does not break the audit.
+        """
+        from miesc.llm import (
+            bridge_revert_invariant_plans,
+            execute_access_control_gaps,
+            execute_reasoning_gaps,
+            generate_revert_guard_harnesses,
+            mine_lending_solvency_liquidation,
+            mine_privileged_governance_lifecycle,
+            mine_resource_liveness_griefing,
+            mine_revert_invariants,
+        )
+
+        # Explicit annotation: the four miners have different plan return types; without
+        # this mypy joins them to ``object`` and rejects ``plan.to_dict()``.
+        miners: Dict[str, Callable[[str, Optional[Path]], List[Any]]] = {
+            "revert_invariants": mine_revert_invariants,
+            "privileged_governance": mine_privileged_governance_lifecycle,
+            "resource_liveness_griefing": mine_resource_liveness_griefing,
+            "lending_solvency_liquidation": mine_lending_solvency_liquidation,
+        }
+        path = Path(contract_path) if contract_path else None
+        capabilities: Dict[str, Any] = {}
+        total = 0
+        for key, miner in miners.items():
+            try:
+                plans = miner(source_code, path)
+                capabilities[key] = {
+                    "count": len(plans),
+                    "plans": [plan.to_dict() for plan in plans],
+                }
+                # Bridge the revert-invariant gap hypotheses into advisory sequence-oracle
+                # plans so the fuzzing/oracle guidance surfaces alongside the raw inventory.
+                # Additive and advisory-only: silent when the miner found no gaps.
+                if key == "revert_invariants":
+                    bridged = bridge_revert_invariant_plans(plans)
+                    capabilities[key]["oracle_plans"] = [p.to_dict() for p in bridged]
+                    # One rung further: incomplete, never-executed Foundry probe harnesses
+                    # (promotion: test_generated). Additive and advisory; no execution.
+                    capabilities[key]["harnesses"] = generate_revert_guard_harnesses(plans)
+                    # Opt-in execution: run the access-control probes with Foundry and record
+                    # only real counterexamples (promotion stays metadata, never a Finding here).
+                    if self.config.enable_gap_execution:
+                        executions = execute_access_control_gaps(plans, source_code)
+                        if self.config.enable_gap_reasoning:
+                            executions = executions + execute_reasoning_gaps(
+                                plans,
+                                source_code,
+                                allow_remote=self.config.agentic_invariants_allow_remote,
+                            )
+                        capabilities[key]["executions"] = executions
+                total += len(plans)
+            except Exception as e:
+                logger.debug(f"Advisory miner {key} skipped: {e}")
+                capabilities[key] = {"count": 0, "plans": [], "error": str(e)}
+        return {"enabled": True, "count": total, "capabilities": capabilities}
 
     def _enrich_with_rag(self, finding: Dict) -> Dict[str, Any]:
         """Enrich a finding with RAG vulnerability knowledge."""
@@ -1275,6 +1534,15 @@ Respond ONLY with JSON of the shape:
         findings = investigation.get("findings", scan.filtered_findings)
         chains = investigation.get("exploit_chains", [])
 
+        # Execution-verified access-control counterexamples become findings here (opt-in). They
+        # pass through the same FP filter and the correlation/dedup below as every other finding.
+        if self.config.enable_gap_execution:
+            findings = findings + self._counterexample_findings(source_code, contract_path)
+
+        # Static trust-boundary hypotheses promoted to Medium advisory findings (opt-in, forge-free).
+        if self.config.enable_trust_boundary_findings:
+            findings = findings + self._trust_boundary_findings(source_code, contract_path)
+
         # Correlation pass
         correlated = self._correlate_findings(findings)
 
@@ -1331,7 +1599,7 @@ Respond ONLY with JSON of the shape:
         provider = self.config.llm_provider
 
         # Try LLMOrchestrator (supports Ollama, Anthropic, OpenAI with fallback)
-        if provider == "auto" or provider in ("anthropic", "openai"):
+        if provider != "ollama":
             narrative = self._try_llm_orchestrator(findings, summary, chains)
             if narrative:
                 return narrative
@@ -1388,6 +1656,15 @@ Respond ONLY with JSON of the shape:
                         api_key=os.getenv("OPENAI_API_KEY"),
                     )
                 )
+
+            # Any other registered provider (deepseek, kimi, or one declared under
+            # llm.providers): endpoint, key and default model come from the registry.
+            if provider not in ("auto", "ollama", "anthropic", "openai"):
+                from miesc.llm.llm_orchestrator import config_for_provider
+
+                registry_config = config_for_provider(provider)
+                if registry_config is not None and registry_config.api_key:
+                    configs.append(registry_config)
 
             if not configs:
                 return ""

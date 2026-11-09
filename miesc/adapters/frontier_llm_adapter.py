@@ -30,6 +30,17 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, cast
 
+from miesc.adapters._ollama_mixin import ollama_format_json_default
+from miesc.core.llm_providers import (
+    ProviderSpec,
+    UnknownProviderError,
+    base_url_host,
+    get_provider,
+    is_configured,
+    load_providers,
+    make_client,
+    resolve_model,
+)
 from miesc.core.tool_protocol import (
     ToolAdapter,
     ToolCapability,
@@ -37,8 +48,26 @@ from miesc.core.tool_protocol import (
     ToolMetadata,
     ToolStatus,
 )
+from miesc.llm.json_extraction import extract_llm_json
 
 logger = logging.getLogger(__name__)
+
+
+def _env_int(name: str, default: int) -> int:
+    """Read an integer from the environment, falling back to ``default``.
+
+    A malformed value (e.g. ``MIESC_OLLAMA_NUM_CTX=32k``) logs a warning and
+    uses the default instead of raising ``ValueError`` mid-request and aborting
+    the analysis.
+    """
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    try:
+        return int(raw)
+    except ValueError:
+        logger.warning("Ignoring non-integer %s=%r; using default %d", name, raw, default)
+        return default
 
 
 # ---------------------------------------------------------------------------
@@ -135,16 +164,25 @@ Focus ONLY on HIGH and CRITICAL issues that could lead to loss of funds or proto
 class FrontierLLMAdapter(ToolAdapter):
     """Adapter for frontier LLM APIs (Claude, GPT) for deep semantic analysis."""
 
-    def __init__(self, provider: str = "auto"):
+    AUTO_ORDER = ("anthropic", "openai", "deepseek", "kimi")
+    """Providers tried, in this order, when ``provider="auto"`` (first one with a key wins)."""
+
+    def __init__(self, provider: str = "auto", model: Optional[str] = None):
         """
         Initialize with provider selection.
 
         Args:
-            provider: "anthropic", "openai", or "auto" (detect from env vars)
+            provider: a registry name (``anthropic``, ``openai``, ``deepseek``, ``kimi``,
+                ``ollama`` or one added under ``llm.providers`` in the config) or
+                ``"auto"`` (first provider in :attr:`AUTO_ORDER` with an API key set).
+            model: model id to use; ``None`` means the provider's default model.
         """
         self._provider = provider
-        self._model: Optional[str] = None
+        self._requested_model = model
+        self._model: Optional[str] = model
         self._client: Any = None
+        self._active_provider: Optional[str] = None
+        self._conversation_spec: Optional[ProviderSpec] = None
 
     def get_metadata(self) -> ToolMetadata:
         return ToolMetadata(
@@ -174,16 +212,36 @@ class FrontierLLMAdapter(ToolAdapter):
             ],
             cost=0.01,  # ~$0.01 per contract (depends on size)
             requires_api_key=True,
+            requires_llm=True,
             is_optional=True,
         )
 
     def _detect_provider(self) -> Optional[str]:
-        """Auto-detect provider from environment variables."""
-        if os.environ.get("ANTHROPIC_API_KEY"):
-            return "anthropic"
-        if os.environ.get("OPENAI_API_KEY"):
-            return "openai"
+        """First provider of :attr:`AUTO_ORDER` whose API key is set, else ``None``."""
+        providers = load_providers()
+        for name in self.AUTO_ORDER:
+            spec = providers.get(name)
+            if spec is not None and is_configured(spec):
+                return name
         return None
+
+    def _spec(self) -> Optional[ProviderSpec]:
+        """Registry entry of the provider in use (the fallback one while a fallback runs)."""
+        name = self._active_provider or self._get_provider()
+        if not name:
+            return None
+        try:
+            return get_provider(name)
+        except UnknownProviderError:
+            return None
+
+    def _spec_for_kind(self, kind: str) -> ProviderSpec:
+        """The provider to call for a client protocol: the conversation's explicit
+        provider, then the adapter's own, then the built-in of that kind."""
+        for candidate in (self._conversation_spec, self._spec()):
+            if candidate is not None and candidate.kind == kind:
+                return candidate
+        return get_provider({"anthropic": "anthropic", "openai": "openai"}.get(kind, "ollama"))
 
     def _preprocess_codebase(self, source_code: str) -> str:
         """Build a protocol map from code structure analysis.
@@ -323,45 +381,33 @@ class FrontierLLMAdapter(ToolAdapter):
     def is_available(self) -> ToolStatus:
         provider = self._get_provider()
         if not provider:
-            logger.debug("FrontierLLM: No API key found (ANTHROPIC_API_KEY or OPENAI_API_KEY)")
+            logger.debug("FrontierLLM: no API key found for %s", ", ".join(self.AUTO_ORDER))
             return ToolStatus.NOT_INSTALLED
+        try:
+            spec = get_provider(provider)
+        except UnknownProviderError as exc:
+            logger.warning("FrontierLLM: %s", exc)
+            return ToolStatus.CONFIGURATION_ERROR
 
-        if provider == "anthropic":
-            try:
-                import anthropic  # noqa: F401
-
-                if not os.environ.get("ANTHROPIC_API_KEY"):
-                    return ToolStatus.CONFIGURATION_ERROR
-                return ToolStatus.AVAILABLE
-            except ImportError:
-                logger.info("FrontierLLM: anthropic SDK not installed. pip install anthropic")
-                return ToolStatus.NOT_INSTALLED
-
-        if provider == "ollama":
+        if spec.kind == "ollama":
             return ToolStatus.AVAILABLE if self._check_ollama() else ToolStatus.NOT_INSTALLED
 
-        if provider == "openai":
-            try:
-                import openai  # noqa: F401
-
-                if not os.environ.get("OPENAI_API_KEY"):
-                    return ToolStatus.CONFIGURATION_ERROR
-                return ToolStatus.AVAILABLE
-            except ImportError:
-                logger.info("FrontierLLM: openai SDK not installed. pip install openai")
-                return ToolStatus.NOT_INSTALLED
-
-        if provider == "deepseek":
-            try:
-                import openai  # noqa: F401 -- DeepSeek uses the OpenAI-compatible SDK
-
-                if not os.environ.get("DEEPSEEK_API_KEY"):
-                    return ToolStatus.CONFIGURATION_ERROR
-                return ToolStatus.AVAILABLE
-            except ImportError:
-                return ToolStatus.NOT_INSTALLED
-
-        return ToolStatus.NOT_INSTALLED
+        sdk = "anthropic" if spec.kind == "anthropic" else "openai"
+        try:
+            __import__(sdk)
+        except ImportError:
+            logger.info(
+                "FrontierLLM: %s needs the %s SDK. pip install %s", spec.display_name, sdk, sdk
+            )
+            return ToolStatus.NOT_INSTALLED
+        if not is_configured(spec):
+            logger.info(
+                "FrontierLLM: %s selected but %s is not set",
+                spec.display_name,
+                " / ".join(spec.api_key_env),
+            )
+            return ToolStatus.CONFIGURATION_ERROR
+        return ToolStatus.AVAILABLE
 
     def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
         """Analyze contract using frontier LLM API.
@@ -399,16 +445,19 @@ class FrontierLLMAdapter(ToolAdapter):
             rag_context = protocol_map + "\n\n" + rag_context
 
         provider = self._get_provider()
+        spec = self._spec()
+        if spec is None:
+            return self._error_result(start_time, f"Unknown provider: {provider}")
+        if self._requested_model and not kwargs.get("model"):
+            kwargs["model"] = self._requested_model
 
         try:
-            if provider == "anthropic":
+            if spec.kind == "anthropic":
                 findings = self._analyze_anthropic(source_code, rag_context=rag_context, **kwargs)
-            elif provider in ("openai", "deepseek"):
+            elif spec.kind == "openai":
                 findings = self._analyze_openai(source_code, rag_context=rag_context, **kwargs)
-            elif provider == "ollama":
-                findings = self._analyze_ollama(source_code, rag_context=rag_context, **kwargs)
             else:
-                return self._error_result(start_time, f"Unknown provider: {provider}")
+                findings = self._analyze_ollama(source_code, rag_context=rag_context, **kwargs)
         except Exception as e:
             # A provider-comparison benchmark must NOT silently substitute a
             # different provider on failure — that corrupts the comparison (a
@@ -417,18 +466,16 @@ class FrontierLLMAdapter(ToolAdapter):
             if os.environ.get("MIESC_FRONTIER_NO_FALLBACK"):
                 logger.error(f"FrontierLLM: {provider} failed, fallback disabled: {e}")
                 return self._error_result(start_time, f"{provider} failed (no fallback): {e}")
-            # Auto-fallback: if primary provider fails, try the other one
-            fallback = "openai" if provider == "anthropic" else "anthropic"
-            fallback_key = "OPENAI_API_KEY" if fallback == "openai" else "ANTHROPIC_API_KEY"
-            if os.environ.get(fallback_key):
+            # Auto-fallback: if the primary provider fails, try the other built-in cloud
+            # provider (anthropic <-> openai), only when its key is set.
+            fallback = "openai" if spec.kind == "anthropic" else "anthropic"
+            fallback_spec = get_provider(fallback)
+            if is_configured(fallback_spec):
                 logger.warning(f"FrontierLLM: {provider} failed ({e}), falling back to {fallback}")
-                # Use the correct default model for the fallback provider
                 fallback_kwargs = dict(kwargs)
                 fallback_kwargs.pop("model", None)
-                if fallback == "openai":
-                    fallback_kwargs["model"] = "gpt-4o"
-                else:
-                    fallback_kwargs["model"] = "claude-sonnet-4-6"
+                fallback_kwargs["model"] = fallback_spec.default_model
+                self._active_provider = fallback
                 try:
                     if fallback == "openai":
                         findings = self._analyze_openai(
@@ -443,6 +490,8 @@ class FrontierLLMAdapter(ToolAdapter):
                         f"FrontierLLM: Both providers failed. {provider}: {e}, {fallback}: {e2}"
                     )
                     return self._error_result(start_time, f"{provider}: {e} | {fallback}: {e2}")
+                finally:
+                    self._active_provider = None
             else:
                 logger.error(f"FrontierLLM API error: {e}")
                 return self._error_result(start_time, str(e))
@@ -452,14 +501,19 @@ class FrontierLLMAdapter(ToolAdapter):
         # Normalize findings — handle diverse key names from different LLM responses
         normalized = []
         for f in findings:
-            title = (
+            # LLM output is untrusted: a hostile/atypical response may include a
+            # non-dict entry or a non-string ``type``. Guard both so normalization
+            # never raises (a crash here aborts the whole scan).
+            if not isinstance(f, dict):
+                continue
+            title = str(
                 f.get("title")
                 or f.get("vulnerability")
                 or f.get("name")
                 or f.get("type")
                 or "Unknown"
             )
-            ftype = (
+            ftype = str(
                 f.get("type") or f.get("category") or f.get("vulnerability_type") or "logic_error"
             )
             severity = f.get("severity") or "Medium"
@@ -557,7 +611,9 @@ class FrontierLLMAdapter(ToolAdapter):
             "metadata": {
                 "provider": provider,
                 "model": self._model,
+                "base_url_host": base_url_host(spec) if spec else "",
                 "source_chars": len(source_code),
+                "parse": getattr(self, "_last_parse", None),
             },
         }
 
@@ -648,22 +704,20 @@ Report ONLY NEW vulnerabilities not found in the first pass. Focus on HIGH/CRITI
 Respond with a JSON array."""
 
         try:
-            if provider == "anthropic":
-                import anthropic
-
-                client: Any = anthropic.Anthropic()
+            spec = self._spec()
+            kind = spec.kind if spec else provider
+            if kind == "anthropic":
+                client: Any = make_client(self._spec_for_kind("anthropic"))
                 msg = client.messages.create(
-                    model=kwargs.get("model", "claude-sonnet-4-6"),
+                    model=kwargs.get("model") or self._spec_for_kind("anthropic").default_model,
                     max_tokens=4096,
                     system=AUDIT_SYSTEM_PROMPT,
                     messages=[{"role": "user", "content": deep_prompt}],
                 )
                 return self._parse_response(getattr(msg.content[0], "text", ""))
-            elif provider == "openai":
-                import openai
-
-                client = openai.OpenAI()
-                _dp_model = kwargs.get("model", "gpt-4o")
+            elif kind == "openai":
+                client = make_client(self._spec_for_kind("openai"))
+                _dp_model = kwargs.get("model") or self._spec_for_kind("openai").default_model
                 resp = client.chat.completions.create(
                     model=_dp_model,
                     # Reasoning models (DeepSeek V4) need a large budget: reasoning
@@ -715,22 +769,29 @@ Respond with a JSON array."""
             )
 
             try:
-                if provider == "anthropic":
-                    import anthropic
-
-                    client: Any = anthropic.Anthropic()
+                spec = self._spec()
+                kind = spec.kind if spec else provider
+                if kind == "anthropic":
+                    verifier = self._spec_for_kind("anthropic")
+                    client: Any = make_client(verifier)
                     msg = client.messages.create(
-                        model="claude-haiku-4-5-20251001",  # Cheaper model for verification
+                        # A cheaper model for verification where the provider has one
+                        model=(
+                            "claude-haiku-4-5-20251001"
+                            if verifier.name == "anthropic"
+                            else verifier.default_model
+                        ),
                         max_tokens=500,
                         messages=[{"role": "user", "content": challenge_prompt}],
                     )
                     response = getattr(msg.content[0], "text", "")
-                elif provider == "openai":
-                    import openai
-
-                    client = openai.OpenAI()
+                elif kind == "openai":
+                    verifier = self._spec_for_kind("openai")
+                    client = make_client(verifier)
                     resp = client.chat.completions.create(
-                        model="gpt-4o-mini",  # Cheaper model for verification
+                        model=(
+                            "gpt-4o-mini" if verifier.name == "openai" else verifier.default_model
+                        ),
                         max_tokens=500,
                         messages=[{"role": "user", "content": challenge_prompt}],
                     )
@@ -966,12 +1027,11 @@ Respond with a JSON array."""
                 pass
 
     def _analyze_anthropic(self, source_code: str, **kwargs: Any) -> List[Dict]:
-        """Call Anthropic Claude API."""
-        import anthropic
-
-        client: Any = anthropic.Anthropic()
+        """Call the Anthropic Messages API (or an Anthropic-compatible endpoint)."""
+        spec = self._spec_for_kind("anthropic")
+        client: Any = make_client(spec)
         rag_context = kwargs.pop("rag_context", "")
-        model = kwargs.get("model", "claude-sonnet-4-6")
+        model = kwargs.get("model") or spec.default_model
         self._model = model
 
         user_prompt = self._build_user_prompt(source_code, rag_context)
@@ -1035,6 +1095,7 @@ Respond with a JSON array."""
             the tool-call trace, and accumulated token usage.
         """
         provider = self._resolve_conversation_provider(model)
+        model = self._conversation_model(model)
         if provider == "openai":
             return self._converse_openai(
                 system, messages, tools, on_tool_call, model, max_iterations, temperature
@@ -1048,16 +1109,29 @@ Respond with a JSON array."""
         ``anthropic`` → anthropic; ``gpt``/``openai``/o-series → openai);
         otherwise fall back to the adapter's configured/detected provider,
         defaulting to anthropic."""
+        self._conversation_spec = None
         if model:
-            m = model.lower()
-            if m.startswith(("claude", "anthropic")):
-                return "anthropic"
-            if m.startswith(("gpt", "openai", "o1", "o3", "o4")):
-                return "openai"
-        provider = self._get_provider()
-        if provider in ("anthropic", "openai"):
-            return provider
+            try:
+                choice = resolve_model(model)
+            except UnknownProviderError:
+                choice = None
+            if choice is not None and choice.provider.kind in ("anthropic", "openai"):
+                self._conversation_spec = choice.provider
+                return choice.provider.kind
+        spec = self._spec()
+        if spec is not None and spec.kind in ("anthropic", "openai"):
+            return spec.kind
         return "anthropic"
+
+    def _conversation_model(self, model: Optional[str]) -> Optional[str]:
+        """``provider:model`` / alias → bare model id for the SDK call."""
+        if not model:
+            return None
+        try:
+            choice = resolve_model(model)
+        except UnknownProviderError:
+            return model
+        return choice.model if choice else model
 
     def _converse_anthropic(
         self,
@@ -1070,10 +1144,9 @@ Respond with a JSON array."""
         temperature: float = 0.2,
     ) -> ConversationResult:
         """Anthropic ``tool_use`` branch of :meth:`converse_with_tools`."""
-        import anthropic
-
-        client: Any = anthropic.Anthropic()
-        model = model or "claude-sonnet-4-6"
+        spec = self._spec_for_kind("anthropic")
+        client: Any = make_client(spec)
+        model = model or spec.default_model
         self._model = model
 
         # Translate provider-neutral specs to Anthropic's tool format.
@@ -1228,10 +1301,9 @@ Respond with a JSON array."""
         back as a ``role:"tool"`` message until the model returns plain content
         or ``max_iterations`` rounds are exhausted.
         """
-        import openai
-
-        client: Any = openai.OpenAI()
-        model = model or "gpt-4o"
+        spec = self._spec_for_kind("openai")
+        client: Any = make_client(spec)
+        model = model or spec.default_model
         self._model = model
 
         # Translate provider-neutral specs to OpenAI's function-tool format.
@@ -1268,12 +1340,12 @@ Respond with a JSON array."""
             token_param["max_tokens"] = 32768
             # Determinism: temperature 0 + fixed seed so repeated runs match.
             extra["temperature"] = 0.0
-            extra["seed"] = int(os.environ.get("MIESC_LLM_SEED", "42"))
+            extra["seed"] = _env_int("MIESC_LLM_SEED", 42)
         else:
             token_param["max_tokens"] = 8192
             # Determinism: temperature 0 + fixed seed so repeated runs match.
             extra["temperature"] = 0.0
-            extra["seed"] = int(os.environ.get("MIESC_LLM_SEED", "42"))
+            extra["seed"] = _env_int("MIESC_LLM_SEED", 42)
 
         logger.info(
             "FrontierLLM: Starting tool-use conversation with %s " "(%d tools, max_iterations=%d)",
@@ -1413,23 +1485,12 @@ Respond with a JSON array."""
         )
 
     def _analyze_openai(self, source_code: str, **kwargs: Any) -> List[Dict]:
-        """Call OpenAI API (GPT-4o, GPT-5, o-series) or DeepSeek (OpenAI-compatible)."""
-        import openai
-
+        """Call an OpenAI-compatible chat API: OpenAI, DeepSeek, Kimi or a configured endpoint."""
+        spec = self._spec_for_kind("openai")
         rag_context = kwargs.pop("rag_context", "")
-        model = kwargs.get("model", "gpt-4o")
+        model = kwargs.get("model") or spec.default_model
         self._model = model
-        # DeepSeek exposes an OpenAI-compatible endpoint; route by provider/model.
-        if os.environ.get("DEEPSEEK_API_KEY") and (
-            self._get_provider() == "deepseek" or model.startswith("deepseek")
-        ):
-            client: Any = openai.OpenAI(
-                base_url="https://api.deepseek.com",
-                api_key=os.environ["DEEPSEEK_API_KEY"],
-                timeout=300,
-            )
-        else:
-            client = openai.OpenAI()
+        client: Any = make_client(spec)
 
         user_prompt = self._build_user_prompt(source_code, rag_context)
         rag_note = f" +RAG({len(rag_context)})" if rag_context else ""
@@ -1452,12 +1513,12 @@ Respond with a JSON array."""
             token_param["max_tokens"] = 32768
             # Determinism: temperature 0 + fixed seed so repeated runs match.
             extra["temperature"] = 0.0
-            extra["seed"] = int(os.environ.get("MIESC_LLM_SEED", "42"))
+            extra["seed"] = _env_int("MIESC_LLM_SEED", 42)
         else:
             token_param["max_tokens"] = 8192
             # Determinism: temperature 0 + fixed seed so repeated runs match.
             extra["temperature"] = 0.0
-            extra["seed"] = int(os.environ.get("MIESC_LLM_SEED", "42"))
+            extra["seed"] = _env_int("MIESC_LLM_SEED", 42)
 
         response = client.chat.completions.create(
             model=model,
@@ -1574,21 +1635,28 @@ Respond with a JSON array."""
         logger.info(f"FrontierLLM: Calling Ollama {model} ({len(trimmed)} chars{rag_note})")
 
         # Use chat endpoint (handles system/user roles better than generate)
-        data = json.dumps(
-            {
-                "model": model,
-                "messages": [
-                    {"role": "system", "content": AUDIT_SYSTEM_PROMPT},
-                    {"role": "user", "content": user_prompt},
-                ],
-                "stream": False,
-                "options": {
-                    "temperature": 0,
-                    "seed": int(os.environ.get("MIESC_LLM_SEED", "42")),
-                    "num_predict": 4096,
-                },
-            }
-        ).encode()
+        body: Dict[str, Any] = {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": AUDIT_SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt},
+            ],
+            "stream": False,
+            "options": {
+                "temperature": 0,
+                "seed": _env_int("MIESC_LLM_SEED", 42),
+                "num_predict": 4096,
+                # Ollama's per-request context defaults to 4096 tokens, which
+                # silently truncates contracts larger than ~12 KB. Set it so the
+                # full source reaches the model (32B models have ~32K context).
+                "num_ctx": _env_int("MIESC_OLLAMA_NUM_CTX", 32768),
+            },
+        }
+        if ollama_format_json_default():
+            # Native structured output (MIESC_OLLAMA_FORMAT_JSON=1): the model
+            # returns a JSON document instead of prose the extractor must repair.
+            body["format"] = "json"
+        data = json.dumps(body).encode()
 
         req = urllib.request.Request(
             "http://localhost:11434/api/chat",
@@ -1599,158 +1667,48 @@ Respond with a JSON array."""
         result = json.loads(resp.read())
         return self._parse_response(result.get("message", {}).get("content", ""))
 
+    _FINDING_KEYS = ("title", "type", "vulnerability", "description", "severity")
+
     def _parse_response(self, text: str) -> List[Dict]:
-        """Parse JSON findings from LLM response.
+        """Parse JSON findings from an LLM response.
 
-        Handles multiple response formats:
-        - Raw JSON array: [...]
-        - Markdown code block: ```json [...] ```
-        - Wrapped dict: {"vulnerabilities": [...]}
-        - Mixed text with embedded JSON
+        Accepts a raw array, a fenced array, a wrapped dict
+        (``{"vulnerabilities": [...]}``), prose around the JSON, NDJSON lines and
+        the malformed variants local models emit (trailing commas, raw newlines,
+        unescaped quotes inside Solidity snippets). Delegates to the shared
+        extractor so every LLM adapter reads the same inputs the same way.
         """
-        import re
-
-        text = text.strip()
-
-        # Strip OUTER markdown code fences only (preserve inner ones in strings)
-        # Match: starts with ```json, ends with ```
-        text_clean = text
-        if text_clean.startswith("```"):
-            # Remove opening fence
-            first_newline = text_clean.find("\n")
-            if first_newline > 0:
-                text_clean = text_clean[first_newline + 1 :]
-            # Remove closing fence
-            last_fence = text_clean.rfind("```")
-            if last_fence > 0:
-                text_clean = text_clean[:last_fence]
-        text_clean = text_clean.strip()
-
-        # Try multiple extraction strategies
-        for attempt_text in [text_clean, text]:
-            # Strategy 1: Find outermost JSON array
-            start = attempt_text.find("[")
-            end = attempt_text.rfind("]")
-            if start != -1 and end != -1 and end > start:
-                json_str = attempt_text[start : end + 1]
-                # Sanitize: escape inner backticks and control chars in string values
-                json_str = json_str.replace("```solidity", "").replace("```", "")
-                # Fix literal newlines/tabs inside JSON string values (common with local LLMs)
-                # Replace actual newlines inside strings with \\n
-                json_str = re.sub(
-                    r'(?<=": ")(.*?)(?="[,\s*\}])',
-                    lambda m: m.group(0).replace("\n", "\\n").replace("\t", "\\t"),
-                    json_str,
-                    flags=re.DOTALL,
+        extraction = extract_llm_json(text, want="auto", log_prefix="FrontierLLM")
+        self._last_parse = extraction.as_dict()
+        findings: List[Dict] = []
+        data = extraction.data
+        if isinstance(data, list):
+            findings = [f for f in data if isinstance(f, dict)]
+        elif isinstance(data, dict):
+            for key in ("vulnerabilities", "findings", "results", "issues"):
+                value = data.get(key)
+                if isinstance(value, list):
+                    findings = [f for f in value if isinstance(f, dict)]
+                    break
+            else:
+                if any(k in data for k in self._FINDING_KEYS):
+                    findings = [data]
+        findings = [f for f in findings if any(k in f for k in self._FINDING_KEYS)]
+        if findings:
+            if extraction.strategy and extraction.strategy not in ("direct", "fenced"):
+                logger.info(
+                    "FrontierLLM: recovered %d finding(s) via %s",
+                    len(findings),
+                    extraction.strategy,
                 )
-                # Fallback: replace ALL raw control chars with spaces
-                json_str = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", " ", json_str)
-                try:
-                    findings = json.loads(json_str)
-                    if isinstance(findings, list):
-                        valid = [f for f in findings if isinstance(f, dict)]
-                        if valid:
-                            return valid
-                except json.JSONDecodeError:
-                    # Try fixing common JSON issues: trailing commas + raw newlines
-                    fixed = re.sub(r",\s*([}\]])", r"\1", json_str)
-                    # Nuclear option: replace ALL newlines that aren't between [ and ]
-                    fixed = fixed.replace("\n", "\\n")
-                    try:
-                        findings = json.loads(fixed)
-                        if isinstance(findings, list):
-                            return [f for f in findings if isinstance(f, dict)]
-                    except json.JSONDecodeError:
-                        pass
-
-            # Strategy 2: Parse as dict with vulnerabilities key
-            try:
-                result = json.loads(attempt_text)
-                if isinstance(result, list):
-                    return [f for f in result if isinstance(f, dict)]
-                if isinstance(result, dict):
-                    for key in ("vulnerabilities", "findings", "results"):
-                        if key in result and isinstance(result[key], list):
-                            return [f for f in result[key] if isinstance(f, dict)]
-            except json.JSONDecodeError:
-                pass
-
-        # Strategy 3: Extract individual JSON objects line by line
-        findings = []
-        for line in text.split("\n"):
-            line = line.strip().rstrip(",")
-            if line.startswith("{") and line.endswith("}"):
-                try:
-                    obj = json.loads(line)
-                    if isinstance(obj, dict) and any(
-                        k in obj for k in ("title", "type", "vulnerability", "description")
-                    ):
-                        findings.append(obj)
-                except json.JSONDecodeError:
-                    pass
-        if findings:
             return findings
-
-        # Strategy 4: Extract objects by matching balanced braces
-        depth = 0
-        obj_start = -1
-        for i, ch in enumerate(text_clean):
-            if ch == "{":
-                if depth == 0:
-                    obj_start = i
-                depth += 1
-            elif ch == "}":
-                depth -= 1
-                if depth == 0 and obj_start >= 0:
-                    obj_str = text_clean[obj_start : i + 1]
-                    # Clean up common issues in extracted objects
-                    obj_str = obj_str.replace("```solidity", "").replace("```", "")
-                    obj_str = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", " ", obj_str)
-                    try:
-                        obj = json.loads(obj_str)
-                        if isinstance(obj, dict) and any(
-                            k in obj
-                            for k in ("title", "type", "vulnerability", "description", "severity")
-                        ):
-                            findings.append(obj)
-                    except json.JSONDecodeError:
-                        pass
-                    obj_start = -1
-        if findings:
-            return findings
-
-        # Strategy 5: Find JSON array anywhere in the text using regex
-        # Handles cases where model outputs explanation text before/after JSON
-        json_array_match = re.search(r"\[\s*\{", text)
-        if json_array_match:
-            # Find the matching closing bracket
-            start_pos = json_array_match.start()
-            bracket_depth = 0
-            end_pos = start_pos
-            for i in range(start_pos, len(text)):
-                if text[i] == "[":
-                    bracket_depth += 1
-                elif text[i] == "]":
-                    bracket_depth -= 1
-                    if bracket_depth == 0:
-                        end_pos = i + 1
-                        break
-            if end_pos > start_pos:
-                json_str = text[start_pos:end_pos]
-                json_str = json_str.replace("```solidity", "").replace("```", "")
-                json_str = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", " ", json_str)
-                # Fix trailing commas
-                json_str = re.sub(r",\s*([}\]])", r"\1", json_str)
-                try:
-                    findings = json.loads(json_str)
-                    if isinstance(findings, list):
-                        valid = [f for f in findings if isinstance(f, dict)]
-                        if valid:
-                            return valid
-                except json.JSONDecodeError:
-                    pass
-
-        logger.warning(f"FrontierLLM: Could not parse response ({len(text)} chars)")
+        if extraction.ok:
+            logger.warning("FrontierLLM: parsed JSON but found no finding objects")
+        else:
+            logger.warning(f"FrontierLLM: Could not parse response ({len(text or '')} chars)")
+            logger.debug(
+                "FrontierLLM: unparseable response (first 2000 chars):\n%s", (text or "")[:2000]
+            )
         return []
 
     def normalize_findings(self, raw_output: Any) -> List[Dict[str, Any]]:

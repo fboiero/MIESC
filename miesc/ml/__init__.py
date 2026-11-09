@@ -230,6 +230,7 @@ class MLPipeline:
         findings: List[Dict[str, Any]],
         code_context_map: Optional[Dict[str, str]] = None,
         contract_source: Optional[str] = None,
+        contract_path: Optional[str] = None,
     ) -> MLEnhancedResult:
         """
         Procesa hallazgos a través del pipeline ML completo.
@@ -238,6 +239,7 @@ class MLPipeline:
             findings: Lista de hallazgos de herramientas
             code_context_map: Mapa de file:line -> código contexto
             contract_source: Código fuente completo (para embeddings)
+            contract_path: Archivo del código, para ubicar los hallazgos de patrones
 
         Returns:
             MLEnhancedResult con hallazgos mejorados
@@ -250,7 +252,7 @@ class MLPipeline:
 
         # 0. Run classic pattern detector for additional findings
         if self.classic_detector and contract_source:
-            classic_findings = self._detect_classic_patterns(contract_source)
+            classic_findings = self._detect_classic_patterns(contract_source, contract_path)
             findings = self._merge_findings(findings, classic_findings)
 
         len(findings)
@@ -318,7 +320,9 @@ class MLPipeline:
             timestamp=datetime.now(),
         )
 
-    def _detect_classic_patterns(self, source_code: str) -> List[Dict[str, Any]]:
+    def _detect_classic_patterns(
+        self, source_code: str, contract_path: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
         """
         Detect vulnerabilities using classic regex patterns.
         These complement tool-based detection with 81.2% recall.
@@ -337,7 +341,7 @@ class MLPipeline:
                     "severity": match.severity.capitalize(),
                     "confidence": match.confidence,
                     "location": {
-                        "file": "contract.sol",
+                        "file": contract_path or "contract.sol",
                         "line": match.line,
                     },
                     "message": match.description,

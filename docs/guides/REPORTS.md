@@ -104,6 +104,25 @@ miesc report --help
 | `--llm-interpret` | Enable LLM-generated insights |
 | `-i, --interactive` | Interactive wizard mode |
 
+## Run Provenance in Result JSON
+
+Every result JSON that `miesc report` consumes (`miesc scan -o`, `miesc audit quick|full -o`)
+carries a `provenance` block next to `findings`: the MIESC version and git commit, Python
+and OS, the version string of every tool that ran (as its binary reports it), the `solc`
+build selected per contract, the configuration file and its SHA-256, the reproducibility
+environment variables that were set, an `llm_free` flag and the exact command line.
+`miesc fix` writes the same block into its run report (`<output>.json` next to the
+patched file) together with the `provenance` of the scan it consumed.
+
+```bash
+jq '.provenance.tools' results.json          # {"slither": "0.11.6", "aderyn": "aderyn 0.1.9", ...}
+jq -r '.provenance.command_line' results.json
+```
+
+Quote the block in an audit report's methodology section: it is what lets a reader rerun
+the analysis with the same tool releases. Field reference:
+[docs/guides/RESEARCH.md → Run provenance](RESEARCH.md#run-provenance).
+
 ## Output Formats
 
 ### PDF (Recommended for Delivery)

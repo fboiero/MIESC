@@ -25,6 +25,7 @@ docs/
 ├── architecture/                 # Current architecture docs
 ├── policies/                     # Current governance, security, privacy, DPG docs
 ├── adr/                          # Architecture decision records
+├── sdd/                          # Spec-driven design notes (dated, historical; see sdd/README.md)
 ├── roadmap/                      # Current and historical planning notes
 ├── evidence/                     # Historical post-thesis OSS evidence archive
 ├── tesis/                        # Historical thesis archive (v4.0.0)
@@ -64,6 +65,7 @@ docs/
 |----------|----------|-------------|
 | Repository Hygiene | `guides/REPOSITORY_HYGIENE.md` | What belongs in Git, what is generated/local, and how evidence is curated |
 | Researcher Packaging | `guides/RESEARCHER_PACKAGING.md` | How researchers should install and run the full toolchain |
+| LLM Providers | `guides/LLM_PROVIDERS.md` | Cloud APIs (Claude, GPT, DeepSeek, Kimi), local Ollama and custom OpenAI-compatible endpoints: selection, keys, config |
 | Testing Guide | `guides/TESTING.md` | Test strategy and validation commands |
 | RAG Source Policy | `guides/RAG_SOURCE_POLICY.md` | Source selection and weighting criteria |
 | Remediation API/MCP | `guides/REMEDIATION_API_MCP.md` | Evidence-producing remediation workflows |
@@ -78,6 +80,25 @@ docs/
 | Reports | `guides/REPORTS.md` | Report generation and templates |
 | Architecture | `ARCHITECTURE.md` | High-level architecture |
 | Tools | `TOOLS.md` | Tool inventory |
+
+### Reference and Topic Guides
+
+| Document | Location | Description |
+|----------|----------|-------------|
+| Installation | `INSTALLATION.md` / `INSTALLATION_ES.md` | Installation guide (EN / ES) |
+| Custom detectors | `CUSTOM_DETECTORS.md` | Writing and registering custom detectors |
+| Multichain | `MULTICHAIN.md` | Multichain support and current scope |
+| Architecture patterns | `ARCHITECTURE_PATTERNS.md` | Design patterns and conventions |
+| Validation guide | `VALIDATION_GUIDE.md` | Validation strategy and commands |
+| Comparison | `COMPARISON.md` | MIESC compared to other tools |
+| Roadmap | `ROADMAP.md` | Project roadmap |
+| Security policy | `SECURITY.md` / `SECURITY_ES.md` | Security policy (EN / ES) |
+| Community | `COMMUNITY.md` | Community, support and governance pointers |
+| Contributors | `CONTRIBUTORS.md` | Project contributors |
+
+> Dated reports (`*_YYYYMMDD.md`), `SDD_*` design notes, and superseded audits
+> under `docs/` are development history, not reference documentation; they are
+> intentionally not indexed here.
 
 ### Historical Thesis Archive
 

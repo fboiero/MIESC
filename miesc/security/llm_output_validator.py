@@ -402,9 +402,10 @@ def repair_common_json_errors(json_str: str) -> str:
     # Remove trailing commas before } or ]
     json_str = re.sub(r",\s*([}\]])", r"\1", json_str)
 
-    # Replace single quotes with double quotes (carefully)
-    # Only if not inside a string value
-    json_str = re.sub(r"(?<![\\])\'", '"', json_str)
+    # Repair wholly single-quoted Python-style output without corrupting
+    # apostrophes inside otherwise valid JSON strings.
+    if '"' not in json_str:
+        json_str = json_str.replace("'", '"')
 
     # Fix unquoted keys
     json_str = re.sub(r"(\{|\,)\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*:", r'\1"\2":', json_str)
@@ -453,19 +454,20 @@ def safe_parse_llm_json(
         # Try the whole content as JSON
         json_str = content.strip()
 
-    # Attempt to repair common errors
-    json_str = repair_common_json_errors(json_str)
-
     # Parse JSON
     try:
         data = json.loads(json_str)
-    except json.JSONDecodeError as e:
-        logger.warning(f"JSON parse error: {e}")
-        return ValidationResult(
-            is_valid=False,
-            errors=[f"JSON parse error: {e}"],
-            raw_content=content,
-        )
+    except json.JSONDecodeError:
+        json_str = repair_common_json_errors(json_str)
+        try:
+            data = json.loads(json_str)
+        except json.JSONDecodeError as e:
+            logger.warning(f"JSON parse error: {e}")
+            return ValidationResult(
+                is_valid=False,
+                errors=[f"JSON parse error: {e}"],
+                raw_content=content,
+            )
 
     # Validate with Pydantic
     try:
@@ -490,16 +492,21 @@ def safe_parse_llm_json(
                 raw_content=content,
             )
 
-        # Try lenient parsing - extract what we can
+        # Lenient mode: surface a best-effort partial object for inspection, but the
+        # result is NOT valid. ``model_construct`` bypasses every validator, type check
+        # and sanitizer, so returning ``is_valid=True`` here would fail OPEN — malformed
+        # or malicious LLM output would flow downstream as if it had been validated.
+        # Callers MUST check ``is_valid`` before trusting ``data``.
         logger.warning(f"Validation errors (lenient mode): {error_messages}")
         warnings.extend(error_messages)
 
         try:
-            # Use model_construct for partial data
+            # Best-effort, UNVALIDATED partial data — for inspection only.
             partial = model_class.model_construct(**data)
             return ValidationResult(
-                is_valid=True,
+                is_valid=False,
                 data=partial,
+                errors=error_messages,
                 warnings=warnings,
                 raw_content=content,
             )

@@ -29,6 +29,8 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 from urllib.parse import urlsplit
 
+from miesc.core.finding_taxonomy import CanonicalCategory, normalize_finding_type
+
 logger = logging.getLogger(__name__)
 
 _FILENAME_SAFE_CHARS = f"-_() {string.ascii_letters}{string.digits}"
@@ -765,12 +767,13 @@ class PoCGenerator:
         # Aderyn-specific finding types
         "selfdestruct-identifier": VulnerabilityType.SELFDESTRUCT,
         "selfdestruct_identifier": VulnerabilityType.SELFDESTRUCT,
-        "uninitialized-state-variable": VulnerabilityType.ACCESS_CONTROL,
-        "uninitialized_state_variable": VulnerabilityType.ACCESS_CONTROL,
         "unchecked-send": VulnerabilityType.UNCHECKED_CALL,
         "unchecked_send": VulnerabilityType.UNCHECKED_CALL,
-        "weak-randomness": VulnerabilityType.TIMESTAMP_DEPENDENCE,
-        "weak_randomness": VulnerabilityType.TIMESTAMP_DEPENDENCE,
+        # NOTE: "weak-randomness" and "uninitialized-state-variable" are
+        # intentionally NOT aliased here. Routing them to TIMESTAMP_DEPENDENCE /
+        # ACCESS_CONTROL produced a PoC mislabelled as a different vuln class.
+        # They now resolve via the canonical taxonomy (BAD_RANDOMNESS /
+        # INITIALIZATION), which have no exploit template, so no PoC is emitted.
         "tx-origin-used-for-auth": VulnerabilityType.TX_ORIGIN,
         "tx_origin_used_for_auth": VulnerabilityType.TX_ORIGIN,
         "unsafe-erc20-functions": VulnerabilityType.UNCHECKED_CALL,
@@ -796,6 +799,26 @@ class PoCGenerator:
         "swc-114": VulnerabilityType.FRONT_RUNNING,
         "swc-115": VulnerabilityType.TX_ORIGIN,
         "swc-116": VulnerabilityType.TIMESTAMP_DEPENDENCE,
+    }
+
+    # Canonical category -> PoC vulnerability type, used as a fallback when a
+    # raw detector name has no exact alias. Categories mapped to ``None`` have no
+    # exploit template; a finding resolving only to them yields NO PoC rather
+    # than a mislabelled one (honesty invariant). ``OTHER`` is likewise absent.
+    CANONICAL_TO_VULN_TYPE: Dict[CanonicalCategory, VulnerabilityType] = {
+        CanonicalCategory.REENTRANCY: VulnerabilityType.REENTRANCY,
+        CanonicalCategory.ACCESS_CONTROL: VulnerabilityType.ACCESS_CONTROL,
+        CanonicalCategory.ORACLE_MANIPULATION: VulnerabilityType.ORACLE_MANIPULATION,
+        CanonicalCategory.FLASH_LOAN: VulnerabilityType.FLASH_LOAN,
+        CanonicalCategory.ARITHMETIC: VulnerabilityType.INTEGER_OVERFLOW,
+        CanonicalCategory.UNCHECKED_CALL: VulnerabilityType.UNCHECKED_CALL,
+        CanonicalCategory.PROXY_UPGRADE: VulnerabilityType.DELEGATECALL,
+        CanonicalCategory.FRONT_RUNNING: VulnerabilityType.FRONT_RUNNING,
+        CanonicalCategory.DENIAL_OF_SERVICE: VulnerabilityType.DENIAL_OF_SERVICE,
+        CanonicalCategory.TIME_MANIPULATION: VulnerabilityType.TIMESTAMP_DEPENDENCE,
+        CanonicalCategory.SIGNATURE_VERIFICATION: VulnerabilityType.SIGNATURE_REPLAY,
+        # No exploit template — deliberately no PoC:
+        #   INITIALIZATION, BAD_RANDOMNESS, CENTRALIZATION, INPUT_VALIDATION, OTHER
     }
 
     def __init__(
@@ -830,7 +853,7 @@ class PoCGenerator:
         finding: Dict[str, Any],
         target_contract: str,
         options: Optional[GenerationOptions] = None,
-    ) -> PoCTemplate:
+    ) -> Optional[PoCTemplate]:
         """
         Generate a PoC from a vulnerability finding.
 
@@ -840,7 +863,8 @@ class PoCGenerator:
             options: Optional generation options override
 
         Returns:
-            PoCTemplate with generated Solidity test code
+            PoCTemplate with generated Solidity test code, or ``None`` when the
+            vulnerability type cannot be resolved (so no PoC is fabricated).
         """
         if not isinstance(finding, dict):
             raise ValueError("Malformed vulnerability finding")
@@ -848,6 +872,9 @@ class PoCGenerator:
 
         # Determine vulnerability type
         vuln_type = self._resolve_vulnerability_type(finding)
+        if vuln_type is None:
+            logger.info("Skipping PoC: unresolved vulnerability type for finding")
+            return None
 
         # Extract finding details
         target_function = self._extract_function_name(finding)
@@ -918,6 +945,8 @@ class PoCGenerator:
 
             try:
                 poc = self.generate(finding, target_contract, options)
+                if poc is None:
+                    continue
                 pocs.append(poc)
                 if len(pocs) >= _LIST_FIELD_LIMIT:
                     break
@@ -1066,36 +1095,75 @@ class PoCGenerator:
         self._template_cache = {}
         return self._template_cache
 
-    def _resolve_vulnerability_type(self, finding: Dict[str, Any]) -> VulnerabilityType:
-        """Resolve finding type to VulnerabilityType enum."""
+    def _resolve_vulnerability_type(self, finding: Dict[str, Any]) -> Optional[VulnerabilityType]:
+        """Resolve finding type to a VulnerabilityType enum.
+
+        Returns ``None`` for malformed, empty, or unrecognized types. Callers must
+        then skip PoC generation rather than fabricating one: emitting, for
+        example, a reentrancy exploit labelled as a weak-PRNG finding would
+        misrepresent the automated output.
+        """
         if not isinstance(finding, Mapping):
-            logger.warning("Malformed finding type container, defaulting to REENTRANCY")
-            return VulnerabilityType.REENTRANCY
+            logger.warning("Malformed finding type container; skipping PoC generation")
+            return None
         type_aliases = self.TYPE_ALIASES if isinstance(self.TYPE_ALIASES, Mapping) else {}
         finding_type = _normalize_type_label(_safe_mapping_get(finding, "type", ""))
 
-        # Try direct alias lookup
+        # An empty/normalized-away type cannot be matched safely.
+        if not finding_type:
+            logger.warning("Missing or malformed vulnerability type; skipping PoC generation")
+            return None
+
+        # 1) Exact alias lookup on the normalized label (most precise template).
         if finding_type in type_aliases:
             resolved = _safe_mapping_get(type_aliases, finding_type)
-            return (
-                resolved
-                if isinstance(resolved, VulnerabilityType)
-                else VulnerabilityType.REENTRANCY
-            )
+            if isinstance(resolved, VulnerabilityType):
+                return resolved
+            return None
 
-        # Try partial matching
-        for alias, vuln_type in type_aliases.items():
-            if not isinstance(alias, str) or not isinstance(vuln_type, VulnerabilityType):
-                continue
-            normalized_alias = _normalize_type_label(alias)
-            if normalized_alias and (
-                normalized_alias in finding_type or finding_type in normalized_alias
-            ):
-                return vuln_type
+        # 2) Canonical-taxonomy fallback. Route the (bounded, control-char-free)
+        # type label plus a safe SWC id through normalize_finding_type so
+        # idiosyncratic detector names resolve to the right PoC template instead
+        # of silently missing. The partial substring loop that used to live here
+        # is deliberately gone: it mislabelled findings (e.g. uninitialized-state
+        # -> access_control). Categories with no template resolve to None.
+        canonical = self._canonical_fallback(finding, finding_type)
+        if canonical is not None:
+            return canonical
 
-        # Default to reentrancy as most common
-        logger.warning(f"Unknown vulnerability type: {finding_type}, defaulting to REENTRANCY")
-        return VulnerabilityType.REENTRANCY
+        # 3) Unknown / template-less category: do not fabricate a PoC.
+        logger.warning(f"Unknown vulnerability type: {finding_type}; skipping PoC generation")
+        return None
+
+    def _canonical_fallback(
+        self, finding: Dict[str, Any], finding_type: str
+    ) -> Optional[VulnerabilityType]:
+        """Resolve a PoC type via the canonical taxonomy, or ``None``.
+
+        Uses the already-bounded ``finding_type`` (length/control-char checked by
+        the caller) as the primary signal and enriches it with a strict-pattern
+        SWC id, so e.g. aderyn's ``unchecked-return`` (SWC-104) resolves to
+        UNCHECKED_CALL. Never re-reads unbounded raw text, preserving the
+        overlong/control-char rejection guarantees.
+        """
+        canonical_map = (
+            self.CANONICAL_TO_VULN_TYPE if isinstance(self.CANONICAL_TO_VULN_TYPE, Mapping) else {}
+        )
+        norm_input: Dict[str, str] = {"type": finding_type}
+        swc_raw = _safe_mapping_get(finding, "swc_id", "")
+        if isinstance(swc_raw, str):
+            swc = swc_raw.strip().upper()
+            if re.fullmatch(r"SWC-\d+", swc):
+                norm_input["swc_id"] = swc
+        check_label = _normalize_type_label(_safe_mapping_get(finding, "check", ""))
+        if check_label:
+            norm_input["check"] = check_label
+
+        canonical = normalize_finding_type(norm_input)
+        if canonical is None or canonical is CanonicalCategory.OTHER:
+            return None
+        resolved = canonical_map.get(canonical)
+        return resolved if isinstance(resolved, VulnerabilityType) else None
 
     def _finding_text_field(
         self, finding: Dict[str, Any], key: str, default: Optional[str] = None

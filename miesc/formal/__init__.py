@@ -8,6 +8,18 @@ Bridges MIESC findings to formal verification tools:
   - Halmos (symbolic testing)
 """
 
+from miesc.formal.economic_harness import (
+    EconomicHarnessBuilder,
+    HarnessArtifact,
+    RunnableProperty,
+    run_economic_fuzz,
+    supported_invariants,
+)
+from miesc.formal.economic_invariants import (
+    ECONOMIC_INVARIANT_TEMPLATES,
+    EconomicInvariantTemplate,
+    detect_economic_invariants,
+)
 from miesc.formal.spec_generator import (
     GeneratedSpec,
     SpecFormat,
@@ -28,7 +40,14 @@ from miesc.formal.unified_report import (
 
 __all__ = [
     "Counterexample",
+    "ECONOMIC_INVARIANT_TEMPLATES",
+    "EconomicHarnessBuilder",
+    "EconomicInvariantTemplate",
     "GeneratedSpec",
+    "HarnessArtifact",
+    "RunnableProperty",
+    "run_economic_fuzz",
+    "supported_invariants",
     "ProverVerdict",
     "SpecFormat",
     "SpecGenerator",
@@ -36,6 +55,7 @@ __all__ = [
     "UNAVAILABLE",
     "UnifiedVerificationReport",
     "VerificationResult",
+    "detect_economic_invariants",
     "normalize_status",
     "run_all_available",
 ]

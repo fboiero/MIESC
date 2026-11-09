@@ -1,0 +1,44 @@
+{
+  "results": [
+    {
+      "tool": "foundry",
+      "contract": "/contracts/Counter.sol",
+      "status": "success",
+      "findings": [
+        {
+          "type": "test_failure",
+          "severity": "high",
+          "contract": "CounterTest",
+          "test": "testFuzz_NeverLarge(uint256)",
+          "description": "Test testFuzz_NeverLarge(uint256) failed: number too large",
+          "recommendation": "Review test failure and fix contract logic",
+          "counterexample": {
+            "args": "271273108981186046160286067643997144095967533870"
+          },
+          "decoded_logs": [],
+          "tool": "foundry"
+        }
+      ],
+      "execution_time": 7.0,
+      "timestamp": "2026-10-25T00:00:00",
+      "metadata": {
+        "fuzz_campaign": {
+          "tests_run": 2,
+          "tests_passed": 1,
+          "tests_failed": 1,
+          "fuzz_runs": 256
+        }
+      },
+      "error": null,
+      "timeout_budget_s": 120
+    }
+  ],
+  "summary": {
+    "CRITICAL": 0,
+    "HIGH": 1,
+    "MEDIUM": 0,
+    "LOW": 0,
+    "INFO": 0
+  },
+  "version": "phase4-fuzzing-fixture"
+}

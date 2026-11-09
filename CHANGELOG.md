@@ -9,6 +9,1005 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Visual polish + Immunefi submission-readiness for the premium / profesional / profesional-es
+  reports.** The three audit templates and the `profesional.css` / `profesional-es.css`
+  stylesheets were refined to read like a top-tier firm's report (tighter typography, accent
+  section rules, cleaner tables with header shading and zebra rows, a polished cover). The
+  HTML-table charts are replaced/augmented with crisp, deterministic inline **SVG**: a horizontal
+  severity-distribution bar chart (§1.3), a 3×3 risk-matrix heatmap (§3.1), a 3×3 effort/impact
+  heatmap (§6.4), and a clean inline shield mark + "MIESC" wordmark on the cover (replacing the
+  emoji). Every chart is drawn only from variables the template already has — it visualises
+  existing counts and never introduces or changes a number. A new **§6.5 "Bug Bounty Submission
+  Readiness"** section (Spanish "§6.5 Preparación para Envío a Bug Bounty") frames the report as an
+  automated triage starting point: findings are not confirmed vulnerabilities and are not
+  submission-ready, programs on Immunefi use the Immunefi Vulnerability Severity Classification
+  System V2.3 and require, for all severities, a mandatory PoC, an in-scope impact, a
+  previously-unknown issue, KYC and a non-refundable fee; a per-finding table (driven by
+  `finding.poc_available`) marks every finding "Requires manual triage + PoC" and never "ready to
+  submit". The two stylesheets stay byte-identical except for the Spanish running header/footer.
+  §1.3 finding counts and the Overall Risk Score are byte-for-byte unchanged on the bundled sample,
+  the SHA-256 attestation still renders and matches the input, and no "proven" / "formally
+  verified" / "Manual Review" wording is introduced.
+
+- **SHA-256 Report Integrity attestation in the `profesional` and `profesional-es` templates.**
+  The Phase-5a integrity block (input-file SHA-256 + template/generator version + UTC timestamp,
+  with the "recompute to verify" statement and its scope caveat) was premium-only; it now also
+  renders in the English `profesional` and Spanish `profesional-es` reports (the Spanish one fully
+  translated). The underlying variables were already computed for every template, so this is a
+  template-only change; `premium` is unchanged.
+
+- **Spanish finding descriptions for `-t profesional-es` (curated, deterministic).** The per-finding
+  description now shows a curated Spanish description keyed by the detector's check id (so variants
+  like `weak-prng` vs `weak-randomness` keep their distinction), covering the checks the taxonomy
+  recognizes. The instance specifics are preserved in the Location field and the embedded Vulnerable
+  Code snippet, so nothing technical is lost. An unrecognized check keeps the detector's English text
+  plus a visible note (never a silent language mix). No LLM is used, so the report stays deterministic
+  and its SHA-256 attestation reproducible. Generated PoC exploit code and raw detector text for
+  unrecognized checks remain in English.
+
+- **Spanish report content: `-t profesional-es` now localizes the finding prose and PDF chrome.**
+  Building on the `profesional-es` template, the per-finding **impact** and **recommendation**
+  prose (from `report.py`'s canonical content dictionaries) is now selected by language, and a
+  Spanish stylesheet `profesional-es.css` supplies the Spanish PDF running header/footer
+  ("CONFIDENCIAL — Auditoría…", "Página N de M") with `<html lang="es">`. The Spanish text lives
+  in a separate code path, so the English templates (`profesional`/`premium`) are byte-for-byte
+  unchanged, and finding counts and the risk score are identical across languages. Detector-emitted
+  finding descriptions remain in the tool's own language (upstream output).
+- **Spanish report template `profesional-es`.** `miesc report -t profesional-es` renders the
+  premium/profesional report with its static scaffolding in Spanish — headings, table labels,
+  methodology, the §4.4 invariant / §4.5 trust-model / §4.6 fuzzing section prose, disclaimers
+  and glossary — while reusing the same Jinja variables and premium data path (CVSS, risk matrix)
+  as the English `profesional` template, so finding counts and the risk score are identical.
+  Per-finding technical prose that comes from the analysis engine (the impact/recommendation
+  content dictionaries and detector-emitted descriptions) and the PDF running header are still
+  English; localizing those is a follow-up.
+
+### Fixed
+
+- **PoC `FoundryRunner` now parses forge >=1.x test JSON too.** The PoC-validation runner had the
+  same two bugs the Foundry adapter did: it only parsed the legacy top-level `test_results`/boolean
+  `success` shape (not forge >=1.x's per-suite nesting with a `status` string), and it combined
+  `--gas-report` with `--json` (which in forge >=1.x suppresses the per-test results JSON). The
+  parser now handles the nested + `status`-string shape, and the test run no longer passes
+  `--gas-report`. PoC pass/fail already came from the exit code, so validation verdicts were
+  unaffected; this restores the per-test detail (names, pass/fail, logs).
+- **Foundry adapter now parses forge >=1.x test JSON, so `audit single foundry` reports real
+  stats.** Two compounding bugs made live foundry runs report `tests_run=0` on forge 1.3.5:
+  (1) forge >=1.x nests `test_results` under each suite id and reports pass/fail as a `status`
+  string, but the parser expected a top-level `test_results` map with a boolean `success`;
+  (2) the adapter combined `--gas-report` with `--json`, which in forge >=1.x emits only the
+  gas-report JSON and suppresses the test-results JSON. The parser now handles both the nested
+  and legacy shapes, and the test run no longer passes `--gas-report`. This lets the premium
+  report's §4.6 Dynamic Testing & Fuzzing populate with real Foundry campaign statistics.
+
+### Changed
+
+- **`miesc report -f pdf` failure guidance now names weasyprint's system libraries.** When PDF
+  generation falls back to HTML, the CLI message pointed only to `pip install 'miesc[pdf]'` —
+  which is necessary but not sufficient: weasyprint also needs cairo, pango and gdk-pixbuf. The
+  warning and the final error now name those libraries and the Docker image that bundles them, so
+  installing the extra and retrying no longer sends the user in a circle. (The `[pdf]` extra and
+  the exit-1 HTML fallback were already in place.)
+
+### Added
+
+- **`miesc report -t premium` Phase 5 — honest Scope data + a SHA-256 report-integrity
+  attestation.** A narrow, additive pass that fixes the Scope section's data and attests the
+  report↔input correspondence. Findings, counts and the Overall Risk Score are byte-identical to
+  Phase 4 on the static sample — this touches scope and provenance only.
+  - **§2.2 Lines of Code (bug fix).** The single-contract scope rendered `0` lines / `N/A` total
+    whenever the contract path could not be resolved (an absolute `base/contract_path` join
+    discarded the results-file directory, so the `base/<basename>` fallback was never tried and a
+    `lines = 0` default leaked through). Line counting now goes through the same resolver the
+    Phase-1 source-snippet embedding uses (`_extract_source_code`, factored into
+    `_resolve_source_path`), so a stale-absolute or relative path is still located next to the
+    results JSON. When a file resolves, the real line count and a real total are shown; when it
+    does not, an em-dash `—` plus a "source not available at report time" note — **never `0`**,
+    which would be a false claim. A partial total (some files unmeasured) is also dashed.
+  - **§2.2 Out of Scope (derived, not boilerplate).** The exclusion list is now derived from what
+    the run did not exercise — analysis layers with no successful tool (read from the same
+    `layer_summary` that feeds §4.3, so the two agree) and tools present but not run cleanly.
+    "Economic / tokenomics analysis" is listed only when no DeFi-economic detector actually ran.
+    When nothing can be derived, the report says "Out-of-scope boundaries were not explicitly
+    assessed in this engagement" rather than presenting generic exclusions as engagement
+    decisions.
+  - **Report Integrity attestation (Appendix G).** The dead `Report Hash: N/A` row is replaced by
+    a real integrity block: the SHA-256 of the input `results.json` **raw file bytes** (matching
+    `shasum -a 256`, not a re-serialized dict), the report template version, the generator (MIESC)
+    version and a UTC generation timestamp. A one-sentence statement tells the reader to recompute
+    the hash to verify the report corresponds to the scan, and a scope sentence states the hash
+    attests **only** that correspondence — not that the scan ran correctly, that tools were
+    unmodified, or that the source was not substituted. This is an integrity hash, **not** a
+    cryptographic signature (signing is intentionally out of scope).
+  - Regression tests in `tests/test_report_phase5_scope_attestation.py`.
+- **`miesc report -t premium` Phase 4 — §4.6 "Dynamic Testing & Fuzzing".** A new,
+  additive, honest section surfacing fuzzing-campaign activity. A campaign statistic is **not a
+  finding** — the numbers here change no §1/§4 count and no risk score; fuzzer findings are
+  already counted in §1/§4 and are only cross-referenced by F-id, never re-counted. Three pieces:
+  - **Writer** (`miesc/cli/utils.py:run_tool`, the choke point for every `audit single/full/layer`
+    call): fuzzing adapters emit campaign stats at the top level of their `analyze()` result, but
+    the per-tool results entry preserves only `metadata`, so those stats were dropped before
+    `results.json`. The writer now merges a defined allow-list into the entry's existing
+    `metadata` under one namespaced key (`metadata["fuzz_campaign"]`): Foundry —
+    `tests_run/tests_passed/tests_failed/fuzz_runs`; Echidna/Medusa — `test_limit` (the configured
+    cap) and the property-violation count. A new `miesc/core/fuzz_campaign_io.py` owns the key plus
+    the collect (write) and read accessors so they cannot drift. Inert for non-fuzzing tools
+    (a slither entry is byte-identical to before) and additive for fuzzers (existing `metadata`
+    keys are merged, never replaced).
+  - **Reader + renderer** (`report.py`, `premium.md`, `profesional.md`): a three-state §4.6 that
+    never contradicts §2.3's Layer-2 line or §4.4 — (1) a fuzzing tool carried a campaign block →
+    render its metrics with the tool and scope named ("Foundry test suite: N tests (P passed /
+    Q failed), configured 256 fuzz runs per test"), cross-referencing fuzzer findings by F-id;
+    (2) a Layer-2 tool ran but recorded no campaign stats → say so and point at §4.4; (3) the
+    common static-only case → "No dynamic or fuzzing testing was performed in this engagement,"
+    naming the tools that would supply the layer. The Layer-2-ran signal is read from the same
+    `layer_summary` that feeds §2.3's `layer2_coverage`.
+  - **Cuts and honesty gate.** Coverage % and gas report are deliberately never surfaced
+    (line coverage is not security coverage; gas is noise); `test_limit`/`fuzz_runs` are always
+    labelled configured caps, never "sequences run"/"executed"; and the section carries a
+    banned-word gate (no "verified"/"confirmed"/"exhaustive"/"proven"/"formally verified").
+- **`miesc report -t premium` Phase 3 — §4.5 "Trust Model & Privileged Roles".** A new,
+  additive, honest section surfacing privileged authority. It is an **advisory static model**,
+  not a verified governance audit — a role is a trust *assumption*, never a finding, so it
+  changes no §1/§4 count and no risk score. Three pieces:
+  - **Writer** (`audit.py` agentic-profile output): the deterministic advisory-plan inventory
+    that `DeepAuditAgent` already builds under `report["phases"]["advisory_plans"]` (only when
+    `enable_advisory_plans` is set) is now hoisted to a stable top-level `advisory_plans` key in
+    the results JSON. The key is omitted entirely on the default path, so flag-off output is
+    structurally unchanged; a new `miesc/core/advisory_plans_io.py` owns the key plus the
+    write-side and read-side accessors so the two cannot drift.
+  - **Reader + renderer** (`report.py`, `premium.md`, `profesional.md`): §4.5(a) renders the
+    privileged actors/roles with their guarded/granted/revoked functions and source anchors,
+    labelled advisory ("identified by static extraction"), distinguishing "not extracted" (key
+    absent) from "extraction found nothing" (ran, empty); §4.5(b) cross-references existing
+    findings whose canonical category is access control, centralization, or proxy/upgrade, by
+    F-id and severity — a findings-based floor that works even for directory audits.
+  - Mandatory custody and completeness disclaimers (did not verify key custody or off-chain
+    governance; may miss inherited/proxied/assembly-level authority), neutral tone, and a
+    banned-word gate (no "verified"/"confirmed"/"exhaustive"/"proven" in the section).
+
+### Changed
+
+- **Execution-verified pause/freshness findings are now High severity.** A revert-invariant
+  counterexample that reproduces a pause-gating or deadline/freshness bypass by execution is
+  raised from Medium to High: these are execution-reproduced emergency-stop and expired-request
+  bypasses, not advisory hints. This also lets them carry a real CVSS score in the premium report
+  (their Critical-scoring category vector now lands within one band of the reported severity, so
+  the directional-consistency guard no longer withholds the number as a blank).
+- **`miesc report -t premium` stops overclaiming — four honesty fixes.** The premium/profesional
+  report no longer presents automated output as a manual professional audit:
+  - The "Audit Process" methodology no longer lists **Manual Review** or human **Verification**
+    steps; those are rewritten to describe what the pipeline actually does (automated multi-tool
+    static/dynamic/symbolic analysis, cross-tool corroboration and false-positive filtering with
+    execution-based confirmation where enabled).
+  - The Disclaimer now states plainly that the report is the output of automated security tooling
+    (plus optional local-LLM interpretation), not a manual professional audit, and is unsigned
+    unless a named human auditor attests to it.
+  - PoC generation returns no exploit for a vulnerability type it has no template for, instead of
+    shipping a reentrancy exploit mislabelled as, e.g., a weak-PRNG finding. `PoCGenerator.generate`
+    now returns `Optional[PoCTemplate]`, `generate_batch` drops the `None`s, and the report omits
+    findings with no PoC.
+  - Uncategorized findings render `not scored (uncategorized)` for their CVSS vector and base score
+    instead of a fabricated default (~6.8). Findings that match a category are unaffected.
+
+- **`miesc report -t premium` Phase 1 — correct the data binding.** With the report now honest
+  (above), this fills the blanks with real values by routing CVSS scoring, impact/recommendation
+  text and PoC-template selection through `normalize_finding_type` (16-category canonical taxonomy)
+  **before** keying their tables, so raw tool check names (`weak-prng`, `suicidal`,
+  `unused-return`, `controlled-delegatecall`, aderyn's `unchecked-return`, …) resolve instead of
+  silently missing:
+  - CVSS vectors in `risk_calculator` are keyed by `CanonicalCategory` (with a small hygiene table
+    for best-practice detectors), so recognized findings get a real vector/score. In the bundled
+    sample all 10 findings now score (previously 7 of 10 said "not scored").
+  - The **honesty invariant is preserved**: a finding that still maps only to `OTHER` stays
+    `not scored (uncategorized)` and gets no PoC, and a score whose severity band is more than one
+    step from the tool-reported severity is withheld as "not scored (inconsistent with reported
+    severity)" — never a LOW finding showing a high CVSS.
+  - §5 Impact Analysis and Recommendation are category-specific for recognized categories;
+    §5 Vulnerable Code embeds the real source snippet when the contract is locatable (the search
+    now includes the results-file directory and audited source paths); the §5 Category field is
+    populated from the canonical category.
+  - Render fixes: Appendix D (SWC) cites the real `F-xxx` finding IDs (was `F1` for every row) and
+    the finding's own SWC id; §6.1 priority list is numbered sequentially; §1.4 Availability is
+    derived from the scored CVSS vectors (no more "Medium – No significant availability risks"
+    self-contradiction); layer status is consistent between §2.3 and §4.3 (a `not_available` tool
+    is "Not Run", not "Failed"); the CVSS table binds by finding position, not title.
+  - PR-0 follow-ups: `get_vector_for_category` / scoring now return a **copy** of the category
+    vector, so adjusting one finding no longer mutates the shared template for the rest of the run;
+    the Disclaimer's "professional opinion" wording is reconciled with the automated-output
+    disclosure.
+
+- **`miesc report -t premium` Phase 2 — formal / invariant evidence layer (additive, honest).**
+  The report now surfaces the execution-based invariant evidence without ever overclaiming it as a
+  formal proof:
+  - **Per-finding Verification field** (§4.1 summary table and §5 metadata): a counterexample
+    reproduced by a Foundry probe (`source` is `revert_invariant_executor` /
+    `revert_invariant_reasoning`) reads **"Execution-reproduced (Foundry)"**; every other finding
+    reads **"Static analysis (<tool>)"**. This is the honest replacement for PR-0's removed
+    "Manual Review" step and changes no finding counts and no scores.
+  - **New §4.4 "Property & Invariant Analysis"** with two sub-blocks: (a) Layer 4 formal
+    verification reports tool ran/not-run and finding counts only — never "N invariants proven",
+    which the result data does not support — tied to the same execution summary that feeds the
+    §2.3 Layer 4 line so the two cannot disagree; (b) execution-verified findings are listed with
+    their real `evidence` traces, labelled "reproduced by execution". When both are empty the
+    section states **"Not performed in this engagement"** and how to enable it
+    (`enable_gap_execution` / `enable_gap_reasoning` on the deep-audit agent).
+  - **Honesty invariant:** the words "proven" and "formally verified" never appear in rendered
+    output for these dynamic PoCs. The `evidence`/`source`/`verification` keys are now carried
+    through the template whitelist (previously dropped); evidence text comes verbatim from the
+    finding dict, never invented. Advisory `hypothesis` / `test_generated` states are still never
+    rendered as findings, so §1/§4 counts and the risk score are byte-identical on the static
+    sample.
+
+### Fixed
+
+- **`miesc audit batch --resume` could mix two runs or crash on a malformed checkpoint.** The
+  checkpoint now records a format `version`, the resolved source path, `--pattern` and
+  `--recursive`, and `--resume` refuses one made for another directory instead of merging both
+  trees into the report (and inflating `total_findings`). A checkpoint that parses as JSON but has
+  another shape is reported as unreadable instead of raising `KeyError`. Done contracts are kept as
+  resolved paths, so resuming from another working directory no longer re-audits and duplicates
+  them. Also: a warning when `--checkpoint` without `--resume` overwrites an existing file, a
+  per-process temp file, and a failed checkpoint write no longer aborts the batch. The Peculiar
+  regression test now times a body-less signature, the case where the old pattern blew up.
+  Follow-up to the #247 review. Contributed by @alva-p.
+
+## [6.8.0] - 2026-10-25 — Audit batch checkpoint/resume, linear Peculiar parsing, test-suite hardening
+
+Minor release. Adds crash-safe checkpoint/resume to `miesc audit batch` and fixes a
+catastrophic-backtracking hang in the Peculiar adapter's function extraction (both contributed by
+@alva-p). Internally, a hardening pass took line coverage to the 88% target: the one flaky
+wall-clock test was removed, an `OLLAMA_HOST`-dependent assertion was isolated, and seven modules
+(foundry_scaffold, triage_ranker, the tools/remediate/verify CLIs, slither_benchmark and the
+compatibility orchestrator) gained deterministic behavioural tests, most reaching ~100%.
+
+### Added
+
+- **`miesc audit batch --checkpoint PATH [--resume]`.** The checkpoint is written after every
+  contract, aside and renamed so a crash mid-write never truncates it, with the report's own
+  `contracts`/`failed` shape plus the tool list. `--resume` skips the contracts already done
+  (paths compared resolved, so `./src` and an absolute path match), retries the failed ones and
+  merges everything into the final report; it refuses a checkpoint made with other tools
+  (another `--profile`) instead of mixing results. Contributed by @alva-p.
+
+### Fixed
+
+- **Peculiar hung for minutes on common OpenZeppelin and Solady files.** Its function-extraction
+  pattern backtracked exponentially on a modifier with nested parentheses
+  (`onlyModule(X, Calldata.emptyBytes())`) or a declaration ending in `;`: OZ's
+  `draft-AccountERC7579.sol` ran for over 15 minutes with `--timeout 60`, Solady's `EIP712.sol`
+  over 3. The regex holds the GIL while it runs, so a thread-based timeout around the adapter
+  cannot interrupt it either; the pattern is now linear (1.2 s and 0.8 s for those two files).
+  It also extracts functions the old one missed, such as OZ's `grantRole` with
+  `onlyRole(getRoleAdmin(role))`, and no longer lists the `returns (...)` clause as modifiers.
+  Contributed by @alva-p.
+
+## [6.7.0] - 2026-10-25 — Vyper analyzer, directory & on-chain audit, revert-invariant Phase 2 execution
+
+Minor release. Adds a Vyper pattern analyzer and `.vy` routing, `miesc audit deep <dir>` and
+`miesc audit address <0x…>` (verified source from Etherscan V2), and completes revert-invariant
+Phase 2: the deterministic gap miner's three categories now reach the execution rungs
+(`test_generated` harnesses, Foundry-executed `counterexample`s, and findings for confirmed
+access-control / pause / freshness gaps), all opt-in and behind the same FP filter. Two post-merge
+security fixes to the new opt-in paths land here, before any of this code ships in a release.
+
+### Added
+
+- **Vyper analyzer and `.vy` routing (`miesc/adapters/vyper_adapter.py`, tool `vyper`, layer 1).**
+  A pattern-based analyzer for Vyper sources: explicit `unsafe_*` arithmetic (Low),
+  `raw_call(..., is_delegate_call=True)` to a caller-influenced target (`self` excepted),
+  `create_forwarder_to`/`create_minimal_proxy_to` without an `initialize` in the same function
+  (`create_from_blueprint` is not reported), `tx.origin` authorization, privileged operations
+  without a caller guard, missing reentrancy protection on external calls that break
+  checks-effects-interactions, and the 0.2.15/0.2.16/0.3.0 broken `@nonreentrant` lock —
+  **Critical only on an exact version pin**, Low on a range that merely includes one. Reads
+  `# pragma nonreentrancy on` (0.4) and `@nonreentrant("lock")` (0.3). Routing: `miesc analyze`
+  picks the analyzer for `.vy`; `run_tool`/`run_layer`, the REST API and the ML path only run the
+  tools whose adapter applies to the file (`applies_to`), so the Vyper analyzer adds no row to a
+  Solidity audit and Solidity tools add none to a Vyper one. Measured on snekmate, Curve,
+  stableswap-ng and Yearn (148 files): 451 `unsafe_arithmetic` Low, 2 reentrancy High in test
+  mocks, 1 `tx.origin`, 0 access-control; the paper baseline is unchanged by construction.
+  Slither's own Vyper support stays out of reach through `SlitherAdapter.can_analyze`
+  (documented limit). Contributed by @alva-p (#228).
+
+- **`miesc audit deep` on a directory, and `miesc audit address`.** `audit deep ./src` (or any
+  project directory) used to stop at `IsADirectoryError`; it now runs the unchanged single-file
+  pipeline on every `.sol` file (skipping `lib/`, `node_modules/`, `test/`, `script/` and build
+  output), with `--timeout` as the budget for the whole directory. Each file's run also reports
+  what it imports, so the merged findings and exploit chains are deduplicated (Y2K Finance
+  233 -> 122, NextGen 166 -> 121, USDC 265 -> 118) and the summary is counted from them.
+  Pattern-detector findings now name the analyzed file instead of a `contract.sol` placeholder.
+  The report adds `protocol.contracts` (file and bases of each contract, across files) and
+  `protocol.calls`, from a regex graph (`miesc/ml/protocol_graph.py`): which function of another
+  contract each contract calls, through a cast (`Vault(x).withdraw()`) or anything declared with
+  that type (state variable, parameter, local, struct field), with `IVault` resolved to `Vault`.
+  On Y2K (11 files) and NextGen (17 files) every listed call is a real one. Findings are not
+  linked across contracts yet: on both protocols a caller-to-finding link only matched generic
+  patterns, never the real cross-contract bug (NextGen H-01 has no per-file finding inside
+  `NextGenCore` to link to). Slither and Aderyn now look for the project's `foundry.toml` up to
+  10 directories up instead of 5 (Aave keeps sources 6 below its root).
+  `audit address <0x…> [--chain]` fetches the verified Solidity source through Etherscan V2 with
+  the user's own key (`--api-key` or `ETHERSCAN_API_KEY`), writes it to a temporary directory
+  (paths escaping it are rejected; the deployer's absolute paths lose their common prefix;
+  `@scope/` packages go under `lib/` with their remapping, plus the contract's own remappings, in
+  a `foundry.toml`; a contract deployed from a `lib/` dependency moves to the root, since the
+  tools leave out findings under `lib/`) so Slither and Aderyn compile against the deployed
+  dependency versions instead of installing the latest ones, then runs `audit deep` on it.
+  Checked live on UNI (1 file, solc 0.5.16), the USDC `FiatTokenV2_2` implementation (19 own
+  files + OpenZeppelin, solc 0.6.12) and the Aave V3 `PoolInstance` (36 files, solc 0.8.27): no
+  compilation error, nothing installed. It is the only command that makes a network call. Stdlib
+  `urllib`, no new dependency; tests mock every HTTP call. Contributed by @alva-p.
+
+- **Revert-invariant Phase 2 (first slice): within-family access-control gap hypotheses.** The
+  revert-invariant miner now compares external/public, state-changing functions that share a
+  privileged verb family (`set`, `withdraw`, `upgrade`, `pause`, …) and, when some members are
+  access-controlled and a sibling is not, records a `GuardGapHypothesis`
+  (`observed_gap="inconsistent"`). Guards are resolved **through applied modifiers**, so a
+  function guarded by `onlyOwner` counts as guarded — without that, every OpenZeppelin-style
+  contract would false-positive. Advisory only: it is a hypothesis with negative checks (a guard
+  may be on an unparsed/inherited modifier, the function may be intentionally permissionless, the
+  property may be enforced upstream), never a `Finding`, and `promotion.state` stays `hypothesis`.
+  Surfaced under `gap_hypotheses` in the plan (the deep-audit advisory phase picks it up for free)
+  and round-trips through `parse_revert_invariant_plans`. Negative control: 0 hypotheses on
+  OpenZeppelin `contracts/` and Solady `src/`. No benchmark claim.
+
+- **Revert-invariant Phase 2 (second slice): within-group `pause_toggle` gap hypotheses.** The
+  miner now also compares *user-facing* mutators (`deposit`, `withdraw`, `transfer`, `swap`,
+  `claim`, …) as a group and, when some are pause-gated (`whenNotPaused`) and a sibling is not,
+  records a `GuardGapHypothesis` (`observed_gap="inconsistent"`, category `pause_toggle`).
+  Privileged/admin verbs are kept in a disjoint set and are excluded from the pause group, so an
+  admin `setX` without `whenNotPaused` never pulls a user mutator into a false gap. Gating is
+  resolved through applied modifiers with a three-valued classifier: an applied modifier that is
+  not a locally-parsed guard (an inherited or delegating one such as OpenZeppelin `Pausable`'s
+  `whenNotPaused`) marks the function **opaque** and excludes it rather than counting it as
+  ungated — without that, every `Pausable` consumer would false-positive. Advisory only, never a
+  `Finding`, `promotion.state` stays `hypothesis`. Negative control: 0 hypotheses on OpenZeppelin
+  `contracts/` and Solady `src/` (490 files). No benchmark claim.
+
+- **Revert-invariant Phase 2 (third slice): deadline/freshness gap hypotheses.** The miner now
+  groups external/public mutators **by signature** — those that accept a `deadline`/`expiry`-like
+  parameter — and, when a sibling in that group never enforces the deadline, records a
+  `GuardGapHypothesis` (`observed_gap="inconsistent"`, category `freshness_check`). A deadline that
+  is enforced by a modifier (DEX routers' `ensure(deadline)`), checked locally
+  (`block.timestamp <= deadline`), forwarded into an inner call, or stored resolves to
+  guarded/opaque and drops out; only a parameter accepted and never referenced reads as a gap.
+  Forwarded/stored deadlines are treated as **opaque** (the property is delegated somewhere the
+  parser cannot follow — the same epistemic state as an unresolved modifier), not asserted as a
+  gap. Advisory only, never a `Finding`, `promotion.state` stays `hypothesis`. Negative control:
+  0 hypotheses on OpenZeppelin `contracts/`, Solady `src/`, and Uniswap v2-periphery (≈20 deadline
+  functions, all resolved guarded-by-`ensure` or opaque-by-forwarding — a non-vacuous 0). No
+  benchmark claim.
+
+- **Revert-invariant Phase 2: advisory bridge to fuzzing/oracle guidance.** New
+  `miesc/llm/revert_invariant_bridge.py` turns each `GuardGapHypothesis` into a provider-neutral
+  `SequenceOraclePlan` — a fuzzing/oracle obligation the existing agentic layer already
+  understands and that round-trips through `parse_sequence_oracle_plans`. Each bridged plan maps
+  the gap category to a property a fuzzer should try to violate (access-control / pause / deadline
+  → "the call must revert"), one probe step per affected function, and carries the hypothesis'
+  own negative checks in its evidence so the benign explanations travel with the obligation. The
+  deep-audit advisory phase surfaces them under `capabilities.revert_invariants.oracle_plans`.
+  Advisory→advisory: fixed low confidence, never a `Finding`, no executable Solidity. Silent
+  exactly where the miner is silent — 0 bridged plans across OpenZeppelin, Solady and Uniswap
+  v2-periphery (513 files). Bridging into `InvariantValidator` (executable assertions,
+  counterexample promotion) is deliberately deferred to the reasoning-agent step. No benchmark
+  claim. This completes the deterministic within-group gap layer (access-control, pause, freshness)
+  plus its first consumer.
+
+- **Revert-invariant Phase 2: `test_generated` probe harnesses.** New
+  `miesc/llm/revert_invariant_harness.py` turns each gap hypothesis into a Foundry
+  `vm.expectRevert` probe **harness** and advances that artifact one rung up the SDD promotion
+  ladder (`hypothesis` → `test_generated`). The harness is incomplete by design: every
+  contract-specific step (constructor args, call args, reaching the paused state) is an explicit
+  `TODO` recorded in `blockers`, and only the category-generic, un-fakeable fragments are
+  generated (an unauthorized `vm.prank` for access control, a `vm.warp` past the deadline for
+  freshness). The paused state is deliberately **not** fabricated — guessing a pauser call would
+  be a false probe. It is returned as an artifact (surfaced under
+  `capabilities.revert_invariants.harnesses`), never as a runnable `foundry_test` fed to the
+  validator, so nothing is executed and no counterexample is claimed. Actually running the
+  harnesses against `InvariantValidator` and promoting to `counterexample` is deliberately
+  deferred (the validator runs positive `invariant_… view` assertions with a no-arg constructor,
+  a semantic mismatch for revert probes). Silent where the miner is silent — 0 harnesses across
+  OpenZeppelin, Solady and Uniswap v2-periphery (513 files). No benchmark claim.
+
+- **Revert-invariant Phase 2: access-control gap execution (`counterexample` rung).** New
+  `miesc/llm/revert_invariant_executor.py` executes **access-control** gap hypotheses with Foundry
+  and promotes only on a real counterexample. It is opt-in (`DeepAuditConfig.enable_gap_execution`,
+  default off; surfaced under `capabilities.revert_invariants.executions`). For the subset where
+  the contract deploys with a no-arg constructor and the affected function's parameters are
+  elementary, it builds a self-contained probe (inlined contract + a minimal `Vm`, no `forge-std`)
+  and performs the unauthorized call low-level. The test inverts on purpose — an unauthorized call
+  that **succeeds** → the probe fails → `counterexample`; one that **reverts** → inconclusive, the
+  hypothesis stays `hypothesis` (never downgraded to `rejected`, since a revert for an unrelated
+  reason, e.g. a zero-argument `require`, is not proof the guard exists). `freshness_check` and
+  `pause_toggle` are never routed here (their rejectable state can't be reached without contract
+  knowledge). Forge absent, an ineligible subset, or a non-compiling probe → the gap is returned
+  unchanged, never an error. Counterexamples are recorded as promoted-plan metadata, **not**
+  emitted into the finding set — that bridge is a later, separately-reviewed step. Silent where the
+  miner is silent (0 access-control gaps across OpenZeppelin, Solady, Uniswap v2-periphery). No
+  benchmark claim.
+
+- **Revert-invariant Phase 2: access-control counterexamples become findings.** New
+  `miesc/llm/revert_invariant_findings.py` promotes an access-control **counterexample** from the
+  gap executor into a finding (`type="access_control"`, `severity="High"`, `confidence=0.85`,
+  `location` anchored at the real function declaration via a new `_FuncSig.decl_offset`, `evidence`
+  carrying the reproduction). Emission is gated on `promotion_state == "counterexample"` exactly —
+  a hypothesis or a `test_generated` harness never becomes a finding. This is the one rung that
+  crosses into the finding set, and it is consistent with the precision discipline: the rule was
+  "never an *unverified* finding", and a counterexample is Foundry-executed evidence. In
+  `DeepAuditAgent._phase_synthesis` (opt-in, same `enable_gap_execution` flag) these findings pass
+  through the **same** false-positive filter and correlation/dedup as every other finding — they do
+  not bypass the controls. Negative control: 0 counterexample findings across OpenZeppelin, Solady
+  and Uniswap v2-periphery (513 files). No benchmark claim.
+
+- **Revert-invariant reasoning executor for pause/freshness gaps
+  (`miesc/llm/revert_invariant_reasoning.py`).** `pause_toggle` and `freshness_check` gap
+  hypotheses can now reach the `counterexample` rung that access control already reaches, without
+  opening a false-positive hole. The non-negotiable precision invariant: the facts layer never
+  constructs the rejectable state as ground truth — a counterexample requires **both** Foundry
+  probes to agree. A *control* probe reaches the proposed state (pause the contract / pass a past
+  deadline), then calls the guarded sibling (`GuardGapHypothesis.guarded_example`, a new structured
+  field) and asserts it reverts, with a leading baseline call so "it reverts" means "because of the
+  state"; a *target* probe reuses the executor's storage-write assertion on the unguarded sibling.
+  Promotion happens only when control confirms the state **and** the target call succeeded and wrote
+  storage, so a wrong fact (a pauser that does not pause, a misidentified deadline) fails closed to
+  `hypothesis`. This first slice implements the deterministic local fallback only (literal cases:
+  `pause`/`setPaused` + a `whenNotPaused`-style sibling; an integer deadline/expiry parameter the
+  sibling checks); the provider hook signature is in place but no remote path runs yet. Opt-in via
+  `DeepAuditConfig.enable_gap_reasoning` (default off, requires `enable_gap_execution`; the remote
+  gate reuses `agentic_invariants_allow_remote`, no new flag). Confirmed counterexamples emit
+  findings through the existing bridge and the same FP filter, typed to canonical taxonomy
+  categories that aggregate correctly (`dos` → denial-of-service for pause gating, `timestamp` →
+  time-manipulation for freshness) and never mislabelled as access control. The sandbox
+  (`ffi=false`, scrubbed environment, network denial, cheatcode-source refusal) is reused verbatim
+  from the executor and never weakened.
+
+- **Revert-invariant reasoning agent: remote provider path.** The pause/freshness reasoning
+  executor now resolves probe facts local-first (deterministic literal cases, no tokens) and, when
+  the local extractor cannot name the one identity it needs (a non-literally-named pauser, or the
+  deadline parameter index), asks a supplied reasoning provider for that **single** identity via
+  `auto_reasoning_provider` / `ReasoningTask` (capability `counterexample_validation`, remote gate
+  reuses `agentic_invariants_allow_remote`). The provider's answer is validated against the parsed
+  contract, and the control+baseline probe remains the final gate — a wrong answer fails CLOSED
+  (the guarded sibling will not revert in the proposed state), so the LLM can never manufacture a
+  counterexample. Local-only behaviour is unchanged when no provider is passed. No benchmark claim.
+
+- **Revert-invariant gap execution: elementary-constructor contracts.** The access-control
+  executor and the pause/freshness reasoning executor previously skipped any contract whose
+  constructor took arguments. They now deploy a contract whose constructor parameters are all
+  elementary (uint/int/address/bool/bytesN) via a shared `_constructor_args` gate, widening the
+  executable subset to the many real contracts that take e.g. an owner address or a cap. The
+  constructor is deployed with **non-unset** literals — `address(this)` for every address (the
+  probe is the deployer, the identity a no-arg `owner = msg.sender` would give), `1` for every
+  integer, `false` for `bool`, zero `bytesN` — not zeros, so the deployed state does not read as
+  "never initialised": a dead `require(lockedAt == 0)` path stays dead instead of firing as a false
+  High counterexample. `evidence` records the literals used. Residual: a constructor whose
+  genuinely armed value is exactly 0 or an address other than the deployer (future
+  provider-proposed constructor); non-elementary constructor parameters stay ineligible. No
+  benchmark claim.
+
+### Fixed
+
+- **`audit address`: malformed explorer payloads exit cleanly instead of crashing.** The
+  `SourceCode` parse and result extraction in `fetch_verified_source` now run inside the guard, so
+  a malformed standard-json, a non-list `result` or a non-object `sources` entry raises
+  `BlockExplorerError` (clean `exit 1`) rather than an unhandled traceback.
+
+- **`audit deep <dir>`: location-less findings are no longer collapsed across files.** The
+  directory dedupe keyed on `(tool, type, file, line)`, which degenerated to one row per
+  `(tool, type)` for every finding without a resolvable location (enriched/LLM-normalized to an
+  empty location) — a recall loss. Such findings are now kept per id, or each when they have none.
+
+- **`audit deep <dir>`: one unreadable file no longer aborts the whole run.** A file that raises
+  during analysis (e.g. a non-UTF-8 source) is recorded as `{contract, error}`, counted in
+  `metadata.files_failed`, and the remaining files still run, instead of discarding every report
+  already gathered. The last file in a tight time budget also gets at least one second.
+
+- **Revert-invariant reasoning executor: the control probe no longer fails open.** A post-merge
+  review of the pause/freshness executor built four contracts that produced a `counterexample`
+  and a Medium finding without any real gap: a `pause()` that does not pause next to a one-shot
+  (`require(!claimed)`) or cooldown-gated guarded sibling, a `pause()` with an unrelated side
+  effect the sibling depends on, and a freshness sibling whose "check" is `require(deadline > 0)`
+  against the probe's zero literal. The cause was a single control test running baseline → state →
+  sibling, so any second-call revert impersonated the guard. The control is now two Foundry tests
+  from fresh state (`test_control_baseline`, `test_control_state`), the past deadline is nonzero,
+  and the sibling must revert **with the guard's own revert data** (the `require` message or
+  custom error read from the locally-defined modifier / local check; plain revert only when that
+  payload is not readable). Results carry a `control` record (both statuses, whether the payload
+  was matched). The four cases are regression fixtures; the PR's own positive and negative fixtures
+  keep their outcome. `capabilities.revert_invariants.executions` now also lists the reasoning
+  results when `enable_gap_reasoning` is on, so a `dos`/`timestamp` finding always has its
+  execution record in the metadata.
+
+- **Revert-invariant executor: a non-reverting guard is no longer a counterexample.** The probe
+  now wraps the unauthorized call in `vm.record()`/`vm.accesses(target)` and fails only when the
+  call both succeeded **and** wrote the target's storage. An early-return guard
+  (`if (msg.sender != owner) return;`) or a setter that no-ops on the zero argument used to be
+  promoted with the evidence "the access-control guard is absent"; both now stay `hypothesis`,
+  and the evidence reads "did not revert and wrote the contract's storage". Result ids are now
+  unique per privileged verb family (`<plan>-access_control-<first function>`, aligned with the
+  harness ids) instead of colliding when one plan carries gaps in two families. The forge JSON
+  mapping, the generated `foundry.toml`, the scrubbed environment and the probe text are now
+  covered by mocked-forge tests that run in CI (the real-forge tests remain skipped where `forge`
+  is absent).
+
+### Security
+
+- **`audit address`: the verified-source payload can no longer steer the build out of the sandbox.**
+  `write_contract_to_dir` used to keep a `foundry.toml` that arrived in a contract's verified
+  source, and the static analyzers honour it, so a payload `foundry.toml` with an `out`/`cache_path`
+  pointing outside the temp directory made `forge build`/`forge clean` write and delete files on a
+  path the contract author chose — confirmed by a planted file outside the sandbox being deleted
+  during an `audit address` run. The writer now writes **only `.sol` sources** from the payload
+  (an allow-list) and always generates the build config itself, with `out`/`cache_path` pinned
+  inside the temp directory — closing the whole class, not just `foundry.toml`/`hardhat.config`
+  (crytic-compile also auto-detects `brownie-config.yaml`, `waffle.json`, dapp/embark). The payload
+  supplies sources only. Not present in any release (post-dates 6.6.0).
+
+- **Revert-invariant executor hardened (`miesc/llm/revert_invariant_executor.py`).** The
+  opt-in access-control gap executor runs the *audited* contract under Foundry, and Foundry grants
+  cheatcode access to every contract a test deploys. A post-merge review of the executor showed
+  that, with the default generated `foundry.toml`, a malicious contract could read the auditor's
+  environment (`vm.envOr`) and send it out over `vm.rpc`/`createFork`, and that a permissive global
+  `~/.foundry/foundry.toml` let it run shell commands (`vm.ffi`) and write files. The executor now
+  pins `ffi = false` and `fs_permissions = []` in the generated project (verified to override the
+  global file), runs `forge` with an allow-listed environment and `FOUNDRY_PROFILE=default`
+  (verified: the same contract exfiltrates `unset`), denies outbound network where the host offers
+  an unprivileged sandbox (`sandbox-exec` on macOS, `unshare -rn` on Linux) and records
+  `isolation.network` as `denied`/`unrestricted` in every executed result (a warning is logged when
+  unrestricted), and refuses to execute a source that names the cheatcode address or the
+  `"hevm cheat code"` seed. `enable_gap_execution` stays off by default and is documented as
+  "only on code you are willing to run".
+
+## [6.6.0] - 2026-10-24 — Phase-1 plan miners, DeFi and Yul detectors, hardened adapters
+
+Minor release. Four deterministic, LLM-free *plan miners* land as Phase 1 of their SDDs
+(revert-invariant guards, privileged-governance authority graph, resource/liveness progress
+surfaces, lending-solvency market model) together with their first consumer, an opt-in
+advisory phase in the deep-audit agent that emits plans, never findings (#209, #213, #214,
+#215, #219, #221). Two detector families join layer 6/7: four DeFi detectors from @alva-p
+(rounding chains, fee-on-transfer, EIP-4626 signatures, unrefunded excess payment; #211) and a
+Yul/inline-assembly memory-safety detector rebuilt on the real Solidity memory rules (#207).
+The adapters got @alva-p's robustness pass (#197: sibling imports, dependency-only scoping, a
+call-graph regex that no longer stalls, validated LLM output), `miesc export` reads the
+`audit full` JSON again (#218), and the `defi` profile reaches the DeFi adapter (#220).
+Paper-profile numbers on `main` after this release (SmartBugs-curated, 143 contracts, layers
+1/6/7, LLM-free): recall 143/143, precision 33.7 % (281 FP), F1 50.4 % — identical, contract
+for contract, to the 6.5.0 baseline (`benchmarks/results/smartbugs_eval_layers_1_6_7_20261024_post_pr211_213.json`);
+the published papers report 137/143, 22.2 %, 36.0 % at v5.4.1. Nothing frozen changed.
+
+### Added
+
+- **Revert-invariant mining** (Phase 1 of
+  `docs/SDD_REVERT_INVARIANT_MINING_20260810.md`). A deterministic, local miner
+  (`miesc/llm/revert_invariant_mining.py`) that treats a contract's existing defenses as
+  signal: it inventories every guard (`require` / `assert` / custom-error `revert` /
+  `if (...) revert|throw`), anchors each to its source line and enclosing function, and
+  normalizes it into a defensive category (access control, signature verification, replay
+  prevention, freshness, pause toggle, allow/ban list, slippage, accounting cap, bounds, or
+  unclassified). Output is the provider-neutral `RevertInvariantOraclePlan` contract (with
+  `parse_revert_invariant_plans`), mirroring the existing oracle-plan contracts. It is
+  advisory — a guard inventory, never a `Finding` and never a "missing require" accusation;
+  later SDD phases (gap hypotheses, oracle/execution plans, the LLM agent) build on it.
+- **Yul/inline-assembly memory-safety detector** (Phase 1 of
+  `docs/SDD_YUL_ASSEMBLY_MEMORY_SAFETY_HARDENING_20260811.md`). A deterministic, local
+  detector (`miesc/detectors/yul_assembly_safety_detector.py`) that models a bounded set of
+  inline-assembly effects and flags three high-precision, advisory hazards:
+  `yul-memory-safe-violation` (a `memory-safe` block that *structurally* corrupts the memory
+  model — frees the pointer at `0x40` to a literal below `0x80`, or leaves the zero slot
+  `0x60` non-zero — and does not restore it or return/revert before falling through),
+  `yul-unbounded-returndatacopy` (a full `returndatacopy` into a fixed offset with no
+  allocation and no terminating `return`/`revert` over the copied region) and
+  `yul-arbitrary-sstore` (a slot from `calldataload` or from a parameter of an
+  external/public function). A regex cannot know the runtime free pointer, so the model
+  honors the Solidity memory-safety rules: temporary use at or above `mload(0x40)` without
+  updating the pointer, scratch writes, clobber-then-restore and clobber-then-return are all
+  safe and are not flagged. Raw `assembly` is never a finding; `yul-*` names never collapse
+  Slither's informational `assembly` warning. Negative control (the claim that matters, not
+  the near-empty SmartBugs assembly set): on OpenZeppelin `contracts/` and Solady `src/` —
+  the libraries with the most correct assembly — it emits 0 memory-safety and 0
+  returndatacopy findings; the only `arbitrary-sstore` hits are public functions that write a
+  caller-supplied slot. No benchmark claim.
+- **Four DeFi detectors in layer 7** (`miesc/detectors/defi_detectors.py`, contributed by
+  @alva-p, #211, split 2 of 7 of #144): `rounding` (a `div*` method chained straight into a
+  `mul*` method in fixed-point libraries, the form Slither's divide-before-multiply does not
+  see), `fee_on_transfer` (a `transferFrom` into the contract whose function then credits the
+  *requested* amount with no `balanceOf(address(this))` measurement anywhere in the file; Low,
+  medium confidence, comments masked), `erc4626` (a contract exposing the deposit/withdraw/
+  totalAssets trio whose signatures break the EIP-4626 arity; gate per contract, standard
+  overloads allowed) and `business_logic` (a `payable` function that accepts `msg.value >=`
+  a computed price and never refunds the excess; NextGen M-12). Measured on SmartBugs-curated,
+  `benchmarks/real_projects/`, OpenZeppelin `contracts/` and Solady `src/`: no finding outside
+  the fee-on-transfer cases that do exactly what the rule describes; the paper-profile numbers
+  do not move (the four types are outside the SmartBugs taxonomy). The detectors scan with a
+  linear header regex, not `CallGraphBuilder`.
+- **Advisory-plan phase in the deep-audit agent** — the first consumer of the deterministic,
+  LLM-free plan miners. `DeepAuditAgent`, when `enable_advisory_plans` is set (opt-in, default
+  off), runs the revert-invariant, privileged-governance, resource/liveness-griefing and
+  lending-solvency miners over the source and surfaces their plans under
+  `report["phases"]["advisory_plans"]` (plus an `advisory_plan_count` in metadata). The phase
+  needs no reasoning provider and emits plans, never `Finding`s — so it adds zero precision risk
+  and never alters the finding set. A miner that raises is recorded with its error and does not
+  break the audit. Until now these miners (`mine_revert_invariants`,
+  `mine_privileged_governance_lifecycle`, `mine_resource_liveness_griefing`,
+  `mine_lending_solvency_liquidation`) were exported but never called.
+- **Lending solvency & liquidation — market model** (Phase 1 of
+  `docs/sdd/SDD_LENDING_SOLVENCY_LIQUIDATION_HARDENING_20260811.md`). A deterministic, local miner
+  (`miesc/llm/lending_solvency_liquidation.py`) that builds a protocol-solvency model for lending
+  contracts: accounting fields (collateral, debt, shares, indexes, reserves, bad_debt), market
+  parameters (collateral factor, liquidation threshold, close factor, bonus), solvency-critical
+  functions (supply/borrow/repay/accrue/liquidate/…), price dependencies, and configuration actors.
+  A precision gate emits a plan only when the contract looks like a lending protocol (≥1
+  solvency-critical function and ≥1 accounting field). Output is the provider-neutral
+  `LendingSolvencyLiquidationPlan` contract (with `parse_lending_solvency_plans`). It is advisory —
+  a market-model inventory, never a `Finding` (distinct from the DeFi detectors / solvency
+  invariant templates); later SDD phases build on it.
+- **Privileged governance lifecycle — authority graph** (Phase 1 of
+  `docs/sdd/SDD_PRIVILEGED_GOVERNANCE_LIFECYCLE_HARDENING_20260811.md`). A deterministic, local
+  miner (`miesc/llm/privileged_governance_lifecycle.py`) that models a contract's privileged
+  authority rather than re-matching `onlyOwner`: it inventories privileged actors (owner,
+  admin, guardian, governor, proposer, executor, pauser, upgrader, keeper, …), AccessControl
+  roles with their grant/revoke functions, and the edges between them and the functions they
+  guard/grant/revoke, anchored to source. Output is the provider-neutral
+  `PrivilegedGovernanceLifecyclePlan` contract (with `parse_privileged_governance_plans`). It is
+  advisory — an authority inventory, never a `Finding` and never a "missing timelock"
+  accusation (distinct from the governance findings in `advanced_detectors`); later SDD phases
+  (lifecycle hypotheses, governance oracles, execution plans) build on this graph.
+- **Resource/liveness griefing — progress surface** (Phase 1 of
+  `docs/sdd/SDD_RESOURCE_LIVENESS_GRIEFING_HARDENING_20260811.md`). A deterministic, local miner
+  (`miesc/llm/resource_liveness_griefing.py`) that models *progress* rather than re-matching
+  `for (...)` loops: for each externally growable resource (dynamic array, mapping, withdrawal/
+  proposal queue, pending-payment map, keeper task) it records the functions that grow it and the
+  progress-critical functions (withdraw/claim/settle/execute/liquidate/…) that traverse it,
+  anchored to source. Output is the provider-neutral `ResourceLivenessGriefingPlan` contract (with
+  `parse_resource_liveness_plans`). It is advisory — a progress-surface inventory, never a
+  `Finding` and never an "unbounded loop" accusation (distinct from the DoS detectors); later SDD
+  phases (liveness hypotheses, progress oracles, execution plans) build on it.
+
+### Changed
+
+- The index-preserving Solidity text helpers (`_strip_comments`, `_line_of`, `_match_brace`) that
+  the deterministic plan miners had each copied verbatim now live in one tested module,
+  `miesc/llm/_solidity_text.py`. Internal refactor with no behavior change; `_FUNCTION_RE` stays
+  per-module because the revert-invariant miner needs a superset (it also matches
+  `modifier`/`constructor`) that the others must not.
+- DeFi findings now carry a `type` equal to their category (`flash_loan`, `mev_exposure`,
+  `rounding`, `fee_on_transfer`, `erc4626`, `business_logic`, …) instead of relying on the
+  title keyword fallback. The SARIF `ruleId` becomes one per category and the `miesc baseline`
+  fingerprint of these findings changes, so a baseline generated before this release reports
+  them as new once.
+- The `defi` audit profile runs layer 7 and the DeFi adapter (`miesc audit profile defi`); it
+  listed a tool name that no longer exists (`price_oracle_checker`) and never reached
+  `defi_detectors.py`, so the DeFi detectors were only reachable through `audit full`.
+
+### Fixed
+
+- **Adapter robustness and LLM output validation** (contributed by @alva-p, #197, split 1 of 7
+  of #144). Slither and Aderyn resolve relative sibling imports and the `@openzeppelin` /
+  `@solmate` / `@chainlink` package prefixes on standalone files, and scope their findings to
+  the contract under audit by dropping only dependency files (`lib/`, `node_modules/`, package
+  prefixes; `miesc/adapters/_dependency_scope.py`) while keeping findings inherited from
+  sibling contracts and findings without a source mapping; an Aderyn sibling outside the
+  project root falls back to a flat copy instead of failing. The call-graph function regex
+  (`CallGraphBuilder.FUNCTION_PATTERN`) no longer backtracks catastrophically: it stalled for
+  more than 60 s on Uniswap v3 `SwapRouter`, OpenZeppelin `TimelockController` and Solady
+  `ERC4337`, and now takes milliseconds while also recognising `onlyRole(keccak256(...))`
+  modifiers. SmartLLM enforces valid structured output (one validated retry) and accepts the
+  installed coder models; LLMBugScanner falls back to an installed coding model instead of a
+  configuration error, shares the LLM cache mixin and records `models_used` in its metadata.
+- The lending-solvency miner's gate ("a deposit/supply/withdraw/redeem function and a
+  collateral/debt/shares/reserve word anywhere in the source") accepted every vault, staking
+  pool, pair and token: `supply` matched `totalSupply`, and the words were matched as
+  substrings of the whole text, string literals included. Measured before the fix: the
+  ERC-4626 vaults of OpenZeppelin (6) and Solady, Lido's stETH and two SmartBugs tokens all
+  came out as "lending markets" (2/143 on SmartBugs, both false). The gate now requires a
+  debt-side function (borrow / repay / liquidate / seize / absorb) and a `collateral` or
+  `debt` identifier; accounting keywords are matched inside identifiers only, with comments
+  and string contents masked; the plan anchors at the first accounting identifier (a
+  declaration) instead of the first loose word or line 1. After the fix: Aave v3 (`Pool`,
+  `BorrowLogic`) and Compound v3 (`CometCore`) still pass with every parameter extracted;
+  SmartBugs, OpenZeppelin, Solady, Lido, Uniswap v3 and Chainlink: 0. The parser's
+  `market_model` typing is fixed too (5 mypy errors).
+- The resource/liveness progress-surface miner counted two things as a traversal that are
+  not one: a bodiless declaration (an interface's `function execute(...) external;`) whose
+  "body" became the whole next contract in the file, loops included, and the word `for`
+  inside a string literal (`"Incorrect balances for bonded amount"`). On SmartBugs-curated
+  10 of its 14 surfaces came from those two artifacts (parity_wallet ×8, spank_chain ×2).
+  Two shared helpers in `miesc/llm/_solidity_text.py` fix it for every miner: `_body_brace`
+  (returns no body when a `;` precedes the next `{`) and `_mask_strings` (blanks literal
+  contents, offsets preserved); a traversal now also requires the resource to be referenced
+  inside the loop's header or block, not merely somewhere in the same function. The
+  revert-invariant miner's span table had the same bodiless-declaration pattern and uses the
+  same helper. Corpus after the fix: 5 surfaces in 3 contracts (rubixi, etheraffle ×2,
+  send_loop ×2), all real loops; real-project sweep unchanged (Aave's one real surface).
+- `miesc export` read only the `results` list, so every format (SARIF, CSV, JSONL,
+  Markdown, HTML, GitHub annotations) exported zero findings from the JSON that
+  `audit full` writes through the ML orchestrator (`raw_findings` / `ml_enhanced`,
+  no `results` key); observed on a real run with 64 findings. The exporters now
+  share the result-file normalisation `report` already used
+  (`miesc.cli.utils.results_from_result_file`): `ml_enhanced.findings` first (the
+  complete, severity-adjusted list), then `top_findings`, then `raw_findings`
+  (capped to 20 entries by the orchestrator), regrouped per tool; `contract_path`
+  is honoured as the contract name.
+
+## [6.5.0] - 2026-10-23 — Configurable LLM providers and access-control precision
+
+Minor release. One registry now decides which LLM backends exist and how to reach them:
+Claude, GPT, DeepSeek, Kimi (Moonshot), a local Ollama, or any OpenAI-compatible endpoint you
+declare in the config; `scan --model`, `audit deep --llm-provider`, the `--verify-fp` advisory
+pass, `MIESC_LLM_PROVIDER`, `miesc doctor` and the EVMBench harness all read it (#204, #203,
+#208). On the detection side the access-control rules need an unguarded privileged operation
+(#202). Paper-profile numbers on `main` after this release (SmartBugs-curated, 143 contracts,
+layers 1/6/7, LLM-free): recall 143/143, precision 33.7 % (281 FP), F1 50.4 %; the published
+papers report 137/143, 22.2 %, 36.0 % at v5.4.1. Nothing frozen changed; `make bench`
+reproduces the new figures into a dated artifact and `make reproduce` keeps checking the old.
+
+
+### Added
+
+- **Configurable LLM providers.** `miesc/core/llm_providers.py` is the single registry of
+  backends: built-in `anthropic`, `openai`, `deepseek`, `kimi` (Moonshot, OpenAI-compatible)
+  and `ollama`, plus any OpenAI-compatible endpoint declared under `llm.providers` in the
+  config (`kind`, `base_url`, `api_key_env`, `default_model`, `models`). `scan --model` takes
+  `provider[:model]` (`kimi`, `kimi:kimi-k2-thinking`, `ollama:qwen2.5-coder:32b`,
+  `deepseek:pro`) next to the historical aliases and rejects unknown providers before any
+  analysis; `audit deep --llm-provider` and `MIESC_LLM_PROVIDER` accept any registered name;
+  `miesc doctor` lists every provider, whether its key variable is set and whether the
+  default model is reachable, without printing keys. The frontier adapter and the
+  orchestrator build their clients from the registry (base URL, key, timeout), which removes
+  the DeepSeek special case that used to overwrite `OPENAI_API_KEY` in the process
+  environment. Guide: `docs/guides/LLM_PROVIDERS.md`. The ensemble provider list and the
+  older OpenAI-only agents are not on the registry yet.
+- `benchmarks/evmbench_eval.py --model` resolves through the registry too (any provider as
+  `provider[:model]`, Kimi included); `deepseek` and `ollama` keep their harness meaning
+  (`deepseek-chat`, `qwen2.5-coder:32b`) so earlier runs stay comparable. Evidence note:
+  `docs/internal/DETECT_MULTIPROVIDER_EVMBENCH_2026-10.md`.
+- The `--verify-fp` advisory LLM pass (`--verify-model`) reads the same registry: any
+  provider as `provider[:model]`, a cheaper default tier per vendor, `MIESC_VERIFY_<NAME>_MODEL`
+  to override it; an unknown provider disables the pass rather than guessing an endpoint.
+
+### Changed
+
+- **Access-control false positives.** New `miesc/detectors/access_guards.py` (caller guard:
+  any `only*` modifier, a `msg.sender` condition or a role mapping used as a boolean;
+  self-service withdrawal: value to the caller or to a recipient whose own entry is read, or
+  a `msg.value` refund, never the contract balance). The layer-6 access-control rules,
+  Peculiar's rule and the intelligence gap-fillers use them; legacy-constructor rules need a
+  public unguarded function assigning `msg.sender` to an owner-like variable in a contract
+  without a real constructor, and the intelligence regex no longer runs across contracts;
+  array writes count only when the array shrinks or the caller supplies length or index;
+  "Ownership Not Renounced" (advanced detector) is a note, out of the scoring taxonomy.
+  SmartBugs-curated (LLM-free): recall 143/143, precision 31.9 % → 33.7 %
+  (305 → 281 FP), F1 50.4 %; `access_control` 66 → 42 FP. The 36 contracts
+  left with a spurious `access_control` carry Slither's `arbitrary-send-eth` or a real
+  `tx.origin` / `selfdestruct` under another label.
+
+### Fixed
+
+- Aderyn runs with `--skip-update-check` (aderyn 0.1.x panics when its GitHub version check
+  is rate-limited) and gets the running interpreter's `solc-select` shim first on its PATH,
+  so a fresh `HOME` no longer pushes it onto Homebrew's single latest solc.
+
+## [6.4.0] - 2026-10-23 — Data-flow detectors and honest scoring (C3 continued)
+
+Paper-profile numbers on `main` after this release (SmartBugs-curated, 143 contracts,
+layers 1/6/7, LLM-free): recall 143/143, precision 31.9 % (305 FP), F1 48.4 %. The
+published papers report 137/143, 22.2 %, 36.0 % at v5.4.1; `make bench` reproduces
+the new figures into a dated artifact and `make reproduce` keeps checking the frozen ones.
+
+### Changed
+
+- **Arithmetic false positives (#198).** The evaluation scorer no longer maps informational
+  detectors (Slither `solc-version`, pragma and style rules) to a vulnerability category
+  through their descriptions; the layer-6 overflow rule needs a state or financial context
+  or a contract-level variable written with an external input; the ML fallback's
+  `integer_overflow` needs a balance-like state write. SmartBugs-curated (LLM-free):
+  recall 143/143 kept, precision 25.7 % → 28.9 % (414 → 352 FP), F1 44.8 %.
+- **Time and randomness false positives (#199).** New `miesc/detectors/chain_attribute_flow.py`:
+  a minimal intra-procedural data flow for `block.timestamp`/`now`/`block.number`/
+  `blockhash`/`block.difficulty`/`block.coinbase`. The `smartbugs_ml` fallback, 4naly3er's
+  `use_of_block_timestamp` and the intelligence timestamp gap-filler only fire when the
+  value reaches a comparison in a condition/return or an entropy sink (hash, modulo,
+  strong source); storing or logging the timestamp is not a finding. The ML fallback also
+  matches `now` as a word (the substring test hit `known`). Scorer: Slither `timestamp`
+  maps to `time_manipulation` (a stray `block.timestamp` alias made it randomness), the
+  adapter's own `category` is honoured, `deprecated-standards` is out of taxonomy, and
+  path-like tokens are stripped before the keyword fallback (the corpus path leaked the
+  label). SmartBugs-curated (LLM-free): recall 143/143, precision 28.9 % → 31.9 %
+  (352 → 305 FP), F1 48.4 %; `bad_randomness` 46 → 14 FP, `time_manipulation`
+  43 → 30 FP.
+- **Professional report (#198)** now shows, per finding, which tools agree and the calibrated
+  confidence, plus a "Coverage and Limitations" section (tools skipped, in fallback mode,
+  failed; LLM on/off) and an "Appendix B: Provenance" from the result's provenance block.
+- `miesc scan --model ollama` now defaults to `qwen2.5-coder:14b` for a fast opt-in
+  local LLM pass (was `qwen2.5-coder:32b`) (#195). The benchmarked 32B local model remains
+  available via `--model qwen32b`; `audit full`, the ensemble path, and the config
+  default are unchanged, so the documented benchmark figures are unaffected.
+
+### Fixed
+
+- `miesc report` crashed on the `audit full` JSON (`raw_findings` is a dict there) (#198).
+- The `smartbugs_ml` prediction cache (system temp dir, 24 h) is keyed on the rule code,
+  so a rule change no longer serves the previous rules' findings to a benchmark run (#199).
+
+### Dependencies
+
+- Python minor-version group bumped (21 packages, #163); `github/codeql-action` 4.39.0
+  (#162); `ossf/scorecard-action` 2.5.0 (#161).
+
+## [6.3.0] - 2026-10-21 — Precision wave (C3) and LLM-path follow-ups
+
+Minor release. Wave C3 changes what the intelligence layer reports: two broad gap-fillers
+(`dos_push_unbounded`, `reentrancy_crossfunction`) are gone, three rule bugs are fixed and the
+evaluation scorer no longer reads remediation text as a diagnosis. On SmartBugs-curated
+(LLM-free paper profile) recall stays 143/143 and precision rises from 22.4 % to 25.7 %
+(495 → 414 false positives). Also: the ArithmeticDetector recognises cast operands (BECToken
+batchOverflow), Slither and Aderyn no longer share `/tmp` report files, Ollama can be asked
+for native JSON (opt-in), the arena benchmark matcher credits by SWC id and detector type,
+and the README states what each setup actually delivers.
+
+### Added
+
+- **Opt-in native JSON output for Ollama** (`MIESC_OLLAMA_FORMAT_JSON=1`, or
+  `format_json=True` on the shared mixin): the shared Ollama caller and the frontier
+  adapter's chat call send `"format": "json"`, so the model returns a JSON document
+  instead of prose the extractor must repair. Measured on `VulnerableBank.sol` with
+  `qwen2.5-coder:32b`: the same reentrancy finding, parsed by the `direct` strategy
+  instead of `json_repair`, in 52 s instead of 198 s. Cache-free `audit full` on the same
+  contract (fresh `HOME`, Ollama live, `--llm-timeout 120`): with the flag every LLM
+  adapter's response parsed by the `direct` strategy (GPTScan, GPTLens, iAudit, LlamaAudit,
+  LLM-SmartAudit, SmartLLM, LLMBugScanner; PropertyGPT still fenced) against a mix of
+  `fenced`/`anchored` repairs without it, no timeouts either way, wall time 304 s vs 294 s.
+  Still off by default: the next step is the same comparison on the SmartBugs LLM
+  follow-up profile before flipping it.
+- README: a "what you actually get, by setup" table (static-only, local open-weight,
+  three frontier APIs, ensemble) with recall, precision, F1 and cost per audit from the
+  Paper 1 claims matrix.
+
+### Changed
+
+- **Wave C3, precision.** `_normalize_category` in `miesc evaluate` no longer coerces
+  out-of-taxonomy findings (`hardcoded_gas`, DeFi `mev_exposure`) into SmartBugs categories by
+  reading their remediation text, and an empty type no longer matches every alias. The
+  intelligence layer's `dos_push_unbounded` and `reentrancy_crossfunction` gap-fillers are
+  removed (0 exclusive true positives); `incorrect_constructor_name`, `unchecked_call_pattern`
+  and `front_running` rule bugs fixed. SmartBugs-curated LLM-free: 143/143 recall, precision
+  22.4 % → 25.7 % (artifact `smartbugs_eval_layers_1_6_7_20261021_intel_fix`) (#189).
+- **ArithmeticDetector** recognises cast operands (`uint256(cnt) * _value`, the BECToken
+  batchOverflow) and skips SafeMath library bodies; detector-level arithmetic recall on the
+  three arena contracts 33 % → 100 %, SmartBugs-curated unchanged (#188).
+- **Arena benchmark matcher** credits findings by SWC id and detector type instead of keyword
+  substrings; arena access_control 1/3 → 3/3, overall 0.82 → 0.89 without over-crediting (#191).
+
+### Fixed
+
+- **Slither and Aderyn no longer share `/tmp/slither_output.json` / `/tmp/aderyn_output.json`.**
+  Each run writes its report to a per-run temp file and removes it, so two MIESC
+  processes on one machine (a benchmark and a scan, parallel CI jobs) cannot read each
+  other's output and attribute one contract's findings to another; a caller-supplied
+  `output_path` is still honoured and kept.
+
+## [6.2.0] - 2026-10-21 — Product Excellence waves C1–C4
+
+Minor release: the finding-quality wave changes what a scan reports (lint and
+informational rules are capped at Low/Info, fixes are keyed by detector rule, every
+finding carries its file and function), so baselines built on 6.1.x may shift. Every
+result JSON now carries a `provenance` block, and the local-LLM path parses what the
+models actually emit. SmartBugs-curated (LLM-free paper profile): recall 143/143,
+precision 22.4 % (paper: 137/143, 22.2 %).
+
+### Added
+
+- **One tolerant JSON extractor for every LLM adapter** (`miesc/llm/json_extraction.py`).
+  SmartGuard, GPTScan, GPTLens, iAudit, LlamaAudit, LLM-SmartAudit, SmartLLM,
+  LLMBugScanner, PropertyGPT and FrontierLLM now parse model output through the same
+  strategies (code fences, `<think>` blocks, key-anchored string-aware balanced scans,
+  repair of trailing commas / single quotes / raw newlines, the `json-repair` library
+  for unescaped quotes inside Solidity snippets and truncated output, NDJSON). The
+  extractor never raises and records which strategy worked or why none did; SmartGuard
+  and FrontierLLM keep that outcome in their result metadata. Real Ollama responses
+  captured with `MIESC_LLM_DUMP_DIR` live in `tests/fixtures/llm_responses/` and must
+  keep parsing.
+  `json-repair` is now a core dependency (pure Python) so the local `--model ollama`
+  path works on a minimal install.
+- **`--llm-timeout` on `scan` and `audit full`**: a wall-clock budget applied only to
+  adapters that declare `requires_llm`; static tools keep `--timeout`. Every tool record
+  carries `timeout_budget_s`.
+- **"Slowest tools" table** at the end of `audit full` (all three paths), from per-tool
+  timings the ML orchestrator now keeps (`tool_timings`, `tool_budgets`).
+- **Every result JSON carries a `provenance` block** so a run can be cited and
+  re-run: MIESC version and git SHA (when running from a checkout), Python, OS/arch,
+  the version string of every tool that executed as its binary reports it (probed
+  once per run through the executable the adapter resolved; `unknown` when a tool has
+  no version flag, never a failed run), the `solc` build the Slither adapter selected
+  per contract, the versions of the result-moving Python packages (`slither-analyzer`,
+  `scikit-learn`, `solc-select`, …), the config file path and SHA-256,
+  `MIESC_SEED`/`MIESC_LLM_PROVIDER`/`MIESC_LLM_MODEL` when set, an `llm_free` flag
+  and the exact command line. Written by `miesc scan`, `miesc audit quick|full`,
+  `miesc evaluate corpus|ablation` (next to the unchanged `experiment_card`) and
+  `miesc fix`, which now also writes a run report (`<output>.json`, or `--report PATH`)
+  that cites the scan it consumed. `miesc evaluate compare` prints both runs'
+  provenance side by side with differing rows highlighted. Adapters may declare
+  `ToolAdapter.version_command()`; Slither, Aderyn, Solhint and Mythril do.
+  (`miesc/core/provenance.py`; REPRODUCE.md now points at the block instead of a
+  hand-maintained tool-version table.)
+- **Documentation drift guards** (`tests/test_docs_drift.py`): CI now fails when the
+  README MCP tool list differs from the server's `@mcp.tool()` set, when the
+  installation guides or `CITATION.cff` state a version other than `miesc.__version__`,
+  when a quoted `python -m <module>` command names a module that does not exist, or
+  when a relative Markdown link in the user-facing docs is dead.
+- **Product Excellence Plan** (`docs/roadmap/PRODUCT_EXCELLENCE_PLAN_2026-10.md`): the
+  researcher-journey scorecard and ranked improvement waves; `docs/ROADMAP.md` points to it.
+
+### Changed
+
+- **`smartbugs_detector` precision.** Tightened the `short_addresses` and `front_running`
+  patterns: on SmartBugs-curated (LLM-free layers 1,6,7) recall stays 143/143 and
+  precision rises from 20.5 % to 22.4 % (paper: 22.2 %); artifact
+  `benchmarks/results/smartbugs_eval_layers_1_6_7_20261020_fp_tightened.*` (#172).
+
+### Fixed
+
+- **Local-LLM responses with unescaped quotes inside Solidity snippets** no longer yield
+  zero findings on the `scan --model ollama` path: the parser falls back to a tolerant
+  JSON repair before giving up (#174).
+
+## [6.1.1] - 2026-10-20
+
+### Fixed
+
+- **Aderyn 0.1.x parse panics are reported as a skip, not an error.** aderyn aborts
+  with a Rust panic (exit 101) on legacy Solidity it does not model (`throw` in
+  pre-0.4.22 sources; 36 of the 143 SmartBugs-curated contracts). The adapter now
+  returns `status: skipped` with `reason: unsupported_source` and a warning that
+  names the upstream limitation, so layer summaries explain the missing result.
+- **Tool availability is probed once per run, not once per contract.** `run_tool`
+  caches each adapter's `is_available()` for the process;
+  `AdapterLoader.reset_availability()` clears it and the evaluator calls it per run.
+  SmartGuard's
+  `ollama list` probe has a 5 s timeout, which added ~12 min to a 143-contract
+  SmartBugs run when Ollama was unreachable.
+- **Evaluate results carry `version`, `timestamp` and `tools_used` at the top level
+  again** (as the 5.4.1 paper artifacts do), next to the `experiment_card`;
+  `miesc evaluate compare` reads the version from either place instead of printing
+  `MIESC ?`.
+- **`miesc[mcp]` installs a working server again.** The extra now pins the MCP
+  Python SDK to the 1.x line (`mcp[cli]>=1.2.0,<2`); the 2.x SDK renamed `FastMCP`
+  and `miesc-mcp` crashed with a misleading "MCP SDK not installed" message. The
+  server now tells apart a missing SDK from an incompatible one.
+- **`miesc report -f pdf` no longer reports success without a PDF.** When neither
+  WeasyPrint nor pandoc is available the HTML fallback is still written, but the
+  command exits 1 and says how to install `miesc[pdf]`.
+- **`scripts/verify_installation.py`** no longer fails a minimal `pip install miesc`
+  on Django (an extra); it checks the real core dependencies, lists optional extras
+  as warnings and reports available tools consistently with `miesc doctor`.
+- **Makefile** targets `install`, `install-dev`, `bench`, `ablation`, `reproduce`,
+  `dataset-verify` pointed at files removed in the `src/ → miesc/` unification; they
+  now wrap the canonical scripts (`benchmarks/verify_paper_claims.py`,
+  `miesc evaluate corpus --layers 1,6,7`, `paper1_ablation_summary.py`).
+
+### Added
+
+- **Regression tests for the installation fixes**: PDF fallback exit code
+  (`tests/test_report_pdf_fallback.py`), MCP SDK missing vs. incompatible
+  (`tests/test_mcp_import_guard.py`), `verify_installation.py` core list kept in
+  sync with `pyproject.toml` (`tests/test_verify_installation.py`), Aderyn panic
+  handling (`tests/test_aderyn_unsupported_source.py`).
+- **`miesc evaluate corpus|ablation --no-llm`**: first-class LLM-free evaluation
+  profile. Adapters now declare `requires_llm` in their metadata (SmartGuard, GPTScan,
+  GPTLens, iAudit, LlamaAudit, LLMSmartAudit, SmartLLM, LLMBugScanner, PropertyGPT,
+  FrontierLLM); the flag skips them without probing and records `llm_free: true` and
+  the skipped tools in the `experiment_card`. `make bench` and REPRODUCE.md use it
+  instead of the `OLLAMA_HOST=http://127.0.0.1:1` workaround.
+- **`make bench BENCH_TAG=<label>`** suffixes the dated result files so two runs on the
+  same day do not overwrite each other.
+- **`miesc[ml]` extra** (scikit-learn, numpy) for the built-in ML detectors that are
+  part of the Paper 1 reproducible profile; also included in `miesc[full]`.
+- **`REPRODUCE.md`**: a from-scratch guide to re-run the Paper 1 SmartBugs profile
+  and compare it with the published artifact, with the tolerance to expect.
+- Documentation refresh: README and `docs/INSTALLATION*.md` no longer reference the
+  removed `src/` package, list the 22 real MCP tools, document `solc-select` as a
+  prerequisite and the `qwen2.5-coder` defaults.
+
 - **Calibrated finding confidence.** Every finding now carries a `confidence`
   (0-1) and `confidence_level` (high/medium/low), blending detector reliability
   (reused from the correlation engine's tool weights), cross-tool agreement, and
@@ -29,10 +1028,39 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   (with `--tolerance`) fails CI when the score drops versus a prior results or score
   JSON — a relative gate alongside the absolute `--fail-under`, the security analogue
   of a coverage-regression gate.
-- **Structured formal counterexamples.** The unified verification report parses each
-  prover's counterexample witness into structured `name = value` bindings (raw text
-  preserved), so `miesc verify` output carries machine-usable inputs — the foundation
-  for turning a counterexample into an executable proof-of-concept.
+- **Counterexample → Foundry PoC.** Formal verification now turns each prover
+  counterexample into an executable-shaped reproduction. The witness is parsed into
+  structured `name = value` bindings (raw text preserved), and
+  `miesc verify <contract> --poc <dir>` writes one Foundry test scaffold per
+  counterexample — laying the inputs into typed, compile-valid Solidity locals with
+  the type inferred from the prover's variable naming (`p_amount_uint256` →
+  `uint256 amount`). Values that are not literals (e.g. `2**256 - 1`) fall back to a
+  safe default with the raw value kept in a comment, so the scaffold always compiles.
+  `--poc-check` optionally runs `forge build` on each scaffold to confirm it compiles
+  (strictly best-effort; skipped when forge is unavailable, so CI is never affected).
+
+## [6.1.0] - 2026-10-16 — RIBCi–CYTED 2026 camera-ready
+
+### Added
+- `benchmarks/verify_paper_claims.py`: recomputes every Paper 1 & 2 figure from
+  its backing JSON, anchors each to the camera-ready `.tex`, and checks the Data
+  Availability artifacts exist (exits non-zero on mismatch).
+- Camera-ready benchmark scripts and artifacts: EVMBench same-run multi-protocol
+  scorer, null-control matcher, Paper 1 ablation summary, Paper 2 pre-patch
+  Slither baseline, SmartBugs FP-filter effect, and the EVMBench same-run results
+  under `benchmarks/results/evmbench/same_run_claude_20261016/`.
+- `benchmarks/README.md` script index and `paper/ribci-cyted-2026/ERRATA.md`
+  (paper↔repo discrepancies E-1/E-2/E-3).
+
+### Changed
+- Claims matrices regenerated deterministically (`SOURCE_DATE_EPOCH=2026-10-16`)
+  with the new artifacts; evidence JSONs unchanged so figures are unchanged.
+- Reproducibility docs rewritten in English; README "Academic Validation" uses
+  only JSON-sourced figures (drops the unsourced "Slither alone 43.2%" comparison
+  and the "eliminate the original finding" phrasing) and links the camera-ready
+  PDFs; `CITATION.cff` preferred-citation is the two RIBCi–CYTED 2026 papers
+  (thesis secondary); `references.bib` reproduces the camera-ready bibliography.
+- Development logs moved to `docs/internal/`.
 
 ## [6.0.0] - 2026-07-12
 
@@ -1162,7 +2190,7 @@ Workflow:
 
 ---
 
-## [Unreleased]
+## [Historical — DPGA submission (2025-12)]
 
 ### Added
 - **DPGA Application Submitted** (December 5, 2025)

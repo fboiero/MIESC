@@ -762,6 +762,65 @@ class TestEdgeCases:
         assert reachable_a == {"a"}
         assert reachable_b == {"b"}
 
+    def test_parameterized_modifiers_do_not_hang(self):
+        # FUNCTION_PATTERN's modifier group used to be bare-word-only
+        # (`(?:\w+\s*)*?`) — a custom modifier taking arguments left an
+        # unconsumed "(" the group couldn't cross, and the surrounding
+        # optional groups triggered catastrophic backtracking. Confirmed
+        # hang >120s on a real 452-line contract (Y2K Finance's Vault.sol);
+        # this is the minimal real-shaped repro (multi-line signature,
+        # parameterized modifiers, a trailing `returns (...)`).
+        import time
+
+        source = """
+        function withdraw(
+            uint256 id,
+            uint256 assets,
+            address receiver,
+            address owner
+        )
+            external
+            override
+            epochHasEnded(id)
+            marketExists(id)
+            returns (uint256 shares)
+        {
+            return assets;
+        }
+        """
+        start = time.monotonic()
+        nodes = CallGraphBuilder().build_from_source(source, "Vault.sol").nodes
+        elapsed = time.monotonic() - start
+
+        assert (
+            elapsed < 2.0
+        ), f"FUNCTION_PATTERN took {elapsed:.1f}s — regression to catastrophic backtracking"
+        assert "withdraw" in nodes
+
+    def test_modifier_header_without_body_fails_fast(self):
+        # An abstract declaration (`...;`, no `{`) followed by many words used
+        # to retry every split of the modifier group: >20s on this input.
+        import time
+
+        source = "function g() external virtual onlyOwner(x) " + "w " * 40
+        start = time.monotonic()
+        CallGraphBuilder().build_from_source(source, "Abstract.sol")
+        elapsed = time.monotonic() - start
+
+        assert elapsed < 2.0, f"FUNCTION_PATTERN took {elapsed:.1f}s on a header with no body"
+
+    def test_modifier_with_nested_parens_is_recognized(self):
+        # `onlyRole(keccak256("ADMIN"))` used to make the function vanish
+        # from the call graph without any error.
+        source = """
+        function grant(address who) external onlyRole(keccak256("ADMIN")) {
+            return;
+        }
+        """
+        nodes = CallGraphBuilder().build_from_source(source, "Roles.sol").nodes
+
+        assert "grant" in nodes
+
     def test_max_depth_limiting(self):
         """Test that max_depth limits path search."""
         graph = CallGraph("Test")

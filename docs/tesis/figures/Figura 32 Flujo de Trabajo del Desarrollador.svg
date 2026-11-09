@@ -34,9 +34,6 @@
 
   <!-- Background -->
   <rect width="900" height="700" fill="#f8f9fc"/>
-
-  <!-- Title -->
-  <text x="450" y="35" text-anchor="middle" class="title">Figura 32. Flujo de Trabajo del Desarrollador con MIESC</text>
   <text x="450" y="55" text-anchor="middle" class="subtitle">Multi-layer Intelligent Evaluation for Smart Contracts v4.1</text>
 
   <!-- Developer Section -->

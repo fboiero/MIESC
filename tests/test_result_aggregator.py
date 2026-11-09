@@ -126,6 +126,26 @@ class TestAggregatedFinding:
         assert d["cross_validated"] is True
         assert d["confirmations"] == 2
 
+    def test_to_dict_uses_custom_confirmation_threshold(self, original_findings):
+        """Cross-validation should match the aggregator threshold."""
+        agg = AggregatedFinding(
+            id="AGG-123",
+            severity="high",
+            type="reentrancy",
+            message="Test",
+            file="Test.sol",
+            line=10,
+            function="test",
+            swc_id="SWC-107",
+            cwe_id=None,
+            confidence=0.9,
+            tools=["slither", "mythril"],
+            confirmations=2,
+            original_findings=original_findings,
+            min_confirmations=3,
+        )
+        assert agg.to_dict()["cross_validated"] is False
+
 
 class TestResultAggregator:
     """Test ResultAggregator class."""
@@ -349,6 +369,30 @@ class TestResultAggregatorSimilarity:
         )
         assert not aggregator._are_similar(f1, f2)
 
+    def test_are_similar_different_functions(self, aggregator):
+        """Same-line findings in different functions are distinct issues."""
+        f1 = Finding(
+            id="f1",
+            tool="slither",
+            severity="high",
+            type="access-control",
+            message="Missing owner check",
+            file="Vault.sol",
+            line=50,
+            function="withdraw",
+        )
+        f2 = Finding(
+            id="f2",
+            tool="mythril",
+            severity="high",
+            type="access-control",
+            message="Missing owner check",
+            file="Vault.sol",
+            line=50,
+            function="sweep",
+        )
+        assert not aggregator._are_similar(f1, f2)
+
 
 class TestResultAggregatorAggregate:
     """Test aggregation."""
@@ -408,6 +452,41 @@ class TestResultAggregatorAggregate:
         assert result[0].confirmations == 2
         assert "slither" in result[0].tools
         assert "mythril" in result[0].tools
+
+    def test_aggregate_preserves_same_line_distinct_functions(self, aggregator):
+        """Do not collapse separate symbols that share a source line/type."""
+        aggregator.add_tool_results(
+            "slither",
+            {
+                "findings": [
+                    {
+                        "type": "access-control",
+                        "severity": "high",
+                        "message": "Missing owner check",
+                        "location": {"file": "Vault.sol", "line": 50, "function": "withdraw"},
+                    }
+                ]
+            },
+        )
+        aggregator.add_tool_results(
+            "mythril",
+            {
+                "findings": [
+                    {
+                        "type": "access-control",
+                        "severity": "high",
+                        "message": "Missing owner check",
+                        "location": {"file": "Vault.sol", "line": 50, "function": "sweep"},
+                    }
+                ]
+            },
+        )
+
+        result = aggregator.aggregate()
+
+        assert len(result) == 2
+        assert {finding.function for finding in result} == {"withdraw", "sweep"}
+        assert all(finding.confirmations == 1 for finding in result)
 
     def test_aggregate_sorted_by_severity(self, aggregator):
         """Test aggregation sorts by severity."""
@@ -648,4 +727,6 @@ class TestDefensiveNormalization:
         assert agg._safe_line("L12") == 12
         assert agg._safe_line(None) == 0
         assert agg._safe_confidence(0.9) == 0.9
+        assert agg._safe_confidence(95) == 1.0
+        assert agg._safe_confidence(-1) == 0.0
         assert agg._safe_confidence("nope") == 0.7

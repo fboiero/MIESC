@@ -8,11 +8,10 @@ License: AGPL-3.0
 """
 
 import json
-import os
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import click
 
@@ -27,10 +26,13 @@ from miesc.cli.utils import (
     info,
     print_banner,
     run_tool,
+    set_llm_timeout,
     success,
     summarize_findings,
     warning,
 )
+from miesc.core.llm_providers import UnknownProviderError, resolve_model
+from miesc.core.provenance import build_provenance
 
 # Import Rich components if available
 if RICH_AVAILABLE:
@@ -42,6 +44,19 @@ if RICH_AVAILABLE:
 # =============================================================================
 # Scan Command
 # =============================================================================
+
+
+def _validate_model_option(
+    ctx: click.Context, param: click.Parameter, value: Optional[str]
+) -> Optional[str]:
+    """Reject unknown providers at parse time, naming the registered ones."""
+    if value is None:
+        return None
+    try:
+        resolve_model(value)
+    except UnknownProviderError as exc:
+        raise click.BadParameter(str(exc)) from None
+    return value
 
 
 @click.command()
@@ -101,26 +116,24 @@ if RICH_AVAILABLE:
 @click.option(
     "--model",
     "frontier_model",
-    type=click.Choice(
-        [
-            "claude",
-            "gpt",
-            "claude-opus",
-            "claude-sonnet",
-            "gpt-4o",
-            "gpt-4.1",
-            "gpt-5",
-            "deepseek-v4-pro",
-            "deepseek-v4-flash",
-            "ollama",
-            "qwen32b",
-            "qwen14b",
-            "codellama",
-        ],
-        case_sensitive=False,
-    ),
+    type=str,
+    callback=_validate_model_option,
     default=None,
-    help="Use frontier LLM for deep semantic analysis (requires API key)",
+    metavar="PROVIDER[:MODEL]",
+    help=(
+        "Run an LLM pass: a provider (anthropic, openai, deepseek, kimi, ollama or one from "
+        "llm.providers in the config), provider:model (kimi:kimi-k2-thinking, "
+        "ollama:qwen2.5-coder:32b) or an alias (claude, gpt-5, qwen32b). Cloud providers need "
+        "their API key variable; see docs/guides/LLM_PROVIDERS.md."
+    ),
+)
+@click.option(
+    "--llm-timeout",
+    "llm_timeout",
+    type=int,
+    default=None,
+    help="Wall-clock budget in seconds for LLM-backed adapters (--model, --ensemble); "
+    "static tools keep their own timeout.",
 )
 @click.option(
     "--deep",
@@ -145,9 +158,10 @@ if RICH_AVAILABLE:
     "--verify-model",
     "verify_model",
     default=None,
-    help="Ollama model for an ADVISORY --verify-fp LLM pass (e.g. qwen2.5-coder:32b): flags "
-    "more suspected FPs as needs_review; never drops (no recall impact). Slower; omit for "
-    "the fast rule-only verifier.",
+    help="Model for an ADVISORY --verify-fp LLM pass: any registered provider as provider[:model] "
+    "(local Ollama by default, e.g. ollama:qwen2.5-coder:32b; gpt, claude, deepseek, kimi or an "
+    "endpoint from llm.providers need their key). Flags more suspected FPs as needs_review; "
+    "never drops. See docs/guides/LLM_PROVIDERS.md.",
 )
 @click.option(
     "--rank",
@@ -201,6 +215,17 @@ if RICH_AVAILABLE:
     help="Only send --notify/--slack when at least one finding reaches this "
     "severity (default: low).",
 )
+@click.option(
+    "--acceptance-provider",
+    "acceptance_provider",
+    type=click.Choice(["none", "local", "bugbounty"], case_sensitive=False),
+    default="none",
+    help="Reorder findings by historical acceptance probability (how often a "
+    "finding of this class is accepted by human judges in competitive audits). "
+    "'local' uses the free offline table; 'bugbounty' uses an opt-in external "
+    "service (must be enabled + API key). Recall-safe: reorders only, never "
+    "drops (recall 1.0). Default: none.",
+)
 def scan(
     contract: str,
     output: str | None,
@@ -215,6 +240,7 @@ def scan(
     recursive: bool,
     diff_ref: str | None,
     frontier_model: str | None,
+    llm_timeout: int | None,
     deep: bool,
     ensemble: bool,
     verify_fp: bool,
@@ -226,6 +252,7 @@ def scan(
     notify_url: str | None,
     slack_url: str | None,
     notify_min_severity: str,
+    acceptance_provider: str,
 ) -> None:
     """Quick vulnerability scan for a Solidity contract or directory.
 
@@ -254,6 +281,9 @@ def scan(
         0 - Success (no critical/high issues, or CI mode disabled)
         1 - Critical or high severity issues found (CI mode only)
     """
+    # Budget for LLM-backed adapters; set (or cleared) per invocation so a
+    # long-lived process never inherits it from a previous call.
+    set_llm_timeout(llm_timeout)
     profile_config = _get_scan_profile(profile)
     profile_tools = _profile_tools(profile_config)
 
@@ -327,6 +357,7 @@ def scan(
         _display_and_save(
             diff_results,
             contract=str(contract),
+            llm_used=bool(llm_enhance),
             output=output,
             quiet=quiet,
             verbose=verbose,
@@ -336,6 +367,7 @@ def scan(
             verify_fp=verify_fp,
             verify_model=verify_model,
             rank=rank,
+            acceptance_provider=acceptance_provider,
             baseline_path=baseline_path,
             fail_on_new=fail_on_new,
             annotate=annotate,
@@ -364,6 +396,7 @@ def scan(
             verify_fp=verify_fp,
             verify_model=verify_model,
             rank=rank,
+            acceptance_provider=acceptance_provider,
             baseline_path=baseline_path,
             fail_on_new=fail_on_new,
             annotate=annotate,
@@ -455,7 +488,13 @@ def scan(
                 )
                 non_suppressed = [f for f in enhanced if not f.get("fp_suppressed")]
                 suppressed_count = sum(1 for f in enhanced if f.get("fp_suppressed"))
-                all_results = [
+                # Keep the per-tool records (minus findings) as single-file mode does:
+                # the report's tool coverage, `tools`/`tools_failed` and the
+                # provenance block (tool versions, solc per file) read them.
+                tool_metadata = [
+                    {k: v for k, v in r.items() if k != "findings"} for r in all_results
+                ]
+                all_results = tool_metadata + [
                     {"tool": "miesc-intelligence", "status": "success", "findings": non_suppressed}
                 ]
                 if not quiet and suppressed_count > 0:
@@ -478,35 +517,10 @@ def scan(
                 from miesc.adapters.frontier_llm_adapter import FrontierLLMAdapter
                 from miesc.core.tool_protocol import ToolStatus
 
-                provider_map = {
-                    "claude": ("anthropic", "claude-sonnet-4-6"),
-                    "claude-opus": ("anthropic", "claude-opus-4-6"),
-                    "claude-sonnet": ("anthropic", "claude-sonnet-4-6"),
-                    "gpt": ("openai", "gpt-4o"),
-                    "gpt-4o": ("openai", "gpt-4o"),
-                    "gpt-4.1": ("openai", "gpt-4.1"),
-                    "gpt-5": ("openai", "gpt-5"),
-                    # DeepSeek V4 is OpenAI-compatible; routed via the OpenAI
-                    # client pointed at the DeepSeek endpoint (see env setup below).
-                    "deepseek-v4-pro": ("openai", "deepseek-v4-pro"),
-                    "deepseek-v4-flash": ("openai", "deepseek-v4-flash"),
-                    "ollama": ("ollama", "qwen2.5-coder:32b"),
-                    "qwen32b": ("ollama", "qwen2.5-coder:32b"),
-                    "qwen14b": ("ollama", "qwen2.5-coder:14b"),
-                    "codellama": ("ollama", "codellama:13b"),
-                }
-                provider, model_id = provider_map.get(frontier_model.lower(), ("auto", None))
-                # DeepSeek exposes an OpenAI-compatible API. Point the OpenAI
-                # client at the DeepSeek endpoint using DEEPSEEK_API_KEY so the
-                # existing openai code path sends the deepseek-v4 model name.
-                if frontier_model.lower().startswith("deepseek") and os.environ.get(
-                    "DEEPSEEK_API_KEY"
-                ):
-                    os.environ["OPENAI_API_KEY"] = os.environ["DEEPSEEK_API_KEY"]
-                    os.environ["OPENAI_BASE_URL"] = os.environ.get(
-                        "DEEPSEEK_BASE_URL", "https://api.deepseek.com"
-                    )
-                adapter = FrontierLLMAdapter(provider=provider)
+                choice = resolve_model(frontier_model)
+                assert choice is not None  # validated by the option callback
+                provider, model_id = choice.provider.name, choice.model
+                adapter = FrontierLLMAdapter(provider=provider, model=model_id)
 
                 if adapter.is_available() == ToolStatus.AVAILABLE:
                     if not quiet:
@@ -532,6 +546,8 @@ def scan(
                     kwargs: dict[str, Any] = {"model": model_id} if model_id else {}
                     if deep:
                         kwargs["deep"] = True
+                    if llm_timeout:
+                        kwargs["timeout"] = llm_timeout
                     frontier_result = adapter.analyze(concat.name, **kwargs)
                     Path(concat.name).unlink(missing_ok=True)
 
@@ -547,6 +563,7 @@ def scan(
         _display_and_save(
             all_results,
             contract=str(contract),
+            llm_used=bool(llm_enhance or frontier_model),
             output=output,
             quiet=quiet,
             verbose=verbose,
@@ -556,6 +573,7 @@ def scan(
             verify_fp=verify_fp,
             verify_model=verify_model,
             rank=rank,
+            acceptance_provider=acceptance_provider,
             baseline_path=baseline_path,
             fail_on_new=fail_on_new,
             annotate=annotate,
@@ -630,6 +648,14 @@ def scan(
                         }
                     )
 
+    # Source-level access-control safety net (single-file mode): fires even when
+    # Slither/Aderyn fail to compile the contract. Findings are reconciled by the
+    # intelligence engine (dedup + FP suppression) before reaching the report.
+    # Only surfaced when it actually contributes.
+    ac_result = run_access_control_semantic(contract)
+    if ac_result is not None and ac_result["findings"]:
+        all_results.append(ac_result)
+
     # Apply FP filter based on strictness (v5.1.2+)
     if fp_strictness.lower() != "off":
         try:
@@ -680,7 +706,10 @@ def scan(
                 if not quiet:
                     info(f"  Ensemble: running {label} ({model_id})...")
                 try:
-                    result = adapter.analyze(str(contract), model=model_id)
+                    ensemble_kwargs: dict[str, Any] = {"model": model_id}
+                    if llm_timeout:
+                        ensemble_kwargs["timeout"] = llm_timeout
+                    result = adapter.analyze(str(contract), **ensemble_kwargs)
                     if result.get("status") == "success":
                         for f in result.get("findings", []):
                             key = (
@@ -724,30 +753,10 @@ def scan(
         try:
             from miesc.adapters.frontier_llm_adapter import FrontierLLMAdapter
 
-            provider_map = {
-                "claude": ("anthropic", "claude-sonnet-4-6"),
-                "claude-opus": ("anthropic", "claude-opus-4-6"),
-                "claude-sonnet": ("anthropic", "claude-sonnet-4-6"),
-                "gpt": ("openai", "gpt-4o"),
-                "gpt-4o": ("openai", "gpt-4o"),
-                "gpt-4.1": ("openai", "gpt-4.1"),
-                "gpt-5": ("openai", "gpt-5"),
-                "deepseek-v4-pro": ("openai", "deepseek-v4-pro"),
-                "deepseek-v4-flash": ("openai", "deepseek-v4-flash"),
-                "ollama": ("ollama", "qwen2.5-coder:32b"),
-                "qwen32b": ("ollama", "qwen2.5-coder:32b"),
-                "qwen14b": ("ollama", "qwen2.5-coder:14b"),
-                "codellama": ("ollama", "codellama:13b"),
-            }
-            provider, model_id = provider_map.get(frontier_model.lower(), ("auto", None))
-            # DeepSeek V4 is OpenAI-compatible: point the OpenAI client at the
-            # DeepSeek endpoint using DEEPSEEK_API_KEY.
-            if frontier_model.lower().startswith("deepseek") and os.environ.get("DEEPSEEK_API_KEY"):
-                os.environ["OPENAI_API_KEY"] = os.environ["DEEPSEEK_API_KEY"]
-                os.environ["OPENAI_BASE_URL"] = os.environ.get(
-                    "DEEPSEEK_BASE_URL", "https://api.deepseek.com"
-                )
-            adapter = FrontierLLMAdapter(provider=provider)
+            choice = resolve_model(frontier_model)
+            assert choice is not None  # validated by the option callback
+            provider, model_id = choice.provider.name, choice.model
+            adapter = FrontierLLMAdapter(provider=provider, model=model_id)
 
             if (
                 adapter.is_available()
@@ -760,6 +769,8 @@ def scan(
                 kwargs = {"model": model_id} if model_id else {}
                 if deep:
                     kwargs["deep"] = True
+                if llm_timeout:
+                    kwargs["timeout"] = llm_timeout
                 frontier_result = adapter.analyze(str(contract), **kwargs)
                 if frontier_result.get("status") == "success":
                     frontier_findings = frontier_result.get("findings", [])
@@ -860,6 +871,7 @@ def scan(
     _display_and_save(
         all_results,
         contract=str(contract),
+        llm_used=bool(llm_enhance or frontier_model),
         output=output,
         quiet=quiet,
         verbose=verbose,
@@ -869,6 +881,7 @@ def scan(
         verify_fp=verify_fp,
         verify_model=verify_model,
         rank=rank,
+        acceptance_provider=acceptance_provider,
         baseline_path=baseline_path,
         fail_on_new=fail_on_new,
         annotate=annotate,
@@ -934,7 +947,11 @@ def _get_scan_profile(profile_name: str | None) -> dict[str, Any] | None:
 
 
 def _profile_uses_agentic_path(profile: dict[str, Any]) -> bool:
-    return bool(profile.get("agentic_ensemble") or profile.get("enable_agentic_invariants"))
+    return bool(
+        profile.get("agentic_ensemble")
+        or profile.get("enable_agentic_invariants")
+        or profile.get("enable_advisory_plans")
+    )
 
 
 def _profile_tools(profile: dict[str, Any] | None) -> list[str]:
@@ -960,6 +977,7 @@ def _run_agentic_scan_profile(
     verify_fp: bool = False,
     verify_model: str | None = None,
     rank: bool = False,
+    acceptance_provider: str = "none",
     baseline_path: str | None = None,
     fail_on_new: bool = False,
     annotate: str | None = None,
@@ -996,6 +1014,8 @@ def _run_agentic_scan_profile(
     _display_and_save(
         all_results,
         contract=contract,
+        # The agentic profile may or may not reach an LLM (graceful degradation).
+        llm_used=None,
         output=output,
         quiet=quiet,
         verbose=verbose,
@@ -1005,6 +1025,7 @@ def _run_agentic_scan_profile(
         verify_fp=verify_fp,
         verify_model=verify_model,
         rank=rank,
+        acceptance_provider=acceptance_provider,
         baseline_path=baseline_path,
         fail_on_new=fail_on_new,
         annotate=annotate,
@@ -1012,6 +1033,57 @@ def _run_agentic_scan_profile(
         slack_url=slack_url,
         notify_min_severity=notify_min_severity,
     )
+
+
+# Minimum confidence for the source-level access-control detector's findings to
+# enter the scan pipeline. Drops the broad, noisy ``missing-access-control``
+# rule (0.65) while keeping the high-signal privileged-function/uninitialized-
+# owner rules (0.80/0.85) that carry the recall win.
+_SEMANTIC_MIN_CONFIDENCE = 0.75
+
+
+def run_access_control_semantic(contract: str) -> dict[str, Any] | None:
+    """Run the source-level semantic access-control detector as a scan tool.
+
+    This is a regex/source-level detector (it does not compile the contract), so
+    it still fires when Slither/Aderyn fail to parse a contract — old pragmas,
+    complex multi-owner proxies (e.g. the Parity wallet), etc. Its findings are
+    returned as a normal tool-result and flow through the intelligence engine's
+    semantic dedup + context-aware FP suppression + confidence path, so precision
+    stays guarded (recall-safe: nothing is force-added to the final report).
+
+    Returns a run_tool-compatible result dict, or ``None`` when the detector or
+    the contract source is unavailable.
+    """
+    try:
+        from miesc.ml.classic_patterns import AccessControlSemanticDetector
+    except Exception:
+        return None
+    try:
+        source = Path(contract).read_text(encoding="utf-8")
+    except Exception:
+        return None
+    try:
+        detector = AccessControlSemanticDetector()
+        raw = detector.to_findings(detector.analyze(source))
+    except Exception:
+        return None
+    # Precision guard: keep only high-confidence access-control signals.
+    # The broad ``missing-access-control`` rule (any external state-mutating
+    # function without a modifier, confidence 0.65) is noisy on token/refund
+    # helpers; the ``unprotected-privileged-function`` (0.80) and
+    # ``uninitialized-owner`` (0.85) rules carry the real recall (they still
+    # recover contracts the external tools fail to compile). Findings then flow
+    # through the intelligence engine's dedup + FP suppression as a second gate.
+    findings = [f for f in raw if float(f.get("confidence", 0.0)) >= _SEMANTIC_MIN_CONFIDENCE]
+    for finding in findings:
+        finding["tool"] = "access-control-semantic"
+    return {
+        "tool": "access-control-semantic",
+        "status": "success",
+        "findings": findings,
+        "execution_time": 0.0,
+    }
 
 
 def _scan_single_file(
@@ -1043,6 +1115,16 @@ def _scan_single_file(
                 result = {"tool": tool, "status": "error", "error": str(e), "findings": []}
             result["contract"] = contract
             all_results.append(result)
+
+    # Source-level access-control safety net: fires even when the external tools
+    # above fail to compile the contract. Findings are reconciled by the
+    # intelligence engine (dedup + FP suppression) before they reach the report.
+    # Only surfaced when it actually contributes, so scans with no access-control
+    # signal keep their existing tool set.
+    ac_result = run_access_control_semantic(contract)
+    if ac_result is not None and ac_result["findings"]:
+        ac_result["contract"] = contract
+        all_results.append(ac_result)
 
 
 def _apply_verify_fp(
@@ -1092,6 +1174,74 @@ def _apply_triage_rank(all_results: list[dict[str, Any]], *, contract: str, quie
             )
 
 
+def _apply_reentrancy_triage(
+    all_results: list[dict[str, Any]], *, contract: str, quiet: bool
+) -> None:
+    """Partition reentrancy findings into REVIEW / GUARDED / NOISE — annotate, recall-safe.
+
+    Annotates ``finding['reentrancy_triage']`` (tier / signals / reason / guard) on
+    every ``reentrancy-*`` finding and prints a one-line shortlist summary. The scan
+    target root is passed so guard evidence can be read from source (a recognized
+    nonReentrant with no cross-function reach is demoted to GUARDED; custom mutexes
+    are surfaced, never demoted). Never drops or reorders a finding."""
+    try:
+        from miesc.ml.reentrancy_triage import annotate_results
+    except Exception as e:  # noqa: BLE001
+        if not quiet:
+            info(f"reentrancy triage skipped: {e}")
+        return
+    counts = annotate_results(all_results, source_root=contract)
+    if not quiet and counts["reentrancy_total"] > 0:
+        guarded = counts.get("guarded", 0)
+        guarded_note = f" / {guarded} GUARDED" if guarded else ""
+        info(
+            f"reentrancy triage: {counts['reentrancy_total']} finding(s) → "
+            f"{counts['review']} REVIEW shortlist{guarded_note} / {counts['noise']} NOISE "
+            "— annotated, recall-safe (nothing dropped)"
+        )
+
+
+def _apply_acceptance_ordering(
+    all_results: list[dict[str, Any]], *, choice: str, quiet: bool
+) -> None:
+    """Reorder findings by historical acceptance probability — recall-safe.
+
+    Annotates ``finding['acceptance_prob']`` and orders higher-acceptance
+    findings first. Never drops a finding (recall 1.0) and never touches the
+    confidence/``--min-confidence`` path. ``choice`` selects the provider:
+    'local' (free, offline) or 'bugbounty' (opt-in external). No-ops gracefully
+    when the chosen provider is unavailable."""
+    try:
+        from miesc.core.acceptance_contracts import AcceptancePolicy
+        from miesc.core.acceptance_providers import (
+            BugBountyIntelligenceProvider,
+            LocalAcceptancePatternProvider,
+        )
+        from miesc.ml.triage_ranker import apply_acceptance_ordering
+    except Exception as e:  # noqa: BLE001
+        if not quiet:
+            info(f"acceptance ordering skipped: {e}")
+        return
+    if choice == "bugbounty":
+        provider: Any = BugBountyIntelligenceProvider(
+            config={"enabled": True}, policy=AcceptancePolicy(allow_remote=True)
+        )
+    else:
+        provider = LocalAcceptancePatternProvider()
+    total = apply_acceptance_ordering(all_results, provider=provider)
+    if not quiet:
+        if total < 0:
+            info(
+                f"acceptance ({choice}): provider unavailable — order unchanged "
+                "(recall-safe no-op)"
+            )
+        else:
+            info(
+                f"acceptance ({choice}): annotated + reordered {total} finding(s) by "
+                "acceptance probability — recall-safe (nothing dropped)"
+            )
+
+
 def _display_and_save(
     all_results: list[dict[str, Any]],
     *,
@@ -1105,18 +1255,27 @@ def _display_and_save(
     verify_fp: bool = False,
     verify_model: str | None = None,
     rank: bool = False,
+    acceptance_provider: str = "none",
     baseline_path: str | None = None,
     fail_on_new: bool = False,
     annotate: str | None = None,
     notify_url: str | None = None,
     slack_url: str | None = None,
     notify_min_severity: str = "low",
+    llm_used: bool | None = False,
 ) -> None:
-    """Display the scan summary table, optionally save JSON, and handle CI exit."""
+    """Display the scan summary table, optionally save JSON, and handle CI exit.
+
+    ``llm_used`` feeds the ``provenance.llm_free`` flag of the saved JSON: True
+    when the caller invoked an LLM outside the tool adapters (``--llm-enhance``,
+    ``--model``), None when it cannot tell (agentic profiles).
+    """
     if verify_fp:
         _apply_verify_fp(all_results, contract=contract, model=verify_model, quiet=quiet)
     if rank:
         _apply_triage_rank(all_results, contract=contract, quiet=quiet)
+    if acceptance_provider and acceptance_provider.lower() != "none":
+        _apply_acceptance_ordering(all_results, choice=acceptance_provider.lower(), quiet=quiet)
 
     # Attach a calibrated confidence score to every scan finding (scan runs its own
     # adapter + FP-filter pipeline, so findings arrive un-annotated). Mirrors the ML
@@ -1147,9 +1306,15 @@ def _display_and_save(
     except Exception as e:  # noqa: BLE001
         if not quiet:
             info(f"confidence annotation skipped: {e}")
+
+    # Label reentrancy findings REVIEW vs NOISE — after all filtering, so the
+    # annotation and its summary match exactly what is written to the output.
+    # Always-on, additive: nothing is dropped or reordered.
+    _apply_reentrancy_triage(all_results, contract=contract, quiet=quiet)
+
     # Detect tool failures — help users who installed miesc without slither/aderyn
-    tools_succeeded = [r for r in all_results if r.get("status") != "error"]
-    tools_errored = [r for r in all_results if r.get("status") == "error"]
+    tools_succeeded = [r for r in all_results if r.get("status") == "success"]
+    tools_errored = [r for r in all_results if r.get("status") in ("error", "timeout")]
 
     if tools_errored and not tools_succeeded and not quiet:
         error("All analysis tools failed. Check tool availability:")
@@ -1260,13 +1425,36 @@ def _display_and_save(
                 f.setdefault("tool", r.get("tool", "unknown"))
                 all_findings.append(f)
 
+        # Shared status vocabulary: success (ran) / skipped (not run) /
+        # timeout and error (failed). Skipped tools are not failures.
         tools_used = sorted(
-            {r.get("tool", "") for r in all_results if r.get("status") != "error" and r.get("tool")}
+            {
+                r.get("tool", "")
+                for r in all_results
+                if r.get("status") == "success" and r.get("tool")
+            }
+        )
+        tools_skipped = sorted(
+            {
+                r.get("tool", "")
+                for r in all_results
+                if r.get("status") == "skipped" and r.get("tool")
+            }
         )
         tools_failed = sorted(
-            {r.get("tool", "") for r in all_results if r.get("status") == "error" and r.get("tool")}
+            {
+                r.get("tool", "")
+                for r in all_results
+                if r.get("status") in ("error", "timeout") and r.get("tool")
+            }
         )
 
+        scanned_files = sorted(
+            {str(r.get("contract")) for r in all_results if r.get("contract")}
+            | ({str(contract)} if Path(contract).is_file() else set())
+        )
+        if verify_fp and verify_model:
+            llm_used = True
         data = {
             "contract": str(contract),
             "timestamp": datetime.now().isoformat(),
@@ -1276,8 +1464,12 @@ def _display_and_save(
             "total_findings": total,
             "tools": tools_used,
             "tools_failed": tools_failed,
+            "tools_skipped": tools_skipped,
             "findings": all_findings,
             "results": all_results,
+            "provenance": build_provenance(
+                all_results, command="scan", contracts=scanned_files, llm_used=llm_used
+            ),
         }
         with open(output, "w", encoding="utf-8") as output_handle:
             json.dump(data, output_handle, indent=2, default=str)

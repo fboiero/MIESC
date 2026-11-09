@@ -18,7 +18,9 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
+
+from miesc.detectors.smartbugs_detectors import _blank_comments
 
 
 class Severity(Enum):
@@ -37,6 +39,10 @@ class DeFiCategory(Enum):
     MEV_EXPOSURE = "mev_exposure"
     SLIPPAGE = "slippage"
     LIQUIDITY = "liquidity"
+    ROUNDING = "rounding"
+    FEE_ON_TRANSFER = "fee_on_transfer"
+    ERC4626 = "erc4626"
+    BUSINESS_LOGIC = "business_logic"
 
 
 @dataclass
@@ -478,6 +484,436 @@ class PriceManipulationDetector(DeFiDetector):
         return findings
 
 
+class RoundingErrorDetector(DeFiDetector):
+    """
+    Detects divide-then-multiply rounding errors via fixed-point library
+    method chains (e.g. solmate's `x.divWadDown(y).mulDivDown(z, w)`).
+
+    Slither's own divide-before-multiply detector catches the raw-operator
+    form (`(a / b) * c`) but not this one: a `div*`-named method call chained
+    straight into a `mul*`-named method call truncates in the division step
+    before the multiplication ever sees the lost precision. A *single*
+    combined call like `a.mulDivDown(b, c)` is the correct, safe pattern
+    (multiply first, divide once) and is not flagged.
+    """
+
+    name = "rounding-error-detector"
+    description = "Detects divide-before-multiply rounding errors in fixed-point math chains"
+    category = DeFiCategory.ROUNDING
+
+    # `div`/`mul` must start the method name or a camelCase word in it
+    # (`divWadDown`, `wadDiv`), not appear inside an unrelated word
+    # (`individual(...)`, `emulate(...)`).
+    DIV_THEN_MUL_CHAIN = re.compile(r"\.(?:div|\w*Div)\w*\s*\([^()]*\)\s*\.(?:mul|\w*Mul)\w*\s*\(")
+
+    def detect(self, source_code: str, file_path: Optional[Path] = None) -> List[DeFiFinding]:
+        findings: List[DeFiFinding] = []
+        lines = source_code.split("\n")
+        # Searched over the whole source, not line by line: formatters break
+        # long chains before `.mulDivDown(`. One finding per starting line.
+        hit_lines = sorted(
+            {
+                source_code[: m.start()].count("\n") + 1
+                for m in self.DIV_THEN_MUL_CHAIN.finditer(source_code)
+            }
+        )
+
+        for i in hit_lines:
+            findings.append(
+                DeFiFinding(
+                    title="Divide-Before-Multiply in Fixed-Point Math Chain",
+                    description=f"A division method is chained directly into a "
+                    f"multiplication method at line {i}, truncating precision in the "
+                    "division step before the multiplication runs.",
+                    severity=Severity.MEDIUM,
+                    category=self.category,
+                    line=i,
+                    code_snippet=lines[i - 1].strip(),
+                    recommendation="Combine into a single call that multiplies before "
+                    "dividing (e.g. mulDivDown/mulDivUp) instead of chaining separate "
+                    "div then mul calls.",
+                    references=[
+                        "https://github.com/crytic/slither/wiki/"
+                        "Detector-Documentation#divide-before-multiply"
+                    ],
+                )
+            )
+
+        return findings
+
+
+# Header of a function with a body: name, parameter list (no nested parens)
+# and everything up to the opening brace (visibility, modifiers, returns).
+# Linear scan on purpose: CallGraphBuilder's header regex backtracks
+# catastrophically on some real files and these detectors run in layer 7.
+FUNCTION_HEADER = re.compile(r"\bfunction\s+(\w+)\s*\([^()]*\)([^{;]*)\{")
+CONTRACT_HEADER = re.compile(r"\b(?:contract|interface|library)\s+\w+[^{;]*\{")
+
+
+def _function_body_end(lines: List[str], start_line: int) -> int:
+    """1-indexed last line of the function starting at `start_line`.
+
+    Same regex-based rigor as the rest of this codebase's Solidity
+    parsing (not a real compiler) - brace-count from the function
+    header to its matching close.
+    """
+    depth = 0
+    started = False
+    end_idx = start_line - 1
+    for i in range(start_line - 1, len(lines)):
+        depth += lines[i].count("{") - lines[i].count("}")
+        if "{" in lines[i]:
+            started = True
+        end_idx = i
+        if started and depth <= 0:
+            break
+    return end_idx + 1
+
+
+def _function_spans(code: str) -> List[Tuple[str, int, int, str]]:
+    """(name, start_line, end_line, header_tail) of every function with a body."""
+    lines = code.split("\n")
+    spans = []
+    for m in FUNCTION_HEADER.finditer(code):
+        start = code[: m.start()].count("\n") + 1
+        spans.append((m.group(1), start, _function_body_end(lines, start), m.group(2)))
+    return spans
+
+
+def _contract_blocks(code: str) -> List[Tuple[int, str]]:
+    """(offset, text) of each contract/interface/library; the whole file if none."""
+    blocks = []
+    for m in CONTRACT_HEADER.finditer(code):
+        depth = 0
+        for j in range(m.end() - 1, len(code)):
+            depth += {"{": 1, "}": -1}.get(code[j], 0)
+            if depth == 0:
+                break
+        blocks.append((m.start(), code[m.start() : j + 1]))
+    return blocks or [(0, code)]
+
+
+def _split_args(args: str) -> List[str]:
+    """Top-level arguments of `(a, f(b, c), d)`."""
+    parts, depth, current = [], 0, ""
+    for c in args[1:-1]:
+        if c == "," and depth == 0:
+            parts.append(current.strip())
+            current = ""
+            continue
+        depth += {"(": 1, ")": -1}.get(c, 0)
+        current += c
+    return parts + [current.strip()]
+
+
+class FeeOnTransferDetector(DeFiDetector):
+    """
+    Detects missing balance-before/after checks around token transfers-in.
+
+    A function that pulls tokens via `transferFrom`/`safeTransferFrom` and
+    then mints/credits shares based on the requested amount (instead of the
+    actual balance delta) silently over-credits the depositor whenever the
+    token charges a transfer fee or rebases.
+
+    Low severity, medium confidence: it is a file-level heuristic, and
+    EIP-4626 itself leaves fee-on-transfer tokens out of scope, so a vault
+    that only accepts standard tokens is not buggy.
+    """
+
+    name = "fee-on-transfer-detector"
+    description = "Detects missing balance-before/after checks on token transfers-in"
+    category = DeFiCategory.FEE_ON_TRANSFER
+
+    TRANSFER_IN_PATTERN = re.compile(r"\.(safeTransferFrom|transferFrom)\s*\(")
+    # `token.balanceOf(address(this))` and the library form
+    # `SafeTransferLib.balanceOf(token, address(this))` (Solady).
+    BALANCE_CHECK_PATTERN = re.compile(
+        r"balanceOf\s*\((?:[^;()]|\([^;()]*\))*?address\s*\(\s*this\s*\)"
+    )
+    # Evidence that the function credits the requested amount: without it a
+    # transfer-in is plain custody (a bridge lock) and nothing is over-credited.
+    MINT_CALL = re.compile(r"\b_mint\s*\(")
+    # ERC721/ERC1155 also expose safeTransferFrom/transferFrom (moving a
+    # tokenId, not an amount) — fee-on-transfer is an ERC20-only concept, so a
+    # call cast through one of these NFT/multi-token interfaces is not a hit.
+    NFT_TRANSFER_MARKER = re.compile(r"\bI?ERC(721|1155)\b")
+    # Only a transfer *into this contract* can over-credit it: one between
+    # third parties (`transferFrom(buyer, seller, x)`) or a token forwarding
+    # to its own parent (`super.transferFrom(_from, _to, _value)`) cannot.
+    INTO_THIS = re.compile(r"[(,]\s*(?:address\s*\(\s*this\s*\)|this)\s*[,)]")
+    # An NFT held in a plain variable has no ERC721 cast on the line, but
+    # its last argument is a token id, not an amount.
+    TOKEN_ID_ARG = re.compile(r",\s*_?[Tt]oken_?[Ii]d\w*\s*\)")
+
+    def detect(self, source_code: str, file_path: Optional[Path] = None) -> List[DeFiFinding]:
+        findings: List[DeFiFinding] = []
+        code = _blank_comments(source_code)
+        if self.BALANCE_CHECK_PATTERN.search(code):
+            return findings
+
+        lines = code.split("\n")
+        original = source_code.split("\n")
+        spans = _function_spans(code)
+        for i in range(1, len(lines) + 1):
+            args = self._transfer_in_args(lines, i)
+            if args is None:
+                continue
+            body = next(("\n".join(lines[s - 1 : e]) for _, s, e, _ in spans if s <= i <= e), None)
+            if body is None or not self._credits_amount(body, _split_args(args)[-1]):
+                continue
+            findings.append(
+                DeFiFinding(
+                    title="Fee-on-Transfer Token Risk: Missing Balance-Before/After Check",
+                    description=f"transferFrom at line {i} pulls tokens in and the function "
+                    "credits shares/accounting from the requested amount, but no "
+                    "balanceOf(address(this)) check anywhere in this file measures the "
+                    "actual amount received. A fee-on-transfer or rebasing token would "
+                    "over-credit the caller.",
+                    severity=Severity.LOW,
+                    category=self.category,
+                    line=i,
+                    code_snippet=original[i - 1].strip(),
+                    recommendation="Measure balanceOf(address(this)) before and after "
+                    "the transfer and use the delta for any shares/accounting "
+                    "calculation, instead of the requested transfer amount.",
+                    references=["https://github.com/d-xo/weird-erc20#fee-on-transfer"],
+                    confidence="medium",
+                )
+            )
+
+        return findings
+
+    def _credits_amount(self, body: str, amount: str) -> bool:
+        """`+= amount`, `_mint(...)` or `shares = ... amount` in the function."""
+        amt = re.escape(amount) + r"(?!\w)"
+        return bool(
+            self.MINT_CALL.search(body)
+            or re.search(r"\+=[^;]*" + amt, body)
+            or re.search(r"\w*[Ss]hares\w*\s*=[^;=][^;]*" + amt, body)
+        )
+
+    def _transfer_in_args(self, lines: List[str], i: int) -> Optional[str]:
+        """Argument list of a transfer into this contract starting at line `i`."""
+        line = lines[i - 1]
+        match = self.TRANSFER_IN_PATTERN.search(line)
+        if not match or self.NFT_TRANSFER_MARKER.search(line):
+            return None
+        # The call may span several lines (one argument per line, as
+        # formatters write long calls): read up to its closing parenthesis.
+        rest = "\n".join([line[match.end() :], *lines[i : i + 10]])
+        depth = 1
+        for j, c in enumerate(rest):
+            depth += {"(": 1, ")": -1}.get(c, 0)
+            if depth == 0:
+                rest = rest[: j + 1]
+                break
+        args = "(" + rest
+        if self.INTO_THIS.search(args) and not self.TOKEN_ID_ARG.search(args):
+            return args
+        return None
+
+
+class ERC4626ComplianceDetector(DeFiDetector):
+    """
+    Detects vault-accounting contracts (deposit/withdraw/totalAssets) whose
+    function signatures don't match the EIP-4626 standard's mandated arity.
+
+    EIP-4626 fixes the exact parameter count for its accounting functions:
+    `deposit(assets, receiver)` and `mint(shares, receiver)` take 2 params,
+    `withdraw(assets, receiver, owner)` and `redeem(shares, receiver, owner)`
+    take 3, `totalAssets()` takes 0, `convertToShares(assets)` takes 1. A
+    contract that implements the full vault accounting API but adds extra
+    parameters (e.g. an `id` for a multi-vault/ERC1155-backed design) cannot
+    be integrated by any EIP-4626-aware caller, no matter how correct its
+    internal accounting is — every mandated function signature is broken.
+    """
+
+    name = "erc4626-compliance-detector"
+    description = (
+        "Detects vault-accounting functions whose signatures don't match the EIP-4626 standard"
+    )
+    category = DeFiCategory.ERC4626
+
+    CANONICAL_ARITY = {
+        "deposit": 2,
+        "mint": 2,
+        "withdraw": 3,
+        "redeem": 3,
+        "totalAssets": 0,
+        "convertToShares": 1,
+    }
+    # Gate: only judge signature shape on contracts that already look like a
+    # vault (has the core accounting trio together) - deposit/withdraw alone
+    # are far too common (staking, escrow, ...) to use as the sole signal.
+    VAULT_CORE_FUNCTIONS = {"deposit", "withdraw", "totalAssets"}
+    FUNC_SIG = re.compile(
+        r"function\s+(deposit|mint|withdraw|redeem|totalAssets|convertToShares)\s*\(([^)]*)\)"
+    )
+
+    def detect(self, source_code: str, file_path: Optional[Path] = None) -> List[DeFiFinding]:
+        findings: List[DeFiFinding] = []
+        code = _blank_comments(source_code)
+        # The gate is per contract: an `IVault` interface in the same file
+        # must not enable it for an unrelated contract next to it.
+        for offset, block in _contract_blocks(code):
+            findings.extend(self._check_block(code, offset, block))
+        return findings
+
+    def _check_block(self, code: str, offset: int, block: str) -> List[DeFiFinding]:
+        findings: List[DeFiFinding] = []
+        matches = list(self.FUNC_SIG.finditer(block))
+        names_present = {m.group(1) for m in matches}
+        if not self.VAULT_CORE_FUNCTIONS.issubset(names_present):
+            return findings
+
+        def arity(m: "re.Match[str]") -> int:
+            return len([p for p in m.group(2).split(",") if p.strip()])
+
+        # A name with one standard-arity definition is compliant: extra
+        # overloads next to it (e.g. ERC-5143 `deposit(assets, receiver,
+        # minShares)` slippage variants) are allowed by the standard.
+        compliant = {m.group(1) for m in matches if arity(m) == self.CANONICAL_ARITY[m.group(1)]}
+
+        for m in matches:
+            name = m.group(1)
+            if name in compliant:
+                continue
+            param_count = arity(m)
+            expected = self.CANONICAL_ARITY[name]
+
+            line = code[: offset + m.start()].count("\n") + 1
+            findings.append(
+                DeFiFinding(
+                    title=f"EIP-4626 Signature Mismatch: {name}()",
+                    description=f"`{name}` at line {line} takes {param_count} parameter(s), but "
+                    f"EIP-4626 mandates exactly {expected} for this function. A contract exposing "
+                    "the vault accounting API (deposit/withdraw/totalAssets) with a signature that "
+                    "doesn't match the standard cannot be integrated by any EIP-4626-aware caller "
+                    "(aggregators, other vaults composing on top of it), even though it may behave "
+                    "correctly as a vault internally.",
+                    severity=Severity.MEDIUM,
+                    category=self.category,
+                    line=line,
+                    code_snippet=f"function {name}(...)",
+                    recommendation="If EIP-4626 compatibility is required, expose a compliant "
+                    f"single-asset `{name}` with the standard signature, or document explicitly "
+                    "that this is a vault-like contract, not an EIP-4626 vault.",
+                    references=["https://eips.ethereum.org/EIPS/eip-4626"],
+                )
+            )
+
+        return findings
+
+
+class UnrefundedExcessPaymentDetector(DeFiDetector):
+    """
+    Detects `payable` functions that accept overpayment (`msg.value >= cost`)
+    but never refund the difference back to the caller.
+
+    Real case (NextGen M-12, ground truth): MinterContract's mint()/
+    burnToMint()/burnOrSwapExternalToMint() all `require(msg.value >= price)`
+    (explicitly allowing overpayment) then credit the *full* msg.value to
+    internal accounting - any amount paid above the actual price is silently
+    kept by the contract, never returned. A contract that instead requires
+    exact payment (`msg.value == cost`) has no excess to refund and is not
+    flagged - the risk is specifically in accepting *more* than required
+    without giving the difference back.
+
+    Gated on the comparison's right-hand side looking like a computed price
+    (a function call or a multiplication, e.g. `getPrice(id) * qty`) rather
+    than a bare threshold constant/variable (`MinDeposit`, `0.02 ether`,
+    `autoBirthFee`). Verified against smartbugs-curated: several real
+    "deposit if msg.value >= minimum" functions credit the *entire*
+    msg.value to the sender's own balance - correct behavior, no excess to
+    refund - and would be false positives without this gate.
+    """
+
+    name = "unrefunded-excess-payment-detector"
+    description = (
+        "Detects payable functions with a 'msg.value >=' overpayment check "
+        "that never refund the excess"
+    )
+    category = DeFiCategory.BUSINESS_LOGIC
+
+    PAYABLE = re.compile(r"\bpayable\b")
+    MSG_VALUE_OVERPAY_CHECK = re.compile(r"msg\.value\s*>=")
+    COMPUTED_PRICE = re.compile(r"\w\s*\(|\*")
+    REFUND_PATTERNS = [
+        re.compile(r"msg\.sender\s*\.\s*(?:call\s*\{|transfer\s*\(|send\s*\()"),
+        re.compile(r"payable\s*\(\s*msg\.sender\s*\)\s*\.\s*(?:call\s*\{|transfer\s*\(|send\s*\()"),
+        re.compile(r"[Rr]efund\w*\s*\("),
+    ]
+
+    def detect(self, source_code: str, file_path: Optional[Path] = None) -> List[DeFiFinding]:
+        findings: List[DeFiFinding] = []
+        code = _blank_comments(source_code)
+        lines = code.split("\n")
+        for name, start_line, end_line, header_tail in _function_spans(code):
+            if not self.PAYABLE.search(header_tail):
+                continue
+            body = "\n".join(lines[start_line - 1 : end_line])
+
+            match = self.MSG_VALUE_OVERPAY_CHECK.search(body)
+            if not match:
+                continue
+            condition = self._enclosing_call(body, match.start())
+            if not condition or not self.COMPUTED_PRICE.search(condition):
+                continue
+            if any(pattern.search(body) for pattern in self.REFUND_PATTERNS):
+                continue
+
+            findings.append(
+                DeFiFinding(
+                    title="Unrefunded Excess Payment",
+                    description=f"`{name}` at line {start_line} accepts "
+                    "overpayment (`msg.value >=` a required amount) but never refunds "
+                    "the difference back to the caller - any ETH sent above the "
+                    "required amount is silently kept by the contract.",
+                    severity=Severity.MEDIUM,
+                    category=self.category,
+                    line=start_line,
+                    code_snippet=f"function {name}(...) payable",
+                    recommendation="Either require exact payment (`msg.value == cost`) "
+                    "or refund the excess (`msg.value - cost`) back to msg.sender "
+                    "before returning.",
+                )
+            )
+
+        return findings
+
+    @staticmethod
+    def _enclosing_call(text: str, pos: int) -> Optional[str]:
+        """The nearest `require(...)`/`if(...)` (or any `foo(...)`) span
+        enclosing `pos`, via paren balance - not just "next 40 chars", so a
+        nested call like `getPrice(col)` inside the condition doesn't get
+        mistaken for the end of the whole require(...)."""
+        depth = 0
+        start = None
+        i = pos
+        while i > 0:
+            i -= 1
+            c = text[i]
+            if c == ")":
+                depth += 1
+            elif c == "(":
+                if depth == 0:
+                    start = i
+                    break
+                depth -= 1
+        if start is None:
+            return None
+        depth = 0
+        for j in range(start, len(text)):
+            c = text[j]
+            if c == "(":
+                depth += 1
+            elif c == ")":
+                depth -= 1
+                if depth == 0:
+                    return text[start : j + 1]
+        return None
+
+
 class DeFiDetectorEngine:
     """Engine to run all DeFi detectors."""
 
@@ -488,6 +924,10 @@ class DeFiDetectorEngine:
             SandwichAttackDetector(),
             MEVExposureDetector(),
             PriceManipulationDetector(),
+            RoundingErrorDetector(),
+            FeeOnTransferDetector(),
+            ERC4626ComplianceDetector(),
+            UnrefundedExcessPaymentDetector(),
         ]
 
     def analyze(self, source_code: str, file_path: Optional[Path] = None) -> List[DeFiFinding]:

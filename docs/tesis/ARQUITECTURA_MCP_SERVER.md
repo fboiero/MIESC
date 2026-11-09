@@ -673,7 +673,7 @@ SECURITY_CONFIG = {
 
 Anthropic. (2024). *Model Context Protocol Specification*. https://modelcontextprotocol.io/
 
-Anthropic. (2024). *MCP Python SDK*. https://github.com/anthropics/mcp-python-sdk
+Anthropic. (2024). *MCP Python SDK*. https://github.com/modelcontextprotocol/python-sdk
 
 ---
 

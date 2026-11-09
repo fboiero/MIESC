@@ -31,6 +31,7 @@ from miesc.core.tool_protocol import (
     ToolMetadata,
     ToolStatus,
 )
+from miesc.detectors.chain_attribute_flow import time_dependent_lines
 
 logger = logging.getLogger(__name__)
 
@@ -58,8 +59,10 @@ FOURANALYZER_PATTERNS: Dict[str, Dict[str, Any]] = {
         "cwe_id": "CWE-252",
         "description": "ERC20 transfer/transferFrom return value not checked - tokens may silently fail",
         "recommendation": "Use SafeERC20.safeTransfer() or check return value explicitly",
+        # ERC20 transfer takes (to, amount); a one-argument `addr.transfer(x)` is the
+        # ETH transfer, which reverts on failure and has no return value to check.
         "patterns": [
-            r"\.transfer\s*\([^)]+\)\s*;",
+            r"\.transfer\s*\([^);]*,[^)]*\)\s*;",
             r"\.transferFrom\s*\([^)]+\)\s*;",
         ],
         "exclude_patterns": [
@@ -95,6 +98,9 @@ FOURANALYZER_PATTERNS: Dict[str, Dict[str, Any]] = {
             r"block\.timestamp",
             r"\bnow\b",
         ],
+        # Only when the value reaches a comparison in a condition/return or an
+        # entropy sink; storing or logging the timestamp is not time-sensitive logic.
+        "line_filter": "time_dependence",
     },
     "unsafe_casting": {
         "severity": "Medium",
@@ -299,11 +305,15 @@ class FourAnalyzerAdapter(ToolAdapter):
 
         lines = source_code.split("\n")
         raw_findings = []
+        line_filters = {"time_dependence": time_dependent_lines(source_code)}
 
         for pattern_name, pattern_config in FOURANALYZER_PATTERNS.items():
+            allowed_lines = line_filters.get(pattern_config.get("line_filter", ""))
             for regex in pattern_config["patterns"]:
                 for i, line in enumerate(lines, 1):
                     if re.search(regex, line):
+                        if allowed_lines is not None and i not in allowed_lines:
+                            continue
                         # Check exclusion patterns
                         excluded = False
                         for exc in pattern_config.get("exclude_patterns", []):

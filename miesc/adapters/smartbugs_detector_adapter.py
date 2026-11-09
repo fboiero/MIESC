@@ -31,6 +31,7 @@ from miesc.core.tool_protocol import (  # noqa: E402
 )
 from miesc.detectors.smartbugs_detectors import SmartBugsDetectorEngine  # noqa: E402
 from miesc.detectors.transient_storage_detector import TransientStorageDetector  # noqa: E402
+from miesc.detectors.yul_assembly_safety_detector import YulAssemblySafetyDetector  # noqa: E402
 
 
 class SmartBugsDetectorAdapter:
@@ -60,6 +61,7 @@ class SmartBugsDetectorAdapter:
     def __init__(self) -> None:
         self.engine = SmartBugsDetectorEngine()
         self.transient_detector = TransientStorageDetector()
+        self.yul_detector = YulAssemblySafetyDetector()
 
     def is_available(self) -> ToolStatus:
         """Check if SmartBugs detector engine is available."""
@@ -93,6 +95,7 @@ class SmartBugsDetectorAdapter:
                         "denial_of_service",
                         "front_running",
                         "transient_storage_reentrancy",
+                        "yul_assembly_safety",
                     ],
                 )
             ],
@@ -107,9 +110,10 @@ class SmartBugsDetectorAdapter:
             return {"success": False, "error": f"File not found: {contract_path}", "findings": []}
 
         try:
-            findings = self.engine.analyze_file(path)
+            findings: List[Any] = self.engine.analyze_file(path)
             source_code = path.read_text(encoding="utf-8")
             findings.extend(self.transient_detector.analyze(source_code, path))
+            findings.extend(self.yul_detector.analyze(source_code, path))
             miesc_findings = self._convert_findings(findings, path)
 
             return {
@@ -169,8 +173,9 @@ class SmartBugsDetectorAdapter:
     def analyze_source(self, source_code: str) -> Dict[str, Any]:
         """Analyze source code directly."""
         try:
-            findings = self.engine.analyze(source_code)
+            findings: List[Any] = self.engine.analyze(source_code)
             findings.extend(self.transient_detector.analyze(source_code))
+            findings.extend(self.yul_detector.analyze(source_code))
             miesc_findings = self._convert_findings(findings)
 
             return {

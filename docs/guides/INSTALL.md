@@ -17,8 +17,9 @@ Install security analysis tools based on your needs:
 ### Core Tools (recommended)
 
 ```bash
-# Static analysis
-pip install slither-analyzer
+# Static analysis: Slither ships with MIESC; install the compilers it needs
+pip install solc-select
+solc-select install 0.4.26 0.5.17 0.6.12 0.7.6 0.8.20
 
 # Symbolic execution
 pip install mythril
@@ -30,17 +31,16 @@ python scripts/verify_installation.py
 ### Complete Installation
 
 ```bash
-# Use automated installer for all 17 tools
-python install_tools.py
-
-# Select tools interactively or install all
+# Researcher workstation: isolated Mythril, Manticore, Certora CLI, Wake, Semgrep...
+./scripts/bootstrap_researcher_tools.sh
+make researcher-smoke
 ```
 
 ## Tool-by-Tool
 
 **Layer 1 - Static Analysis**:
 ```bash
-pip install slither-analyzer        # Slither
+pip install -e .                     # Slither (bundled with MIESC)
 cargo install aderyn                 # Aderyn (requires Rust)
 npm install -g solhint               # Solhint
 ```

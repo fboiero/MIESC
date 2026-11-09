@@ -1,0 +1,496 @@
+[
+ {
+  "type": "reentrancy",
+  "title": "Reentrancy via onERC721Received in erc721TransferOutLiquidity",
+  "severity": "Critical",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-07-benddao_52fqizd4/repo/src/libraries/logic/VaultLogic.sol",
+   "line": 0,
+   "function": "erc721TransferOutLiquidity"
+  },
+  "description": "In erc721TransferOutLiquidity, the function decrements assetData.availableLiquidity BEFORE executing the external safeTransferFrom loop. Each safeTransferFrom call triggers onERC721Received on the recipient if it's a contract. During this callback, the attacker can re-enter the pool contract to call withdrawal functions. Since availableLiquidity was already decremented for all tokenIds at the start of the loop, but tokens are transferred one by one, a mid-loop reentrant call sees a partially decremented liquidity counter while some tokens are still in the pool. The attacker can exploit the window where internal accounting doesn't match actual token holdings.",
+  "message": "Attacker can drain NFT tokens from the pool by re-entering during the safeTransferFrom callback, withdrawing NFTs multiple times while the accounting is inconsistent. Could also trigger further state corruption in lending positions.",
+  "recommendation": "Apply checks-effects-interactions pattern: move all state updates after external calls, or use a reentrancy guard (nonReentrant modifier) on the parent pool functions. Specifically: track which tokenIds have actually been transferred and only decrement availableLiquidity after confirming each transfer. Better: move the availableLiquidity decrement inside the loop after each transfer.",
+  "exploit_scenario": "1. Attacker deposits NFTs to get supply position.\n2. Attacker calls withdraw with tokenIds = [A, B, C].\n3. erc721TransferOutLiquidity decrements availableLiquidity by 3.\n4. First safeTransferFrom(pool, attacker, A) triggers attacker.onERC721Received().\n5. In the callback, attacker re-enters to call another function that reads availableLiquidity (now shows -3 from original, but tokens B and C still in pool).\n6. Attacker can trigger additional withdrawals or corrupt state that depends on availableLiquidity being accurate.\n7. After callback returns, tokens B and C are sent, but state is corrupted.",
+  "swc_id": "",
+  "file": "VaultLogic.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "reentrancy",
+  "title": "Reentrancy via onERC721Received in erc721TransferInLiquidity",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-07-benddao_52fqizd4/repo/src/libraries/logic/VaultLogic.sol",
+   "line": 0,
+   "function": "erc721TransferInLiquidity"
+  },
+  "description": "erc721TransferInLiquidity increments assetData.availableLiquidity by tokenIds.length BEFORE calling safeTransferFrom in a loop. Each safeTransferFrom triggers onERC721Received on address(this) (the pool). If the pool implements onERC721Received (likely for accepting NFTs), an attacker could craft a malicious NFT whose transferFrom triggers a callback to an attacker-controlled contract mid-loop. During the callback, availableLiquidity already shows the full increased amount even though not all tokens have arrived yet. A reentrant borrow against inflated liquidity is possible.",
+  "message": "Attacker can borrow against liquidity that hasn't fully arrived yet, effectively borrowing against phantom collateral. This could result in undercollateralized loans.",
+  "recommendation": "Move availableLiquidity update to after the loop completes, or add nonReentrant modifier on all parent functions. Use the actual balance difference (poolSizeAfter - poolSizeBefore) to update availableLiquidity rather than pre-incrementing.",
+  "exploit_scenario": "1. Attacker creates malicious ERC721 that on safeTransferFrom triggers a callback.\n2. Attacker calls supply with tokenIds = [A, B] where A is malicious.\n3. availableLiquidity += 2 immediately.\n4. Transfer of token A triggers attacker callback.\n5. Attacker re-enters to borrow against the full availableLiquidity (including token B not yet received).\n6. Transfer completes, but attacker has borrowed against assets not yet in pool.",
+  "swc_id": "",
+  "file": "VaultLogic.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "wrapNativeTokenInWallet uses transferFrom instead of transfer for WETH",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-07-benddao_52fqizd4/repo/src/libraries/logic/VaultLogic.sol",
+   "line": 0,
+   "function": "wrapNativeTokenInWallet"
+  },
+  "description": "After depositing ETH into WETH via IWETH(wrappedNativeToken).deposit{value: amount}(), the WETH tokens are held by address(this) (the pool/library context). The function then calls IWETH(wrappedNativeToken).transferFrom(address(this), user, amount) to send WETH to the user. transferFrom requires that address(this) has previously approved itself as a spender, which is non-standard and typically not done. On standard WETH9 implementations (and most ERC20s), transferFrom(address(this), user, amount) will fail because the allowance from address(this) to address(this) is 0. The correct call should be transfer(user, amount).",
+  "message": "wrapNativeTokenInWallet will always revert on standard WETH implementations, making the native token wrapping functionality completely broken. Any protocol flow that relies on wrapping ETH for users will be permanently DoS'd.",
+  "recommendation": "Replace transferFrom with transfer: `bool success = IWETH(wrappedNativeToken).transfer(user, amount);`. The contract already holds the WETH after deposit(), so a simple transfer to the user is the correct approach.",
+  "exploit_scenario": "1. User calls a function that triggers wrapNativeTokenInWallet(WETH, user, 1 ether).\n2. Contract successfully calls WETH.deposit{value: 1 ether}() - pool now holds 1 WETH.\n3. Contract calls WETH.transferFrom(address(this), user, 1 ether).\n4. WETH checks allowance[address(this)][address(this)] == 0.\n5. transferFrom reverts with 'ERC20: insufficient allowance'.\n6. Entire transaction reverts, ETH is stuck or returned.",
+  "swc_id": "",
+  "file": "VaultLogic.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "access_control",
+  "title": "erc721TransferCrossSupply does not verify token ownership",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-07-benddao_52fqizd4/repo/src/libraries/logic/VaultLogic.sol",
+   "line": 0,
+   "function": "erc721TransferCrossSupply"
+  },
+  "description": "Unlike erc721TransferIsolateSupply which contains `require(tokenData.owner == from, Errors.INVALID_TOKEN_OWNER)`, the erc721TransferCrossSupply function only checks supplyMode but NOT that tokenData.owner == from. This means a caller could specify any 'from' address and transfer tokens that belong to a different user. The userScaledCrossSupply mapping would be decremented for the wrong 'from' address, potentially causing underflow (revert in Solidity 0.8+) or incorrectly crediting the 'to' address with tokens they shouldn't receive.",
+  "message": "If the calling contract does not independently verify ownership before calling this function, an attacker could steal NFT supply positions from other users by specifying victim as 'from'. This corrupts supply accounting and could allow theft of collateral.",
+  "recommendation": "Add ownership check identical to erc721TransferIsolateSupply: `require(tokenData.owner == from, Errors.INVALID_TOKEN_OWNER);` inside the loop in erc721TransferCrossSupply.",
+  "exploit_scenario": "1. Victim deposits NFT tokenId=5 in cross mode, tokenData[5].owner = victim.\n2. Attacker calls pool transfer function targeting tokenId=5 with from=victim, to=attacker.\n3. If the pool's transfer function doesn't check ownership separately, erc721TransferCrossSupply is called.\n4. Only supplyMode is checked (passes), owner is NOT checked.\n5. tokenData[5].owner = attacker, userScaledCrossSupply[victim] -= 1, userScaledCrossSupply[attacker] += 1.\n6. Attacker can now withdraw the NFT that belonged to victim.",
+  "swc_id": "",
+  "file": "VaultLogic.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "availableLiquidity accounting uses pre-increment before transfer verification causing permanent desync on fee-on-transfer tokens",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-07-benddao_52fqizd4/repo/src/libraries/logic/VaultLogic.sol",
+   "line": 0,
+   "function": "erc20TransferInLiquidity"
+  },
+  "description": "In erc20TransferInLiquidity, availableLiquidity is incremented by 'amount' BEFORE the safeTransferFrom call. If the transfer fails (despite safeTransfer's revert-on-failure, there are edge cases) or if a fee-on-transfer token sends less than 'amount', the balance check at the end catches the discrepancy and reverts - but this is a defensive check. More critically, the function's design assumes non-fee tokens. If the protocol ever uses fee-on-transfer tokens, the balance check will always revert, making deposits impossible. The erc20TransferOutLiquidity similarly decrements by 'amount' before transfer. If the check fails, it reverts correctly, but the pattern is fragile. The real issue: availableLiquidity is updated before confirming receipt, violating the checks-effects-interactions principle for accounting.",
+  "message": "For fee-on-transfer tokens: complete DoS on deposits. For normal tokens: reentrancy window between availableLiquidity update and actual token arrival (though ERC20 reentrancy is less common). Protocol could show incorrect liquidity to other functions called in same transaction.",
+  "recommendation": "Update availableLiquidity based on actual received amount: measure balance before and after, then set availableLiquidity += (poolSizeAfter - poolSizeBefore). This handles fee-on-transfer tokens and ensures accounting matches reality.",
+  "exploit_scenario": "1. Attacker deposits using a token where balanceOf changes mid-transaction.\n2. availableLiquidity is inflated before tokens arrive.\n3. A concurrent (same-block) function reading availableLiquidity sees inflated value.\n4. Attacker borrows against inflated liquidity.\n5. Balance check at end catches it and reverts - BUT if attacker's borrow was in a separate call that read the state mid-execution, damage is done.",
+  "swc_id": "",
+  "file": "VaultLogic.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "reentrancy",
+  "title": "safeTransferNativeToken reentrancy in unwrapNativeTokenInWallet",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-07-benddao_52fqizd4/repo/src/libraries/logic/VaultLogic.sol",
+   "line": 0,
+   "function": "unwrapNativeTokenInWallet"
+  },
+  "description": "In unwrapNativeTokenInWallet, the sequence is: (1) transferFrom user's WETH to contract, (2) WETH.withdraw() to get ETH, (3) safeTransferNativeToken(user, amount) which does `to.call{value: amount}`. The ETH transfer via .call{value:} gives control to the recipient ('user'). If 'user' is a malicious contract, it can re-enter the pool during the ETH transfer. At this point, the WETH has already been transferred in (step 1) and burned (step 2), but any other state variables that should be updated by the caller BEFORE calling unwrapNativeTokenInWallet might not yet be updated, depending on call order in the parent function.",
+  "message": "Depending on what state is not yet updated when unwrapNativeTokenInWallet is called by the parent, a reentrancy attack could allow double-withdrawal of funds or manipulation of lending positions during the ETH transfer.",
+  "recommendation": "Ensure all state updates in parent functions are completed BEFORE calling unwrapNativeTokenInWallet. Add nonReentrant guards on all parent public/external functions that call this. Consider using a withdrawal pattern (store ETH to claim) instead of direct transfer.",
+  "exploit_scenario": "1. Attacker calls withdraw function that eventually calls unwrapNativeTokenInWallet.\n2. Steps 1-2 execute (WETH pulled and unwrapped).\n3. safeTransferNativeToken sends ETH to attacker contract.\n4. Attacker's fallback/receive re-enters the pool.\n5. If parent hasn't yet updated user's supply/borrow state, attacker can perform additional operations against stale state.",
+  "swc_id": "",
+  "file": "VaultLogic.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Flash Loan ERC721 Allows Duplicate (Asset, TokenId) Pairs Enabling Double-Flash-Loan of Same NFT",
+  "severity": "Critical",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-07-benddao_52fqizd4/repo/src/libraries/logic/ValidateLogic.sol",
+   "line": 0,
+   "function": "validateFlashLoanERC721Basic"
+  },
+  "description": "The validateFlashLoanERC721Basic function explicitly skips duplicate ID validation with the comment 'no need to check dup ids, cos the id may same for diff collection'. However, this means an attacker can pass the same (nftAsset, tokenId) pair multiple times in the same flash loan call. The validation only checks array length consistency and receiver address, but does NOT verify that the same NFT token from the same collection isn't requested twice. If the execution logic iterates over the arrays and transfers NFTs for each entry, a duplicate (asset, tokenId) pair would attempt to transfer the same NFT twice, potentially causing accounting errors or allowing the same NFT to be used as collateral/leverage multiple times within a single transaction.",
+  "message": "An attacker could request flash loans on the same NFT multiple times in a single transaction. If the execution layer doesn't independently validate uniqueness, this could lead to: (1) double-counting of NFT value as collateral within the flash loan callback, (2) reentrancy-style manipulation using the same NFT, (3) protocol accounting corruption where borrow/repay counts are mismatched.",
+  "recommendation": "Change the duplicate check to validate (asset, tokenId) pair uniqueness, not just tokenId uniqueness. Add a nested loop or a mapping-based check: for each i, verify no j != i has both nftAssets[i]==nftAssets[j] AND nftTokenIds[i]==nftTokenIds[j]. Example: for (uint i=0; i<nftAssets.length; i++) { for (uint j=i+1; j<nftAssets.length; j++) { require(nftAssets[i] != nftAssets[j] || nftTokenIds[i] != nftTokenIds[j], 'DUPLICATE_NFT'); } }",
+  "exploit_scenario": "1. Attacker calls flashLoanERC721 with nftAssets=[collectionA, collectionA] and nftTokenIds=[tokenId1, tokenId1] (same asset, same tokenId repeated). 2. validateFlashLoanERC721Basic passes because it only checks array length matching and skips duplicate checking. 3. The execution logic attempts to transfer tokenId1 from collectionA twice, or uses it twice in collateral calculations. 4. Within the flash loan callback, attacker exploits the double-counted NFT value. 5. On repayment, only one NFT needs to be returned while two were 'loaned'.",
+  "swc_id": "",
+  "file": "ValidateLogic.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "oracle_manipulation",
+  "title": "Oracle Price Manipulation Enables Undercollateralized Borrowing via Inflated Collateral Value",
+  "severity": "Critical",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-07-benddao_52fqizd4/repo/src/libraries/logic/ValidateLogic.sol",
+   "line": 0,
+   "function": "validateCrossBorrowERC20Account"
+  },
+  "description": "Both validateCrossBorrowERC20Account and validateIsolateBorrowLoan rely on IPriceOracleGetter(priceOracle).getAssetPrice() for real-time price data. The collateral sufficiency check computes collateralNeededInBaseCurrency and compares it against allGroupsCollateralInBaseCurrency - both values derived from the same potentially manipulable oracle. If the oracle uses spot prices (e.g., from a DEX pool), an attacker can use a flash loan to temporarily inflate the collateral asset price, pass the validation with inflated collateral value, borrow funds, then restore the price. The health factor check uses calculateUserAccountDataForBorrow which also reads from the same oracle, so manipulation affects both checks simultaneously.",
+  "message": "Attacker can borrow far more than their actual collateral supports. When oracle price normalizes, the position becomes immediately undercollateralized, causing bad debt for the protocol. In worst case, attacker can drain the entire borrowable liquidity of an asset by posting minimal collateral during a price spike.",
+  "recommendation": "Use a TWAP (time-weighted average price) oracle rather than spot price. Implement a price deviation check between spot and TWAP. Add circuit breakers that pause borrowing if price moves more than a threshold in a single block. Consider using Chainlink price feeds with staleness checks rather than DEX-based spot oracles.",
+  "exploit_scenario": "1. Attacker holds some NFT or ERC20 collateral worth X at fair value. 2. Using flash loan, attacker manipulates the spot price oracle to show collateral worth 10X. 3. Attacker calls borrow - validateCrossBorrowERC20Account sees inflated collateral value, health factor passes, collateralNeededInBaseCurrency <= inflated allGroupsCollateralInBaseCurrency passes. 4. Attacker borrows up to 10X * LTV worth of assets. 5. Flash loan is repaid, oracle price returns to X. 6. Attacker's position is now 10x undercollateralized. 7. Attacker walks away with borrowed funds minus flash loan fees.",
+  "swc_id": "",
+  "file": "ValidateLogic.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Health Factor Check Uses Pre-Borrow State Allowing Sequential Borrows to Bypass Collateral Requirements",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-07-benddao_52fqizd4/repo/src/libraries/logic/ValidateLogic.sol",
+   "line": 0,
+   "function": "validateCrossBorrowERC20Account"
+  },
+  "description": "In validateCrossBorrowERC20Account, the health factor is checked using calculateUserAccountDataForBorrow which reflects the current state BEFORE the new borrow is added. The function then checks per-group collateral sufficiency. However, the totalNewBorrowAmount is only checked against availableLiquidity (a liquidity cap), NOT against the total collateral across all groups. Each group check is done independently: for group G, it checks (existing_debt_G + new_amount_G) / LTV_G <= collateral_G. This is correct per-group, but the health factor check at the start uses pre-borrow data. If a user submits multiple borrow transactions in the same block (or if the health factor check is insufficiently protective), they might borrow from multiple groups sequentially where each individual transaction passes validation but collectively exceeds safe collateralization.",
+  "message": "Users may be able to borrow slightly more than their collateral supports by exploiting the window between health factor snapshot and actual state update, particularly in high-throughput scenarios or if the health factor calculation doesn't perfectly mirror the per-group collateral checks.",
+  "recommendation": "Ensure the health factor check uses post-borrow projected state, not pre-borrow state. After computing new borrow amounts, simulate the resulting health factor and verify it remains above threshold. Alternatively, implement strict per-user nonce or mutex patterns to prevent concurrent borrows.",
+  "exploit_scenario": "1. User has collateral in group G worth 100 units with LTV 80%. 2. User submits borrow transaction for 75 units from group G - passes. 3. Before state is updated (same block via contract call), user submits another borrow for 10 units from group G. 4. The health factor check in the second call may still pass because it reads pre-first-borrow state (depending on transaction ordering and state update timing). 5. Total borrowed: 85 units against 80-unit capacity.",
+  "swc_id": "",
+  "file": "ValidateLogic.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Missing Validation of collateralFactor > 0 in validateIsolateBorrowLoan Enabling Division by Zero",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-07-benddao_52fqizd4/repo/src/libraries/logic/ValidateLogic.sol",
+   "line": 0,
+   "function": "validateIsolateBorrowLoan"
+  },
+  "description": "In validateIsolateBorrowLoan, the collateral coverage calculation is: collateralNeededInBaseCurrency = (nftLoanResult.totalDebtInBaseCurrency + amountInBaseCurrency).percentDiv(nftAssetData.collateralFactor). The percentDiv operation divides by collateralFactor. If nftAssetData.collateralFactor is 0 (which could happen if an NFT asset is added without a collateral factor being set, or if it's reset to 0), this will cause a division by zero revert OR in PercentageMath implementations that don't check for zero, it could produce incorrect results. Unlike the cross borrow path which checks allGroupsAvgLtv > 0, there is no equivalent check that nftAssetData.collateralFactor > 0 before using it as a divisor.",
+  "message": "If collateralFactor is 0, all isolate borrow attempts for that NFT asset will revert with division by zero, effectively DoS-ing the isolate borrow functionality for that asset. More critically, if PercentageMath.percentDiv has edge cases with zero divisor that don't revert (e.g., returning max uint256), it could allow borrowing with no collateral requirement.",
+  "recommendation": "Add explicit validation: require(nftAssetData.collateralFactor > 0, Errors.LTV_VALIDATION_FAILED); before the percentDiv calculation. This mirrors the pattern used in validateCrossBorrowERC20Account which checks allGroupsAvgLtv > 0.",
+  "exploit_scenario": "1. NFT asset is configured with collateralFactor = 0 (misconfiguration or intentional reset). 2. User attempts to isolate borrow against this NFT. 3. validateIsolateBorrowLoan is called. 4. percentDiv(nftAssetData.collateralFactor) executes with denominator 0. 5. Transaction either reverts (DoS) or produces incorrect result depending on PercentageMath implementation.",
+  "swc_id": "",
+  "file": "ValidateLogic.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Asset Cannot Be Re-added After Removal Due to Missing Storage Cleanup",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-07-benddao_52fqizd4/repo/src/libraries/logic/ConfigureLogic.sol",
+   "line": 0,
+   "function": "_removeAsset"
+  },
+  "description": "The `_removeAsset` function removes the asset address from `poolData.assetList` but does NOT delete the `assetData` struct from `poolData.assetLookup[asset]`. After removal, `assetData.assetType` remains non-zero (e.g., ASSET_TYPE_ERC20 = 1). When an admin attempts to re-add the same asset via `executeAddAssetERC20` or `executeAddAssetERC721`, the check `require(assetData.assetType == 0, Errors.ASSET_ALREADY_EXISTS)` will always fail. This permanently blacklists an asset address from being re-added to the pool, even after legitimate removal.",
+  "message": "Once removed, an asset can never be re-added to any pool. If an asset is accidentally removed, it is permanently excluded. This can break protocol functionality and potentially lock users out of legitimate configurations.",
+  "recommendation": "Add `delete poolData.assetLookup[asset];` in the `_removeAsset` function after removing from the list:\n\nfunction _removeAsset(...) private {\n    require(assetData.assetType != 0, Errors.ASSET_NOT_EXISTS);\n    VaultLogic.checkAssetHasEmptyLiquidity(poolData, assetData);\n    bool isDelOk = poolData.assetList.remove(asset);\n    require(isDelOk, Errors.ENUM_SET_REMOVE_FAILED);\n    delete poolData.assetLookup[asset]; // Add this line\n}\n",
+  "exploit_scenario": "1. Admin calls executeAddAssetERC20(poolId, tokenAddress) - succeeds, assetData.assetType = 1\n2. Admin calls executeRemoveAssetERC20(poolId, tokenAddress) - removes from assetList but assetData.assetType remains = 1\n3. Admin calls executeAddAssetERC20(poolId, tokenAddress) again\n4. `require(assetData.assetType == 0, ...)` fails with ASSET_ALREADY_EXISTS\n5. Asset is permanently blocked from being re-added",
+  "swc_id": "",
+  "file": "ConfigureLogic.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Yield Group Added Without Rate Model - Causes Protocol Malfunction",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-07-benddao_52fqizd4/repo/src/libraries/logic/ConfigureLogic.sol",
+   "line": 0,
+   "function": "executeSetAssetYieldEnable"
+  },
+  "description": "When enabling yield for an asset, `executeSetAssetYieldEnable` sets `groupData.groupId = poolData.yieldGroup` and calls `InterestLogic.initGroupData(groupData)`, but never sets `groupData.rateModel`. The rate model address remains `address(0)`. Compare with `executeAddAssetGroup` which requires `rateModel_ != address(0)` and explicitly sets `group.rateModel = rateModel_`. Any subsequent interest rate calculations for this yield group will attempt to call `IInterestRateModel(address(0))`, causing reverts or undefined behavior in all borrowing/yield operations using this group.",
+  "message": "All yield-related interest rate calculations will fail when calling the rate model at address(0). This could cause DoS for all yield operations on the asset, or if the zero address happens to behave unexpectedly, produce incorrect interest rates. Users relying on yield functionality will be unable to use it.",
+  "recommendation": "Add a `rateModel_` parameter to `executeSetAssetYieldEnable` and set it:\n\nfunction executeSetAssetYieldEnable(address msgSender, uint32 poolId, address asset, bool isEnable, address rateModel_) internal {\n    // ...\n    if (isEnable) {\n        require(rateModel_ != address(0), Errors.INVALID_ADDRESS);\n        // ...\n        groupData.groupId = poolData.yieldGroup;\n        groupData.rateModel = rateModel_; // Add this\n        InterestLogic.initGroupData(groupData);\n    }\n}\n\nAlternatively, use `executeSetAssetYieldRate` immediately after enabling, but enforce this at the protocol level.",
+  "exploit_scenario": "1. Admin enables yield on pool: executeSetPoolYieldEnable(poolId, true)\n2. Admin enables yield on asset: executeSetAssetYieldEnable(poolId, asset, true)\n3. groupData.groupId = yieldGroup is set, but groupData.rateModel = address(0)\n4. Any operation that calls IInterestRateModel(groupData.rateModel).calculateInterestRates(...) will call address(0)\n5. All yield interest calculations revert or return garbage values",
+  "swc_id": "",
+  "file": "ConfigureLogic.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Asset classGroup Set Without Validating Group Exists in Pool",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-07-benddao_52fqizd4/repo/src/libraries/logic/ConfigureLogic.sol",
+   "line": 0,
+   "function": "executeSetAssetClassGroup"
+  },
+  "description": "The `executeSetAssetClassGroup` function allows setting `assetData.classGroup` to any groupId value between `GROUP_ID_LEND_MIN` and `GROUP_ID_LEND_MAX`, but does NOT check that `poolData.enabledGroups[classGroup] == true`. This means an asset can be assigned to a group that doesn't exist in the pool. Subsequently, `executeRemovePoolGroup` checks `assetData.classGroup != groupId` when preventing group removal - this check could be inconsistent. More critically, if downstream logic uses `assetData.classGroup` to look up group data (e.g., for collateral calculations, borrowing rate assignment), it will reference a non-existent group, causing incorrect behavior or reverts.",
+  "message": "Assets can be configured with invalid class groups that don't exist in the pool. This can bypass the group-in-use check in `executeRemovePoolGroup` (since a removed group could still be referenced as classGroup), causing inconsistent state. Downstream operations using classGroup for rate/collateral lookups will fail or return incorrect values.",
+  "recommendation": "Add validation that the classGroup exists in the pool:\n\nrequire(poolData.enabledGroups[classGroup], Errors.GROUP_NOT_EXISTS);\n\nAdd this check in `executeSetAssetClassGroup` before setting `assetData.classGroup`.",
+  "exploit_scenario": "1. Pool has groups 1 and 2 enabled\n2. Admin calls executeSetAssetClassGroup(poolId, asset, 5) where group 5 doesn't exist\n3. assetData.classGroup = 5 is set despite group 5 not being enabled\n4. executeRemovePoolGroup for group 1 checks assetData.classGroup != groupId (1 != 5, passes)\n5. But any downstream lookup of assetData.classGroup returns an uninitialized/invalid GroupData",
+  "swc_id": "",
+  "file": "ConfigureLogic.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "reentrancy",
+  "title": "Reentrancy via Untrusted Token in executeAddAssetERC20 During decimals() Call",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-07-benddao_52fqizd4/repo/src/libraries/logic/ConfigureLogic.sol",
+   "line": 0,
+   "function": "executeAddAssetERC20"
+  },
+  "description": "In `executeAddAssetERC20`, the contract calls `IERC20MetadataUpgradeable(asset).decimals()` on an externally provided `asset` address before completing all state updates (specifically before `poolData.assetList.add(asset)` which is the final state commitment). A malicious token contract could implement `decimals()` to re-enter the protocol. While `assetData.assetType` is set before the external call (partial state update), `assetData` struct fields like `assetData.underlyingDecimals` are set using the return value of the external call. The asset is not yet in `poolData.assetList` during the external call, so state is partially committed. If a re-entrant call removes and re-adds assets during this window, the enumerable set state could become corrupted.",
+  "message": "A malicious ERC20 token with a crafted `decimals()` function could re-enter the protocol during asset configuration. While direct fund theft may be limited in a configuration library, state corruption could enable further exploits: inconsistent asset lists, bypassing asset limits, or enabling access to uninitialized asset configurations.",
+  "recommendation": "Apply checks-effects-interactions pattern: complete all state changes before making the external call, or use a trusted whitelist of tokens. Move the `decimals()` call to after all state is committed, or store it separately:\n\n// Complete all state updates first\nassetData.underlyingAsset = asset;\nassetData.assetType = uint8(Constants.ASSET_TYPE_ERC20);\nInterestLogic.initAssetData(assetData);\nbool isAddOk = poolData.assetList.add(asset);\nrequire(isAddOk, Errors.ENUM_SET_ADD_FAILED);\n// External call last\nassetData.underlyingDecimals = IERC20MetadataUpgradeable(asset).decimals();\n",
+  "exploit_scenario": "1. Attacker deploys malicious token with decimals() that re-enters executeAddAssetERC20 or executeRemoveAssetERC20\n2. Admin (compromised or social-engineered) calls executeAddAssetERC20 with malicious token\n3. During decimals() call, malicious token calls back into the protocol\n4. assetData.assetType is set but asset not yet in assetList - inconsistent state exploitable\n5. Result: assetList and assetLookup can become out of sync",
+  "swc_id": "",
+  "file": "ConfigureLogic.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "executeAddPoolGroup Allows Exceeding MAX_NUMBER_OF_GROUP by Off-by-One",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-07-benddao_52fqizd4/repo/src/libraries/logic/ConfigureLogic.sol",
+   "line": 0,
+   "function": "executeAddPoolGroup"
+  },
+  "description": "The check `require(poolData.groupList.length() <= Constants.MAX_NUMBER_OF_GROUP, ...)` uses `<=` instead of `<`. This means if `MAX_NUMBER_OF_GROUP = N`, the check passes when `length() == N` (N groups already exist), and then `groupList.add(groupId)` adds one more, resulting in N+1 groups. The same off-by-one pattern exists in `executeAddAssetERC20`: `require(poolData.assetList.length() <= Constants.MAX_NUMBER_OF_ASSET, ...)`. If the protocol's downstream logic assumes at most N groups/assets and allocates fixed arrays or has gas limits based on this assumption, exceeding the cap can cause unexpected behavior.",
+  "message": "The protocol can have one more group/asset than the intended maximum. If any downstream code iterates over all groups/assets with fixed bounds or gas estimates based on MAX_NUMBER_OF_GROUP/ASSET, it could fail or be exploited. The cap intended as a safety measure is ineffective.",
+  "recommendation": "Change `<=` to `<` in the cap checks:\n\n// In executeAddPoolGroup:\nrequire(poolData.groupList.length() < Constants.MAX_NUMBER_OF_GROUP, Errors.GROUP_NUMBER_EXCEED_MAX_LIMIT);\n// In executeAddAssetERC20 and executeAddAssetERC721:\nrequire(poolData.assetList.length() < Constants.MAX_NUMBER_OF_ASSET, Errors.ASSET_NUMBER_EXCEED_MAX_LIMIT);\n",
+  "exploit_scenario": "1. Assume MAX_NUMBER_OF_GROUP = 5\n2. Admin adds 5 groups - groupList.length() = 5\n3. Admin calls executeAddPoolGroup for 6th group\n4. Check: 5 <= 5 is TRUE, passes\n5. 6th group is added: groupList.length() = 6, exceeding the cap\n6. Same applies for assets with MAX_NUMBER_OF_ASSET",
+  "swc_id": "",
+  "file": "ConfigureLogic.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Division by Zero in getIsolateCollateralData When Oracle Returns Zero Price",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-07-benddao_52fqizd4/repo/src/libraries/logic/QueryLogic.sol",
+   "line": 0,
+   "function": "getIsolateCollateralData"
+  },
+  "description": "In getIsolateCollateralData, the function computes totalCollateral and totalBorrow by dividing by nftLoanResult.debtAssetPriceInBaseCurrency. If the oracle returns a price of 0 for the debt asset (e.g., due to oracle failure, staleness, or manipulation), the division will revert with a divide-by-zero panic. This function is likely called in liquidation/auction flows where unavailability causes denial of service.",
+  "message": "If the debt asset oracle returns 0 (failure mode), all liquidation and collateral health checks for isolate loans become uncallable, freezing liquidations and potentially allowing undercollateralized positions to persist indefinitely.",
+  "recommendation": "Add a zero-price guard: require(nftLoanResult.debtAssetPriceInBaseCurrency > 0, Errors.INVALID_PRICE); before the division operations.",
+  "exploit_scenario": "1. Oracle for debtAsset is stale/compromised and returns price=0. 2. Any call to getIsolateCollateralData for that debtAsset reverts due to division by zero at (nftLoanResult.totalCollateralInBaseCurrency * (10 ** debtAssetData.underlyingDecimals)) / nftLoanResult.debtAssetPriceInBaseCurrency. 3. Liquidators cannot assess or execute liquidations on any isolate loan backed by that asset.",
+  "swc_id": "",
+  "file": "QueryLogic.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Potential Arithmetic Underflow in getUserAccountDataForCalculation for Withdraw (calcType=2)",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-07-benddao_52fqizd4/repo/src/libraries/logic/QueryLogic.sol",
+   "line": 0,
+   "function": "getUserAccountDataForCalculation"
+  },
+  "description": "For calcType=2 (withdraw simulation), avgLtv is scaled up to avgLtv * totalCollateralInBase, then the code subtracts (vars.assetValueInBase * assetData.collateralFactor). Under Solidity ^0.8.0, this subtraction will revert if (vars.assetValueInBase * assetData.collateralFactor) > (avgLtv * totalCollateralInBase). This can happen when: the withdrawn asset has a higher collateralFactor than the pool-wide average, or when assetValueInBase is close to totalCollateralInBase. Similarly for avgLiquidationThreshold. The same issue exists in the avgLtv line for withdraw.",
+  "message": "Any attempt to simulate a withdrawal that results in a negative intermediate avgLtv value will cause an unexpected revert, breaking the query function and any protocol UI/logic relying on it for pre-flight checks. Users may be unable to compute valid withdrawal parameters.",
+  "recommendation": "Use checked subtraction with a floor at zero, similar to how totalCollateralInBase and totalBorrowInBase are handled: if (avgLtv >= vars.assetValueInBase * assetData.collateralFactor) { avgLtv -= vars.assetValueInBase * assetData.collateralFactor; } else { avgLtv = 0; } Apply the same pattern to avgLiquidationThreshold.",
+  "exploit_scenario": "1. User has only one collateral asset with collateralFactor=0.9 (90%), pool avgLtv=0.9. 2. Call getUserAccountDataForCalculation with calcType=2, amount = full collateral value. 3. avgLtv (scaled) = 0.9 * totalCollateralInBase. 4. Subtract: 0.9 * totalCollateralInBase - assetValueInBase * 0.9 = 0 (ok in this case). 5. Edge: if user has two assets with different factors and withdraws the lower-factor one, the subtraction of the higher weighted value from avgLtv*total may underflow.",
+  "swc_id": "",
+  "file": "QueryLogic.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "access_control",
+  "title": "Bot Admin Can Drain NFT Owner Funds via Unauthorized Token Pull in _repay",
+  "severity": "Critical",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-07-benddao_52fqizd4/repo/src/yield/YieldStakingBase.sol",
+   "line": 0,
+   "function": "_repay"
+  },
+  "description": "In _repay(), when extraAmount > 0 (claimed yield < debt + fine), the contract pulls tokens from `vars.nftOwner` via `underlyingAsset.safeTransferFrom(vars.nftOwner, address(this), vars.extraAmount)`. The botAdmin is allowed to call repay() (the check `require(vars.nftOwner == msg.sender || botAdmin == msg.sender)`). When botAdmin calls repay, funds are pulled from the NFT owner's wallet without their explicit consent for this specific call \u2014 the NFT owner may have approved the contract for other purposes. More critically, the botAdmin can inflate `unstakeFine` up to `maxUnstakeFine`, then trigger unstake+repay, causing the NFT owner to pay maximum fine amounts. The NFT owner has no way to prevent this sequence once the bot triggers unstake.",
+  "message": "botAdmin can systematically drain NFT owners up to maxUnstakeFine per NFT by: setting max fines on all positions, initiating unstake, then triggering repay which pulls funds from NFT owner wallets. If users have large approvals, botAdmin extracts value from all stakers.",
+  "recommendation": "Separate the fine payment from automated repay: require the NFT owner (not botAdmin) to call repay when extraAmount > 0. Alternatively, only allow botAdmin to call repay when claimedYield >= nftDebtWithFine (no extra needed from user). Add: `if (vars.extraAmount > 0) require(msg.sender == vars.nftOwner, 'only owner can cover shortfall');`",
+  "exploit_scenario": "1. Bot monitors positions where hf < unstakeHealthFactor\n2. Bot calls _unstake with unstakeFine = maxUnstakeFine\n3. After withdrawal is ready, bot calls _repay\n4. If yield < debt + maxFine, the contract pulls (debt + maxFine - yield) from nftOwner.address\n5. Even if the NFT owner's yield covers debt, the fine reduces their net return significantly\n6. botAdmin is set by poolAdmin \u2014 if poolAdmin key is compromised, all stakers are at risk",
+  "swc_id": "",
+  "file": "YieldStakingBase.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Wrong Yield Account Used in _repay When Called by botAdmin \u2014 State Corruption",
+  "severity": "Critical",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-07-benddao_52fqizd4/repo/src/yield/YieldStakingBase.sol",
+   "line": 0,
+   "function": "_repay"
+  },
+  "description": "In `_repay()`, the yieldAccount is resolved as `yieldAccounts[msg.sender]`. When `botAdmin` calls repay, `vars.yieldAccout = yieldAccounts[botAdmin]`, which is likely address(0) or botAdmin's own yield account \u2014 NOT the yield account that was used during `_stake()`. The stake data stores `sd.yieldAccount` which is the actual yield account of the NFT owner. The function then does `accountYieldInWithdraws[address(vars.yieldAccout)] -= sd.withdrawAmount`, decrementing the WRONG account's counter. This corrupts `accountYieldInWithdraws` for botAdmin's account (underflow if botAdmin has no withdraws) and never decrements the NFT owner's actual counter.",
+  "message": "1. `accountYieldInWithdraws[botAdmin]` underflows (reverts or wraps around in unchecked context) preventing botAdmin from ever calling repay successfully. 2. The NFT owner's `accountYieldInWithdraws` is never decremented, permanently inflating it. 3. If the yield system uses `accountYieldInWithdraws` to gate withdrawals, the NFT owner is permanently locked. 4. State becomes permanently inconsistent.",
+  "recommendation": "In _repay(), use `sd.yieldAccount` instead of `yieldAccounts[msg.sender]`: `vars.yieldAccout = IYieldAccount(sd.yieldAccount);` and verify ownership: `require(sd.yieldAccount == yieldAccounts[vars.nftOwner], ...);`. Apply same fix in _unstake() for consistency.",
+  "exploit_scenario": "1. Alice stakes NFT, creating sd.yieldAccount = yieldAccounts[Alice]\n2. Health factor drops below threshold\n3. BotAdmin calls unstake: sd.withdrawAmount is stored, accountYieldInWithdraws[yieldAccounts[Alice]] += sd.withdrawAmount\n4. BotAdmin calls repay: vars.yieldAccout = yieldAccounts[botAdmin] (not Alice's account)\n5. accountYieldInWithdraws[yieldAccounts[botAdmin]] -= sd.withdrawAmount \u2192 underflow/wrong account\n6. accountYieldInWithdraws[yieldAccounts[Alice]] is never decremented \u2192 Alice's state is corrupted",
+  "swc_id": "",
+  "file": "YieldStakingBase.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Wrong Yield Account Used in _unstake When Called by botAdmin",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-07-benddao_52fqizd4/repo/src/yield/YieldStakingBase.sol",
+   "line": 0,
+   "function": "_unstake"
+  },
+  "description": "In `_unstake()`, the yield account is resolved as `yieldAccounts[msg.sender]`. When botAdmin calls unstake, `vars.yieldAccout = yieldAccounts[botAdmin]`. The function then: (1) `sd.withdrawAmount = convertToYieldAssets(address(vars.yieldAccout), sd.yieldShare)` \u2014 computes withdrawal using botAdmin's yield shares/balance, not the NFT owner's, giving wrong amounts; (2) `accountYieldInWithdraws[address(vars.yieldAccout)] += sd.withdrawAmount` \u2014 credits botAdmin's account; (3) `accountYieldShares[address(vars.yieldAccout)] -= sd.yieldShare` \u2014 decrements botAdmin's yield shares which they never had, causing underflow or wrong accounting.",
+  "message": "When botAdmin triggers unstake, the NFT owner's `accountYieldShares` is never decremented (or decremented from wrong account). The yield amount calculation is based on botAdmin's account state rather than the NFT owner's, potentially yielding 0 or wrong amounts. State permanently corrupted for both accounts.",
+  "recommendation": "Resolve yield account from `sd.yieldAccount` (set during initial stake) rather than `yieldAccounts[msg.sender]`. During unstake: `vars.yieldAccout = IYieldAccount(sd.yieldAccount);` with appropriate ownership verification.",
+  "exploit_scenario": "1. Alice stakes, sd.yieldShare = 1000, accountYieldShares[aliceAccount] = 1000\n2. botAdmin calls unstake for Alice's NFT\n3. vars.yieldAccout = yieldAccounts[botAdmin] (botAdmin's account, possibly address(0))\n4. convertToYieldAssets uses botAdmin's yield balance \u2192 returns 0 or wrong amount\n5. accountYieldInWithdraws[botAdmin's account] += wrong amount\n6. accountYieldShares[botAdmin's account] -= 1000 \u2192 underflow if botAdmin has 0\n7. accountYieldShares[aliceAccount] unchanged \u2192 Alice can re-stake or double-count yield",
+  "swc_id": "",
+  "file": "YieldStakingBase.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Health Factor Calculation Reverts with Division by Zero When Debt Is Zero",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-07-benddao_52fqizd4/repo/src/yield/YieldStakingBase.sol",
+   "line": 0,
+   "function": "calculateHealthFactor"
+  },
+  "description": "In `calculateHealthFactor()`, the final line is `return (totalNftValue + totalYieldValue).wadDiv(totalDebtValue)`. `wadDiv` performs division; if `totalDebtValue == 0`, this reverts. This can occur when a stake has `debtShare == 0`. While unlikely in normal flow (since borrowAmount > 0 is required for initial stake), if debt is fully repaid in the pool but state isn't updated, or if `convertToDebtAssets` returns 0 due to rounding/empty pool, the health factor check in `_stake()` will revert, permanently bricking staking for that NFT. Additionally, if `getTotalDebt()` returns 0 due to external state, all health factor calculations revert.",
+  "message": "If total debt rounds to 0 or pool debt is externally zeroed, all stake operations revert on health factor check. Could permanently lock NFTs in the protocol if they enter an intermediate state where debt appears as 0.",
+  "recommendation": "Add a zero check: `if (totalDebtValue == 0) return type(uint256).max;` at the start of calculateHealthFactor, or before the division.",
+  "exploit_scenario": "1. Edge case: borrowAmount is very small, convertToDebtAssets returns 0 due to rounding down\n2. OR: pool debt is fully cleared externally\n3. calculateHealthFactor is called in _stake() after borrowing\n4. totalDebtValue = 0 \u2192 wadDiv reverts\n5. Transaction reverts, funds may be in inconsistent state",
+  "swc_id": "",
+  "file": "YieldStakingBase.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "oracle_manipulation",
+  "title": "Oracle Manipulation via Single-Source Price Feed in getNftPriceInUnderlyingAsset",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-07-benddao_52fqizd4/repo/src/yield/YieldStakingBase.sol",
+   "line": 0,
+   "function": "getNftPriceInUnderlyingAsset"
+  },
+  "description": "The `getNftPriceInUnderlyingAsset()` function relies on a single price oracle (`IPriceOracleGetter`) for both NFT price and underlying asset price. The NFT collateral value and maximum borrow amount are directly derived from this spot price. If the oracle is manipulable (e.g., uses a TWAP with short window, or is a spot DEX price), an attacker can inflate NFT price to borrow more than the collateral is worth. The borrowing limit check `vars.totalDebtAmount <= vars.maxBorrowAmount` uses the manipulated price, allowing over-borrowing. Similarly, the health factor check uses the manipulated price, potentially hiding under-collateralized positions.",
+  "message": "Attacker manipulates NFT/underlying price oracle, borrows maximum amount against inflated collateral, exits position leaving protocol with bad debt. All user funds in the lending pool at risk.",
+  "recommendation": "Implement a TWAP oracle or use multiple oracle sources with deviation checks. Add maximum borrow amounts per NFT collection. Consider using Chainlink with staleness checks. Implement circuit breakers for unusual price movements.",
+  "exploit_scenario": "1. Attacker finds NFT price oracle that can be manipulated (e.g., based on recent sale or TWAP)\n2. Attacker manipulates oracle to show 2x NFT price\n3. Calls stake() with borrowAmount = nftPrice * leverageFactor (at 2x price, this is 2x normal)\n4. Borrow succeeds since totalDebtAmount <= maxBorrowAmount at inflated price\n5. Attacker withdraws borrowed funds and abandons position\n6. Protocol holds over-borrowed position, liquidation can't recover full debt",
+  "swc_id": "",
+  "file": "YieldStakingBase.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Debt Share Rounding Down Both Ways Allows Systematic Value Extraction",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-07-benddao_52fqizd4/repo/src/yield/YieldStakingBase.sol",
+   "line": 0,
+   "function": "convertToDebtShares / convertToDebtAssets"
+  },
+  "description": "Both `convertToDebtShares()` (used when borrowing) and `convertToDebtAssets()` (used when repaying) use `Math.Rounding.Down`. When computing debt shares to record for a borrow, rounding down means fewer shares are recorded than the actual debt proportion. When computing debt assets to repay, rounding down means less is repaid than owed. The combination allows systematic under-repayment: each repay cycle, a tiny amount of debt is never repaid. Over many positions and repayments, `totalDebtShare` doesn't accurately reflect actual debt. More critically, the last repayer may find `totalDebtShare -= sd.debtShare` underflows if accumulated rounding left `totalDebtShare` lower than expected.",
+  "message": "Systematic protocol loss as each repayment slightly under-repays debt. Over thousands of transactions, non-trivial amounts of bad debt accumulate. Additionally, `totalDebtShare` corruption could cause underflow on final repayments.",
+  "recommendation": "Use `Math.Rounding.Up` for `convertToDebtShares` (record more shares when borrowing) and `Math.Rounding.Up` for `convertToDebtAssets` during repayment to ensure full debt coverage. Alternatively, use `Rounding.Up` consistently for shares recording to protect the protocol.",
+  "exploit_scenario": "1. Many users stake small amounts where rounding down in convertToDebtShares gives debtShare = 0 or 1 fewer than actual\n2. Each repay: poolYield.yieldRepayERC20 repays convertToDebtAssets(sd.debtShare) which is also rounded down\n3. Small amounts of debt persist unrepaid in pool\n4. totalDebtShare accounting drifts from reality\n5. Eventually sd.debtShare can exceed totalDebtShare causing underflow",
+  "swc_id": "",
+  "file": "YieldStakingBase.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "ERC721 Liquidation Bonus Applied in Wrong Direction (Discounts Instead of Premiums)",
+  "severity": "Critical",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-07-benddao_52fqizd4/repo/src/libraries/logic/LiquidationLogic.sol",
+   "line": 0,
+   "function": "_calculateDebtAmountFromERC721Collateral"
+  },
+  "description": "In `_calculateDebtAmountFromERC721Collateral`, the liquidation bonus is subtracted from collateral price: `vars.collateralBonusPrice = vars.collateralPrice.percentMul(PercentageMath.PERCENTAGE_FACTOR - collateralAssetData.liquidationBonus)`. This means the 'bonus price' is actually LOWER than the market price. Contrast this with ERC20 liquidation in `_calculateAvailableERC20CollateralToLiquidate` where `PERCENTAGE_FACTOR + liquidationBonus` is used, correctly giving the liquidator MORE collateral than the debt value. For ERC721, the liquidation price selected is `max(collateralBonusPrice, collateralItemDebtToCover)` \u2014 when collateralBonusPrice is set below market, the liquidator pays more debt than the collateral is worth (no profit incentive), making ERC721 liquidations economically irrational. Alternatively, if collateralItemDebtToCover wins, the liquidator gets collateral at fair value but no bonus, again making liquidation unprofitable.",
+  "message": "ERC721 liquidations become unprofitable for liquidators, meaning undercollateralized ERC721-backed positions will never be liquidated. Bad debt accumulates in the protocol, eventually leading to insolvency and loss of funds for lenders/suppliers.",
+  "recommendation": "Change the bonus calculation to add instead of subtract: `vars.collateralBonusPrice = vars.collateralPrice.percentMul(PercentageMath.PERCENTAGE_FACTOR + collateralAssetData.liquidationBonus)`. Then use the MINIMUM of collateralBonusPrice and collateralItemDebtToCover as liquidation price (liquidator gets collateral at bonus price OR covers proportional debt, whichever benefits them). This mirrors the ERC20 logic where the liquidator receives extra collateral as incentive.",
+  "exploit_scenario": "1. User borrows against ERC721 NFT worth 100 ETH with 10% liquidation bonus. 2. Health factor drops below 1. 3. `collateralBonusPrice = 100 ETH * (10000 - 1000) / 10000 = 90 ETH`. 4. Liquidator would need to pay 90+ ETH equivalent in debt tokens to receive NFT worth 100 ETH \u2014 wait, this looks profitable. BUT: the debt covered is `collateralTotalDebtToCover` which represents the actual proportional debt. If `collateralItemDebtToCover > collateralBonusPrice`, `collateralLiquidatePrice = collateralItemDebtToCover` meaning the liquidator pays full proportional debt with NO bonus. 5. In the typical scenario where a position is only slightly undercollateralized, `collateralItemDebtToCover \u2248 collateralPrice * LTV` which is HIGHER than `collateralBonusPrice`, so liquidators get zero bonus incentive.",
+  "swc_id": "",
+  "file": "LiquidationLogic.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "ERC721 Liquidation: remainDebtToLiquidate Added as Supply Without Validating Debt Asset is Allowed as Collateral",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-07-benddao_52fqizd4/repo/src/libraries/logic/LiquidationLogic.sol",
+   "line": 0,
+   "function": "executeCrossLiquidateERC721"
+  },
+  "description": "When `_repayUserERC20Debt` cannot fully repay the borrower's debt (remainDebtToLiquidate > 0), the excess debt amount is credited to the borrower as a cross-supply position in the debt asset: `VaultLogic.erc20IncreaseCrossSupply(debtAssetData, params.borrower, vars.remainDebtToLiquidate)`. This happens without checking: (1) whether the debt asset is configured as a valid collateral asset, (2) whether the debt asset's supply is enabled/paused, (3) whether adding this supply would exceed any supply caps for that asset. The liquidator sends `actualDebtToLiquidate` tokens to the vault, and the borrower gets credited `remainDebtToLiquidate` as supply. However, if the debt asset cannot be used as collateral, this credited supply does not improve the borrower's health factor, yet the borrower's debt (minus `remainDebtToLiquidate`) is cleared. This could leave the protocol with inconsistent state.",
+  "message": "If the debt asset cannot serve as collateral, crediting remainDebtToLiquidate as borrower's supply is economically meaningless but still consumes vault liquidity. The borrower gets an asset credited that provides no collateral benefit while their actual collateral (NFT) is taken. This could bypass supply caps or deposit the wrong asset type.",
+  "recommendation": "Before crediting remainDebtToLiquidate as supply, validate that: (1) the debt asset is enabled as a collateral/supply asset, (2) supply caps are not exceeded. Alternatively, transfer the remainDebtToLiquidate amount back to the liquidator as a refund rather than crediting the borrower. Also ensure that after this operation, the borrower's remaining debt (if any) is still properly collateralized.",
+  "exploit_scenario": "1. Borrower has 10 ETH of ERC721 collateral and 8 ETH of USDC debt. 2. Liquidator liquidates all NFT tokens, but `_repayUserERC20Debt` can only repay 7 ETH worth. 3. `remainDebtToLiquidate = 1 ETH worth of USDC`. 4. Protocol credits 1 ETH worth of USDC to borrower as cross supply. 5. If USDC is not configured as collateral asset in this pool, borrower has USDC supply but zero collateral, but the debt was already decreased. 6. The borrower may still have outstanding debt from other groups not covered by the NFT liquidation proceeds.",
+  "swc_id": "",
+  "file": "LiquidationLogic.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "oracle_manipulation",
+  "title": "Oracle Spot Price Manipulation in ERC20 Liquidation Collateral Calculation",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-07-benddao_52fqizd4/repo/src/libraries/logic/LiquidationLogic.sol",
+   "line": 0,
+   "function": "_calculateAvailableERC20CollateralToLiquidate"
+  },
+  "description": "The function `_calculateAvailableERC20CollateralToLiquidate` uses `oracle.getAssetPrice()` to determine both collateral and debt prices in a single transaction. If the oracle returns a spot price that can be manipulated (e.g., Uniswap TWAP with short period, or any non-manipulation-resistant oracle), an attacker can use a flash loan to: (1) manipulate the price of the collateral asset downward OR the debt asset upward, (2) call the liquidation function, (3) receive MORE collateral than deserved for the amount of debt covered. The formula `baseCollateral = (debtToCover * debtAssetPrice * collateralAssetUnit) / (debtAssetUnit * collateralPrice)` means inflating `debtAssetPrice` or deflating `collateralPrice` directly inflates `baseCollateral`.",
+  "message": "An attacker can drain collateral from undercollateralized positions at below-market rates by manipulating oracle prices during liquidation, extracting more value than owed and potentially leaving the protocol with bad debt.",
+  "recommendation": "Use a TWAP oracle with minimum 30-minute window for liquidation price calculations. Add a maximum deviation check between the oracle price and an on-chain reference price. Consider implementing a price freshness check and circuit breaker for extreme price moves.",
+  "exploit_scenario": "1. Target borrower has 100 WETH collateral and 80 DAI debt (HF slightly below 1). 2. Attacker flash loans large amount of DAI, manipulates DAI/ETH price to make DAI appear 2x more expensive. 3. Now `baseCollateral` doubles \u2014 attacker can take 200 WETH equivalent but only covers 80 DAI of actual debt. 4. `maxCollateralToLiquidate` is capped by `userCollateralBalance` (100 WETH), so attacker covers only ~40 DAI to take all 100 WETH. 5. Repay flash loan, profit the difference.",
+  "swc_id": "",
+  "file": "LiquidationLogic.sol",
+  "backend": "claude"
+ }
+]

@@ -27,10 +27,7 @@ from miesc.core.tool_protocol import (
     ToolMetadata,
     ToolStatus,
 )
-from miesc.security.llm_output_validator import (
-    extract_json_from_text,
-    repair_common_json_errors,
-)
+from miesc.llm.json_extraction import extract_llm_object
 
 # Try to import EmbeddingRAG (optional dependency)
 try:
@@ -217,6 +214,7 @@ Respond ONLY with valid JSON. Report ONLY vulnerabilities you are CONFIDENT abou
             ],
             cost=0.0,  # Free - local execution
             requires_api_key=False,
+            requires_llm=True,
             is_optional=True,
         )
 
@@ -485,20 +483,30 @@ Respond ONLY with valid JSON. Report ONLY vulnerabilities you are CONFIDENT abou
             # Robust JSON extraction (balanced braces + repair) before falling
             # back to weaker text parsing — recoverable malformed JSON (trailing
             # commas, code fences) must not silently degrade to text.
-            json_str = extract_json_from_text(output)
+            parsed = extract_llm_object(
+                output, required_keys=("vulnerabilities", "findings"), log_prefix="GPTScan"
+            )
 
-            if json_str:
-                parsed = json.loads(repair_common_json_errors(json_str))
-
-                # Extract findings from parsed JSON
-                vulnerabilities = parsed.get("vulnerabilities", [])
+            if parsed is not None:
+                # Extract findings from parsed JSON. Guard against hostile/atypical
+                # LLM output where ``parsed`` is not a dict or ``vulnerabilities`` is
+                # not a list of dicts — otherwise iteration / .get() / .upper() would
+                # crash into the broad except below and mask the parse failure as a
+                # clean (zero-finding) scan.
+                vulnerabilities = (
+                    parsed.get("vulnerabilities", []) if isinstance(parsed, dict) else []
+                )
+                if not isinstance(vulnerabilities, list):
+                    vulnerabilities = []
 
                 for idx, vuln in enumerate(vulnerabilities):
+                    if not isinstance(vuln, dict):
+                        continue
                     finding = {
                         "id": f"gptscan-{idx+1}",
                         "title": vuln.get("title", "AI-detected vulnerability"),
                         "description": vuln.get("description", ""),
-                        "severity": vuln.get("severity", "MEDIUM").upper(),
+                        "severity": str(vuln.get("severity", "MEDIUM")).upper(),
                         "confidence": vuln.get("confidence", 0.75),
                         "category": vuln.get("type", "ai_detected_pattern"),
                         "location": {

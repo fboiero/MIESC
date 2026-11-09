@@ -105,7 +105,7 @@ OK gptscan: 4 findings in 49.7s
 | TOTAL    |    22 |
 +----------+-------+
 
-Tools executed: 12/29
+Tools executed: 12/50
 Report saved to results.json
 ```
 
@@ -185,7 +185,7 @@ Capa 9  Consenso y Reportes      Consenso Bayesiano, Enriquecimiento RAG, Report
 | **Herramientas de seguridad externas** | 13 | Slither, Mythril, Echidna, Foundry, Halmos, Aderyn, Semgrep |
 | **Módulos de análisis LLM** | 6 | SmartLLM, GPTScan, PropertyGPT (vía Ollama local) |
 | **Analizadores internos** | 16 | MEV detector, gas analyzer, threat model, clone detector |
-| **Total de módulos de análisis** | **35** | A través de 9 técnicas complementarias |
+| **Total de módulos de análisis** | **35** | 13 + 6 + 16, a través de 9 técnicas. El titular de "50 herramientas" cuenta el stack completo de adapters/capas en `miesc/cli/constants.py`; `miesc doctor` muestra cuántas están disponibles en tu máquina. |
 
 ### vs. SmartBugs 2.0 (competidor más cercano)
 
@@ -220,7 +220,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: fboiero/MIESC@v5
+      - uses: fboiero/MIESC@v6.0.0
         with:
           path: contracts/
           mode: scan
@@ -343,7 +343,7 @@ Las capas LLM de MIESC (Capa 5) usan Ollama para el análisis local con IA. La c
 # 1. Instalar e iniciar Ollama en tu HOST (no dentro de Docker)
 # Descargá desde https://ollama.com
 ollama serve &
-ollama pull qwen2.5-coder:14b   # Mejor modelo para análisis de código
+ollama pull qwen2.5-coder:14b   # Recomendado: rápido, ~9 GB (usá :32b para mayor calidad de auditoría)
 ollama pull deepseek-coder:6.7b  # Alternativa más liviana
 
 # 2. Escanear con Ollama del host (macOS)
@@ -532,7 +532,7 @@ Agregalo a tu `config.json` de Claude Desktop:
 }
 ```
 
-**Herramientas MCP disponibles:** `miesc_quick_scan`, `miesc_deep_scan`, `miesc_deep_audit`, `miesc_run_tool`, `miesc_run_layer`, `miesc_analyze_defi`, `miesc_apply_fix`, `miesc_validate_remediation`, `miesc_remediation_evidence_bundle`, `miesc_list_tools`, `miesc_doctor`
+**Herramientas MCP disponibles (22):** `miesc_quick_scan`, `miesc_deep_scan`, `miesc_deep_audit`, `miesc_profile_scan`, `miesc_run_tool`, `miesc_run_layer`, `miesc_analyze_defi`, `miesc_correlate`, `miesc_filter_fp`, `miesc_detect_exploit_chains`, `miesc_verify_finding`, `miesc_generate_report`, `miesc_map_compliance`, `miesc_remediate`, `miesc_apply_fix`, `miesc_validate_remediation`, `miesc_remediation_evidence_bundle`, `miesc_get_metrics`, `miesc_get_status`, `miesc_list_tools`, `miesc_get_tool_info`, `miesc_read_contract`
 
 ### Remediación vía API REST
 
@@ -559,7 +559,7 @@ report = run_full_audit("contract.sol")
 ```bash
 pip install "miesc[django]"
 python -m miesc.api.rest --host 127.0.0.1 --port 8000
-python -m src.utils.web_dashboard --results analysis/results --output analysis/dashboard
+python -m miesc.utils.web_dashboard --results ./results --output ./dashboard
 ```
 
 El core abierto expone automatización local REST/MCP y generación de reportes
@@ -613,9 +613,9 @@ Contract.sol
  Generador de Reportes --> JSON / SARIF / PDF / HTML / Markdown
 ```
 
-MIESC utiliza una arquitectura de doble paquete:
-- `miesc/` - API Pública (estable, instalable vía pip)
-- `src/` - Implementación interna (35 módulos de análisis, pipeline ML, RAG, generación de reportes)
+Todo el código vive en el único paquete `miesc/` (instalable vía pip): CLI, adaptadores
+para las 50 herramientas, pipeline ML, RAG, remediación y generación de reportes. Corré
+`miesc doctor` para ver qué herramientas están disponibles en tu máquina.
 
 Consultá [ARCHITECTURE.md](./docs/ARCHITECTURE.md) para el diseño técnico completo con diagramas Mermaid.
 
@@ -734,7 +734,7 @@ sudo apt install libpango-1.0-0 libpangoft2-1.0-0  # Linux
 ```
 
 **`miesc audit full` corre lento (>10 min por contrato)**
-Modelos LLM pesados (32B) en contratos pequeños. Usá `qwen2.5-coder:14b` en `~/.miesc/config.yaml` o ejecutá un escaneo rápido: `miesc audit quick`.
+Las capas Ollama auto-seleccionan el modelo más capaz instalado (prefieren `qwen2.5-coder:32b` por calidad de auditoría), así que un modelo 32B en un contrato chico es lento. Forzá el modelo liviano con `--model qwen2.5-coder:14b`, configurá `qwen2.5-coder:14b` en `~/.miesc/config.yaml`, o ejecutá un escaneo rápido: `miesc audit quick`.
 
 </details>
 
@@ -746,7 +746,7 @@ Modelos LLM pesados (32B) en contratos pequeños. Usá `qwen2.5-coder:14b` en `~
 git clone https://github.com/fboiero/MIESC.git
 cd MIESC && pip install -e .[dev]
 pytest tests/ --no-cov              # Corrida local rápida
-pytest tests/ --cov=src --cov-report=term-missing  # Corrida con cobertura
+pytest tests/ --cov=miesc --cov-report=term-missing  # Corrida con cobertura
 ```
 
 Consultá [CONTRIBUTING.md](./.github/CONTRIBUTING.md) para las guías. [CONTRIBUTING_ES.md](./.github/CONTRIBUTING_ES.md) disponible en español.

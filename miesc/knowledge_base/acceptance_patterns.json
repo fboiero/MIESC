@@ -1,0 +1,97 @@
+{
+  "_meta": {
+    "schema_version": "1.0.0",
+    "name": "MIESC acceptance-pattern intelligence (local default)",
+    "description": "Approximate acceptance probabilities per vulnerability CLASS: how often a submitted finding of this class is historically ACCEPTED as valid by human judges in competitive audits (Sherlock, Code4rena, and similar).",
+    "provenance": "Curated by hand from PUBLIC competitive-audit outcome reports and post-mortems. These are small, honest, illustrative class-level rates chosen by the MIESC maintainers to seed the local provider. They are NOT a reproduction of any vendor's proprietary dataset and do NOT claim any specific corpus size. Any commercial 'bug bounty intelligence' service with a larger proprietary corpus is a separate opt-in adapter (see miesc.core.acceptance_providers.BugBountyIntelligenceProvider).",
+    "usage": "REORDER-ONLY signal. acceptance_prob annotates finding['acceptance_prob'] and influences ranking/priority only. It is NEVER blended into confidence and NEVER feeds a drop/filter path. A low-acceptance finding ranks lower but stays fully visible (recall stays 1.0).",
+    "keying": "Keys are MIESC canonical categories (miesc.core.finding_taxonomy.CanonicalCategory). Findings are mapped to a key via normalize_finding_type().",
+    "fields": {
+      "acceptance_prob": "float in [0,1] — approximate share of submitted findings in this class accepted as valid",
+      "swc_id": "representative SWC registry id for the class (informational)",
+      "sample_note": "short human note on why this class tends to be accepted or contested"
+    }
+  },
+  "patterns": {
+    "reentrancy": {
+      "swc_id": "SWC-107",
+      "acceptance_prob": 0.72,
+      "sample_note": "High-signal, demonstrable with a PoC; frequently accepted when an external call precedes a state update."
+    },
+    "access_control": {
+      "swc_id": "SWC-105",
+      "acceptance_prob": 0.68,
+      "sample_note": "Missing/incorrect authorization on privileged functions is usually clear-cut and accepted."
+    },
+    "oracle_manipulation": {
+      "swc_id": "SWC-000",
+      "acceptance_prob": 0.63,
+      "sample_note": "Accepted when spot-price/reserve reliance is shown exploitable; contested when a TWAP or sanity bound already mitigates it."
+    },
+    "flash_loan": {
+      "swc_id": "SWC-000",
+      "acceptance_prob": 0.55,
+      "sample_note": "Often a vector rather than a root cause; accepted when it unlocks a concrete accounting or price break."
+    },
+    "arithmetic": {
+      "swc_id": "SWC-101",
+      "acceptance_prob": 0.45,
+      "sample_note": "Overflow/underflow acceptance dropped sharply after Solidity 0.8 checked math; precision/rounding drift still accepted."
+    },
+    "unchecked_call": {
+      "swc_id": "SWC-104",
+      "acceptance_prob": 0.42,
+      "sample_note": "Frequently contested as low severity unless a silent failure leads to a concrete loss."
+    },
+    "initialization": {
+      "swc_id": "SWC-118",
+      "acceptance_prob": 0.6,
+      "sample_note": "Uninitialized proxy / re-initializable state is high-impact and generally accepted."
+    },
+    "signature_verification": {
+      "swc_id": "SWC-117",
+      "acceptance_prob": 0.61,
+      "sample_note": "Replay / missing-domain / malleability issues are accepted when a concrete replay path is shown."
+    },
+    "bad_randomness": {
+      "swc_id": "SWC-120",
+      "acceptance_prob": 0.5,
+      "sample_note": "Accepted when on-chain randomness gates value; contested for cosmetic or off-chain-mitigated uses."
+    },
+    "time_manipulation": {
+      "swc_id": "SWC-116",
+      "acceptance_prob": 0.38,
+      "sample_note": "block.timestamp reliance is often judged low severity given miner drift is bounded."
+    },
+    "denial_of_service": {
+      "swc_id": "SWC-113",
+      "acceptance_prob": 0.47,
+      "sample_note": "Accepted for unbounded loops / griefing that lock funds; contested when only gas-costly, not fund-locking."
+    },
+    "front_running": {
+      "swc_id": "SWC-114",
+      "acceptance_prob": 0.4,
+      "sample_note": "MEV/ordering findings are frequently contested unless a concrete, unmitigated value extraction is demonstrated."
+    },
+    "proxy_upgrade": {
+      "swc_id": "SWC-112",
+      "acceptance_prob": 0.58,
+      "sample_note": "Storage-collision / unauthorized-upgrade paths are high-impact and generally accepted when demonstrable."
+    },
+    "centralization": {
+      "swc_id": "SWC-000",
+      "acceptance_prob": 0.35,
+      "sample_note": "Privileged-role/admin-power findings are often downgraded to informational unless an unexpected trust break is shown."
+    },
+    "input_validation": {
+      "swc_id": "SWC-123",
+      "acceptance_prob": 0.44,
+      "sample_note": "Accepted when missing validation enables a concrete exploit; otherwise commonly triaged as low/QA."
+    },
+    "other": {
+      "swc_id": "SWC-000",
+      "acceptance_prob": 0.3,
+      "sample_note": "Unclassified findings default low; judges require a clear impact statement before acceptance."
+    }
+  }
+}

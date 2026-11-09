@@ -2,7 +2,7 @@
 <div class="cover-page">
 
 <div style="margin-bottom: 40px;">
-<h1 style="font-size: 38pt; margin-bottom: 10px; color: white; border: none;">MIESC</h1>
+<h1 style="font-size: 38pt; margin-bottom: 10px; color: white; border: none;"><svg width="42" height="42" viewBox="0 0 24 24" style="vertical-align: -6px; margin-right: 12px;" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L4 5v6c0 5 3.4 8.9 8 11 4.6-2.1 8-6 8-11V5l-8-3z" fill="#ffffff"/><path d="M9.1 11.9l2 2 3.7-4" fill="none" stroke="#1e293b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>MIESC</h1>
 <p style="font-size: 13pt; color: #cbd5e1;">Multi-layer Intelligent Evaluation for Smart Contracts</p>
 </div>
 
@@ -28,7 +28,7 @@
 </div>
 
 <p style="color: #94a3b8; font-size: 8pt; margin-top: 40px; max-width: 400px;">
-This document contains confidential security findings and is intended solely for the addressee. Unauthorized distribution is prohibited.
+This document contains confidential security findings and is intended solely for the named addressee. Unauthorized distribution, reproduction, or disclosure is prohibited.
 </p>
 
 </div>
@@ -82,6 +82,37 @@ This document contains confidential security findings and is intended solely for
 | **Informational** | {{ info_count | default(0) }} | {{ info_percent | default(0) }}% |
 | **Total** | **{{ total_findings | default(0) }}** | 100% |
 
+<div class="chart chart-severity">
+{%- if total_findings and (total_findings | int) > 0 %}
+{%- set s = 380 / (total_findings | int) %}
+<svg viewBox="0 0 520 172" width="520" height="172" role="img" aria-label="Findings by severity" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+<text x="88" y="28" text-anchor="end" font-size="10" font-weight="600" fill="#1e293b">Critical</text>
+<rect x="96" y="16" width="380" height="16" rx="3" fill="#eef2f7"/>
+<rect x="96" y="16" width="{{ (critical_count * s) | round(2) }}" height="16" rx="3" fill="#dc2626"/>
+<text x="{{ (102 + critical_count * s) | round(2) }}" y="28" font-size="10" font-weight="700" fill="#334155">{{ critical_count }}</text>
+<text x="88" y="59" text-anchor="end" font-size="10" font-weight="600" fill="#1e293b">High</text>
+<rect x="96" y="47" width="380" height="16" rx="3" fill="#eef2f7"/>
+<rect x="96" y="47" width="{{ (high_count * s) | round(2) }}" height="16" rx="3" fill="#f97316"/>
+<text x="{{ (102 + high_count * s) | round(2) }}" y="59" font-size="10" font-weight="700" fill="#334155">{{ high_count }}</text>
+<text x="88" y="90" text-anchor="end" font-size="10" font-weight="600" fill="#1e293b">Medium</text>
+<rect x="96" y="78" width="380" height="16" rx="3" fill="#eef2f7"/>
+<rect x="96" y="78" width="{{ (medium_count * s) | round(2) }}" height="16" rx="3" fill="#eab308"/>
+<text x="{{ (102 + medium_count * s) | round(2) }}" y="90" font-size="10" font-weight="700" fill="#334155">{{ medium_count }}</text>
+<text x="88" y="121" text-anchor="end" font-size="10" font-weight="600" fill="#1e293b">Low</text>
+<rect x="96" y="109" width="380" height="16" rx="3" fill="#eef2f7"/>
+<rect x="96" y="109" width="{{ (low_count * s) | round(2) }}" height="16" rx="3" fill="#3b82f6"/>
+<text x="{{ (102 + low_count * s) | round(2) }}" y="121" font-size="10" font-weight="700" fill="#334155">{{ low_count }}</text>
+<text x="88" y="152" text-anchor="end" font-size="10" font-weight="600" fill="#1e293b">Info</text>
+<rect x="96" y="140" width="380" height="16" rx="3" fill="#eef2f7"/>
+<rect x="96" y="140" width="{{ (info_count * s) | round(2) }}" height="16" rx="3" fill="#64748b"/>
+<text x="{{ (102 + info_count * s) | round(2) }}" y="152" font-size="10" font-weight="700" fill="#334155">{{ info_count }}</text>
+</svg>
+<span class="chart-caption">Figure 1 — Findings by severity ({{ total_findings | int }} total). Bar length is proportional to each severity's share of all findings.</span>
+{%- else %}
+<p style="text-align:center;color:#64748b;font-style:italic;">No findings to chart.</p>
+{%- endif %}
+</div>
+
 ## 1.4 Impact Assessment
 
 {%- if value_at_risk %}
@@ -97,7 +128,7 @@ Based on the identified vulnerabilities:
 |----------------|------------|
 | **Confidentiality** | {{ 'High' if critical_count > 0 else ('Medium' if high_count > 0 else 'Low') }} - {% if critical_count > 0 or high_count > 0 %}Sensitive data or state could be exposed{% else %}No significant confidentiality risks identified{% endif %} |
 | **Integrity** | {{ 'High' if critical_count > 0 else ('Medium' if high_count > 0 else 'Low') }} - {% if critical_count > 0 or high_count > 0 %}Contract state could be manipulated{% else %}Contract logic appears sound{% endif %} |
-| **Availability** | {{ 'Medium' if critical_count > 0 or high_count > 0 else 'Low' }} - {% if critical_count > 0 %}Denial of service possible{% else %}No significant availability risks{% endif %} |
+| **Availability** | {{ availability_rating | default('Low') }} - {{ availability_note | default('No significant availability risks identified') }} |
 {%- endif %}
 
 <!-- section-break -->
@@ -125,18 +156,22 @@ Based on the identified vulnerabilities:
 {%- endfor %}
 
 **Total:** {{ files_count }} files, {{ lines_of_code }} lines of code
+{%- if scope_source_unavailable %}
+
+> Line counts shown as `—` could not be measured: source not available at report time for one or more in-scope files.
+{%- endif %}
 
 ### Out of Scope
 
 {%- if out_of_scope %}
+
+The following were not exercised in this run and are therefore outside the analysed scope:
 {%- for item in out_of_scope %}
 - {{ item }}
 {%- endfor %}
 {%- else %}
-- External dependencies and imported libraries
-- Off-chain components
-- Economic/tokenomics analysis
-- Frontend/backend applications
+
+Out-of-scope boundaries were not explicitly assessed in this engagement.
 {%- endif %}
 
 ## 2.3 Methodology
@@ -165,11 +200,11 @@ Layer 9: Advanced Detection     [{{ layer9_coverage | default('--') }}]
 
 ### Audit Process
 
-1. **Initial Assessment** - Review documentation, understand architecture
-2. **Automated Analysis** - Execute multi-layer tool suite
-3. **Manual Review** - Deep dive into flagged code sections
+1. **Initial Assessment** - Parse the target sources and build the analysis scope
+2. **Automated Analysis** - Execute the multi-layer tool suite
+3. **Multi-Tool Analysis** - Automated static, dynamic, and symbolic analysis across the defense-in-depth layers
 4. **AI Correlation** - Cross-reference findings, reduce false positives
-5. **Verification** - Reproduce and validate vulnerabilities
+5. **Corroboration & Filtering** - Cross-tool corroboration, false-positive filtering, and execution-based confirmation where enabled
 6. **Report Generation** - Document findings with remediation guidance
 
 ## 2.4 Limitations
@@ -187,40 +222,46 @@ Layer 9: Advanced Detection     [{{ layer9_coverage | default('--') }}]
 
 The following matrix maps findings by **Impact** (vertical) and **Likelihood** (horizontal):
 
-<table style="width: 100%; max-width: 500px; margin: 20px auto; border-collapse: collapse; text-align: center;">
-<tr>
-<td style="border: none; width: 80px;"></td>
-<td style="border: none;" colspan="3"><strong>LIKELIHOOD</strong></td>
-</tr>
-<tr>
-<td style="border: none;"></td>
-<td style="border: none; color: #6b7280; padding: 8px;">Low</td>
-<td style="border: none; color: #6b7280; padding: 8px;">Medium</td>
-<td style="border: none; color: #6b7280; padding: 8px;">High</td>
-</tr>
-<tr>
-<td style="border: none; color: #6b7280; vertical-align: middle;"><strong>High</strong></td>
-<td style="background: #fbbf24; color: white; padding: 15px; border-radius: 4px;"><small>Medium</small><br><strong style="font-size: 18pt;">{{ risk_matrix.high_low | default(0) }}</strong></td>
-<td style="background: #f97316; color: white; padding: 15px; border-radius: 4px;"><small>High</small><br><strong style="font-size: 18pt;">{{ risk_matrix.high_med | default(0) }}</strong></td>
-<td style="background: #dc2626; color: white; padding: 15px; border-radius: 4px;"><small>Critical</small><br><strong style="font-size: 18pt;">{{ risk_matrix.high_high | default(0) }}</strong></td>
-</tr>
-<tr>
-<td style="border: none; color: #6b7280; vertical-align: middle;"><strong>Med</strong></td>
-<td style="background: #22c55e; color: white; padding: 15px; border-radius: 4px;"><small>Low</small><br><strong style="font-size: 18pt;">{{ risk_matrix.med_low | default(0) }}</strong></td>
-<td style="background: #fbbf24; color: white; padding: 15px; border-radius: 4px;"><small>Medium</small><br><strong style="font-size: 18pt;">{{ risk_matrix.med_med | default(0) }}</strong></td>
-<td style="background: #f97316; color: white; padding: 15px; border-radius: 4px;"><small>High</small><br><strong style="font-size: 18pt;">{{ risk_matrix.med_high | default(0) }}</strong></td>
-</tr>
-<tr>
-<td style="border: none; color: #6b7280; vertical-align: middle;"><strong>Low</strong></td>
-<td style="background: #94a3b8; color: white; padding: 15px; border-radius: 4px;"><small>Info</small><br><strong style="font-size: 18pt;">{{ risk_matrix.low_low | default(0) }}</strong></td>
-<td style="background: #22c55e; color: white; padding: 15px; border-radius: 4px;"><small>Low</small><br><strong style="font-size: 18pt;">{{ risk_matrix.low_med | default(0) }}</strong></td>
-<td style="background: #fbbf24; color: white; padding: 15px; border-radius: 4px;"><small>Medium</small><br><strong style="font-size: 18pt;">{{ risk_matrix.low_high | default(0) }}</strong></td>
-</tr>
-<tr>
-<td style="border: none;"></td>
-<td style="border: none;" colspan="3"><em style="color: #6b7280; font-size: 9pt;">IMPACT →</em></td>
-</tr>
-</table>
+<div class="chart chart-matrix">
+<svg viewBox="0 0 470 268" width="470" height="268" role="img" aria-label="Risk matrix by impact and likelihood" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+<text x="274" y="18" text-anchor="middle" font-size="10" font-weight="700" letter-spacing="1" fill="#475569">LIKELIHOOD</text>
+<text x="170" y="38" text-anchor="middle" font-size="9" fill="#6b7280">Low</text>
+<text x="274" y="38" text-anchor="middle" font-size="9" fill="#6b7280">Medium</text>
+<text x="378" y="38" text-anchor="middle" font-size="9" fill="#6b7280">High</text>
+<text x="22" y="144" text-anchor="middle" font-size="10" font-weight="700" letter-spacing="1" fill="#475569" transform="rotate(-90 22 144)">IMPACT</text>
+<text x="112" y="80" text-anchor="end" font-size="9" font-weight="600" fill="#475569">High</text>
+<text x="112" y="148" text-anchor="end" font-size="9" font-weight="600" fill="#475569">Med</text>
+<text x="112" y="216" text-anchor="end" font-size="9" font-weight="600" fill="#475569">Low</text>
+<rect x="120" y="44" width="100" height="64" rx="4" fill="#fbbf24"/>
+<text x="170" y="66" text-anchor="middle" font-size="8" fill="#ffffff">Medium</text>
+<text x="170" y="92" text-anchor="middle" font-size="19" font-weight="700" fill="#ffffff">{{ risk_matrix.high_low | default(0) }}</text>
+<rect x="224" y="44" width="100" height="64" rx="4" fill="#f97316"/>
+<text x="274" y="66" text-anchor="middle" font-size="8" fill="#ffffff">High</text>
+<text x="274" y="92" text-anchor="middle" font-size="19" font-weight="700" fill="#ffffff">{{ risk_matrix.high_med | default(0) }}</text>
+<rect x="328" y="44" width="100" height="64" rx="4" fill="#dc2626"/>
+<text x="378" y="66" text-anchor="middle" font-size="8" fill="#ffffff">Critical</text>
+<text x="378" y="92" text-anchor="middle" font-size="19" font-weight="700" fill="#ffffff">{{ risk_matrix.high_high | default(0) }}</text>
+<rect x="120" y="112" width="100" height="64" rx="4" fill="#22c55e"/>
+<text x="170" y="134" text-anchor="middle" font-size="8" fill="#ffffff">Low</text>
+<text x="170" y="160" text-anchor="middle" font-size="19" font-weight="700" fill="#ffffff">{{ risk_matrix.med_low | default(0) }}</text>
+<rect x="224" y="112" width="100" height="64" rx="4" fill="#fbbf24"/>
+<text x="274" y="134" text-anchor="middle" font-size="8" fill="#ffffff">Medium</text>
+<text x="274" y="160" text-anchor="middle" font-size="19" font-weight="700" fill="#ffffff">{{ risk_matrix.med_med | default(0) }}</text>
+<rect x="328" y="112" width="100" height="64" rx="4" fill="#f97316"/>
+<text x="378" y="134" text-anchor="middle" font-size="8" fill="#ffffff">High</text>
+<text x="378" y="160" text-anchor="middle" font-size="19" font-weight="700" fill="#ffffff">{{ risk_matrix.med_high | default(0) }}</text>
+<rect x="120" y="180" width="100" height="64" rx="4" fill="#94a3b8"/>
+<text x="170" y="202" text-anchor="middle" font-size="8" fill="#ffffff">Info</text>
+<text x="170" y="228" text-anchor="middle" font-size="19" font-weight="700" fill="#ffffff">{{ risk_matrix.low_low | default(0) }}</text>
+<rect x="224" y="180" width="100" height="64" rx="4" fill="#22c55e"/>
+<text x="274" y="202" text-anchor="middle" font-size="8" fill="#ffffff">Low</text>
+<text x="274" y="228" text-anchor="middle" font-size="19" font-weight="700" fill="#ffffff">{{ risk_matrix.low_med | default(0) }}</text>
+<rect x="328" y="180" width="100" height="64" rx="4" fill="#fbbf24"/>
+<text x="378" y="202" text-anchor="middle" font-size="8" fill="#ffffff">Medium</text>
+<text x="378" y="228" text-anchor="middle" font-size="19" font-weight="700" fill="#ffffff">{{ risk_matrix.low_high | default(0) }}</text>
+</svg>
+<span class="chart-caption">Figure 2 — Risk matrix. Each cell counts findings at that impact / likelihood pairing; colour encodes the resulting risk band.</span>
+</div>
 
 ## 3.2 CVSS-like Scoring
 
@@ -242,7 +283,7 @@ The following matrix maps findings by **Impact** (vertical) and **Likelihood** (
 {%- if llm_risk_narrative %}
 {{ llm_risk_narrative }}
 {%- else %}
-The analyzed contract presents security concerns that should be addressed before production deployment. The combination of findings indicates potential for exploitation if left unmitigated.
+The analysed contract presents security concerns that should be resolved before production deployment. Taken together, the findings indicate a credible potential for exploitation if left unmitigated.
 {%- endif %}
 
 <!-- section-break -->
@@ -250,10 +291,10 @@ The analyzed contract presents security concerns that should be addressed before
 # 4. Findings Overview
 ## 4.1 Summary Table
 
-| ID | Title | Severity | Confidence | Tools | Status | CVSS |
-|----|-------|----------|:----------:|------:|--------|-----:|
+| ID | Title | Severity | Confidence | Tools | Verification | Status | CVSS |
+|----|-------|----------|:----------:|------:|--------------|--------|-----:|
 {%- for finding in findings %}
-| {{ finding.id }} | {{ finding.title }} | {{ finding.severity_badge }} | {{ finding.confidence_pct | default('') }} | {{ finding.tool_count | default(1) }} | {{ finding.status }} | {{ finding.cvss_score | default('--') }} |
+| {{ finding.id }} | {{ finding.title }} | {{ finding.severity_badge }} | {{ finding.confidence_pct | default('') }} | {{ finding.tool_count | default(1) }} | {{ finding.verification }} | {{ finding.status }} | {{ finding.cvss_score | default('--') }} |
 {%- endfor %}
 
 ## 4.2 Category Distribution
@@ -272,6 +313,179 @@ The analyzed contract presents security concerns that should be addressed before
 | {{ layer.name }} | {{ layer.tools }} | {{ layer.success_count }} | {{ layer.failed_count }} | {{ layer.findings_count }} | {{ layer.coverage_bar }} |
 {%- endfor %}
 
+## 4.4 Property & Invariant Analysis
+
+This section reports the formal and invariant evidence layer separately from the
+static findings above. An execution-verified finding is a counterexample that was
+reproduced by running the call under Foundry: a dynamic counterexample, not a
+formal proof. No invariant is asserted as mathematically established here.
+
+{%- if not formal_verification_tools and not execution_verified_findings %}
+
+**Not performed in this engagement.** Neither formal verification (Layer 4) nor
+execution-based invariant checking produced evidence for this contract. To enable
+the execution-verified invariant layer, run the deep-audit agent with
+`enable_gap_execution` (access-control gaps) and/or `enable_gap_reasoning`
+(pause and freshness gaps).
+{%- else %}
+
+### 4.4.1 Formal Verification (Layer 4)
+
+{%- if formal_verification_tools %}
+
+Tool execution status and finding counts only — no invariant is reported as
+established by these tools.
+
+| Tool | Status | Findings |
+|------|--------|---------:|
+{%- for tool in formal_verification_tools %}
+| {{ tool.name }} | {{ tool.status_icon }} {{ tool.status }} | {{ tool.findings_count | default(0) }} |
+{%- endfor %}
+{%- else %}
+
+No formal-verification tool (certora, smtchecker, scribble, pyrometer,
+propertygpt) ran in this engagement.
+{%- endif %}
+
+### 4.4.2 Execution-Verified Findings
+
+{%- if execution_verified_findings %}
+
+The following findings were reproduced by execution under Foundry — a dynamic
+counterexample, not a formal proof.
+
+{%- for finding in execution_verified_findings %}
+
+**{{ finding.id }}. {{ finding.title }}** &nbsp; {{ finding.severity_badge }} &nbsp; `{{ finding.location }}`
+
+- **Verification:** {{ finding.verification }}
+{%- for line in finding.evidence %}
+- Evidence: {{ line }}
+{%- endfor %}
+{%- endfor %}
+{%- else %}
+
+No execution-verified counterexamples were produced in this engagement.
+{%- endif %}
+{%- endif %}
+
+## 4.5 Trust Model & Privileged Roles
+{%- if not governance_plans and not trust_inventory_ran and not trust_findings %}
+
+**Trust model not assessed in this engagement.** No privileged-role inventory was
+extracted and no trust-relevant findings (access control, centralization, or
+proxy/upgrade) were reported.
+{%- else %}
+
+This section inventories the privileged actors and roles the contract source declares
+and cross-references the trust-relevant findings above. It is an **advisory static
+model of authority**, not a governance audit: a role is a trust assumption, not a
+vulnerability, and nothing here changes any finding count or the risk score.
+
+> **Custody.** This audit did not verify key custody or off-chain governance; roles are
+> as declared in source. An account named `owner` is not assumed to be a multisig or a
+> timelock.
+>
+> **Completeness.** The role inventory is identified by static extraction; it may miss
+> inherited, proxied, or assembly-level authority and may be incomplete. The extracted
+> role graph is produced for single-file agentic audits only — directory audits carry
+> the findings-based cross-reference in §4.5.2 but no extracted role graph.
+
+### 4.5.1 Privileged roles identified
+{%- if governance_plans %}
+
+Identified by static extraction (advisory). Each actor and role is anchored to the
+source lines where it was observed.
+{%- for plan in governance_plans %}
+
+{{ plan.objective }}
+{%- if plan.actors %}
+
+**Actors**
+
+| Actor | Declared kind | Source | Guards functions | Source anchors |
+|-------|---------------|--------|------------------|----------------|
+{%- for actor in plan.actors %}
+| `{{ actor.id }}` | {{ actor.kind }} | {{ actor.source }} | {{ actor.guards | default('—', true) }} | {{ actor.anchors | default('—', true) }} |
+{%- endfor %}
+{%- endif %}
+{%- if plan.roles %}
+
+**Roles**
+
+| Role | Admin role | Guards functions | Grant functions | Revoke functions |
+|------|------------|------------------|-----------------|------------------|
+{%- for role in plan.roles %}
+| `{{ role.name }}` | {{ role.admin_role | default('—', true) }} | {{ role.guards | default('—', true) }} | {{ role.grant_functions | default('—', true) }} | {{ role.revoke_functions | default('—', true) }} |
+{%- endfor %}
+{%- endif %}
+{%- if plan.truncated %}
+
+_Note: this inventory reached the per-list extraction cap and may be truncated._
+{%- endif %}
+{%- endfor %}
+{%- elif trust_inventory_ran %}
+
+Static extraction ran; no privileged actors or roles were identified in the analyzed
+source. This does not establish that none exist (see the completeness note above).
+{%- else %}
+
+Role inventory not extracted in this engagement. Enable it with `enable_advisory_plans`
+(single-file agentic audits).
+{%- endif %}
+
+### 4.5.2 Trust-relevant findings
+{%- if trust_findings %}
+
+Findings above whose canonical category concerns privileged authority (access control,
+centralization, or proxy/upgrade), cross-referenced by id and severity. The detail and
+scoring stay in §5; this is a cross-reference, not a new finding.
+
+| Finding | Title | Category | Severity |
+|---------|-------|----------|----------|
+{%- for f in trust_findings %}
+| {{ f.id }} | {{ f.title }} | {{ f.category }} | {{ f.severity_badge }} |
+{%- endfor %}
+{%- else %}
+
+No trust-relevant findings (access control, centralization, or proxy/upgrade) were
+reported in this engagement.
+{%- endif %}
+{%- endif %}
+
+## 4.6 Dynamic Testing & Fuzzing
+{%- if fuzzing_tools %}
+
+Fuzzing campaigns ran in this engagement. The metrics below describe each campaign's
+scope and outcome and correspond to **Layer 2 (Dynamic Testing)** of the methodology
+(§2.3). A campaign statistic is not a finding: any issue a fuzzer produced is already
+counted in §1 and detailed in §5, and is cross-referenced here by id, never re-counted.
+{%- for ft in fuzzing_tools %}
+{%- if ft.is_foundry %}
+{%- if ft.stats_unparsed %}
+
+- **{{ ft.display }} test suite:** ran with a configured {{ ft.fuzz_runs | default('--', true) }} fuzz runs per test; campaign statistics could not be parsed from the tool output.{% if ft.finding_ids %} Findings reproduced by execution: {{ ft.finding_ids }}.{% endif %}
+{%- else %}
+
+- **{{ ft.display }} test suite:** {{ ft.tests_run }} tests ({{ ft.tests_passed | default(0, true) }} passed / {{ ft.tests_failed | default(0, true) }} failed), configured {{ ft.fuzz_runs | default('--', true) }} fuzz runs per test.{% if ft.finding_ids %} Findings reproduced by execution: {{ ft.finding_ids }}.{% endif %}
+{%- endif %}
+{%- else %}
+
+- **{{ ft.display }}:** configured test limit {{ ft.test_limit | default('--', true) }} (a cap, not the number of sequences run); {{ ft.property_violations | default(0, true) }} property violations reported by the tool.{% if ft.finding_ids %} See {{ ft.finding_ids }}.{% endif %}
+{%- endif %}
+{%- endfor %}
+{%- elif dynamic_layer_ran %}
+
+Dynamic-testing tooling ran in this engagement (**Layer 2**, §2.3) but recorded no
+fuzzing-campaign statistics. Any results reproduced by execution are reported in §4.4
+(Property & Invariant Analysis).
+{%- else %}
+
+No dynamic or fuzzing testing was performed in this engagement. This is **Layer 2
+(Dynamic Testing)** of the methodology (§2.3); property-based fuzzing with Foundry,
+Echidna, or Medusa would supply this layer.
+{%- endif %}
+
 <!-- section-break -->
 
 # 5. Detailed Findings
@@ -282,12 +496,16 @@ The analyzed contract presents security concerns that should be addressed before
 | Property | Value |
 |----------|-------|
 | **Severity** | <span style="background: {{ finding.severity_color | default('#e0e0e0') }}; color: white; padding: 2px 8px; border-radius: 4px;">{{ finding.severity_badge }}</span> |
-| **Category** | {{ finding.canonical_category | default(finding.category) }} |
+| **Category** | {{ finding.canonical_category or finding.category }} |
 | **CVSS Score** | {{ finding.cvss_score | default('N/A') }} |
 | **Confidence** | {{ finding.confidence_pct | default('N/A') }} |
 | **Location** | `{{ finding.location }}` |
 | **Status** | {{ finding.status }} |
 | **Detected By** | {{ finding.confirming_tools | join(', ') if finding.confirming_tools else finding.tool }} |
+| **Verification** | {{ finding.verification }} |
+{%- if finding.triage_tier %}
+| **Reentrancy Triage** | {{ finding.triage_tier | upper }}{% if finding.triage_guard and finding.triage_guard not in ['', 'unknown'] %} (guard: {{ finding.triage_guard }}){% endif %} |
+{%- endif %}
 
 ### Description
 
@@ -364,11 +582,12 @@ The analyzed contract presents security concerns that should be addressed before
 {%- else %}
 | Priority | Finding | Severity | Recommended Action |
 |:--------:|---------|----------|-------------------|
-{%- for finding in findings %}
-{%- if finding.severity in ['critical', 'high'] %}
+{%- for finding in critical_high_findings %}
 | {{ loop.index }} | {{ finding.title }} | {{ finding.severity_badge }} | Immediate fix required |
-{%- endif %}
 {%- endfor %}
+{%- if not critical_high_findings %}
+| -- | No critical or high severity findings | -- | -- |
+{%- endif %}
 {%- endif %}
 
 ## 6.2 Remediation Timeline
@@ -394,36 +613,50 @@ Review findings marked as "Low" effort for quick security improvements.
 
 ## 6.4 Effort vs Impact Matrix
 
-<table style="width: 100%; max-width: 550px; margin: 20px auto; border-collapse: collapse; text-align: center;">
-<tr>
-<td style="border: none; width: 80px;"></td>
-<td style="border: none;" colspan="3"><strong>IMPACT</strong></td>
-</tr>
-<tr>
-<td style="border: none;"></td>
-<td style="border: none; color: #6b7280; padding: 8px;">Low</td>
-<td style="border: none; color: #6b7280; padding: 8px;">Medium</td>
-<td style="border: none; color: #6b7280; padding: 8px;">High</td>
-</tr>
-<tr>
-<td style="border: none; color: #6b7280; vertical-align: middle;"><strong>E<br/>F<br/>F<br/>O<br/>R<br/>T</strong></td>
-<td style="background: #ef4444; color: white; padding: 15px; border-radius: 4px;"><strong>Avoid</strong><br/><span style="font-size: 18pt;">{{ effort_impact_matrix.high_low.count if effort_impact_matrix else 0 }}</span></td>
-<td style="background: #f97316; color: white; padding: 15px; border-radius: 4px;"><strong>Consider</strong><br/><span style="font-size: 18pt;">{{ effort_impact_matrix.high_medium.count if effort_impact_matrix else 0 }}</span></td>
-<td style="background: #eab308; color: white; padding: 15px; border-radius: 4px;"><strong>Schedule</strong><br/><span style="font-size: 18pt;">{{ effort_impact_matrix.high_high.count if effort_impact_matrix else 0 }}</span></td>
-</tr>
-<tr>
-<td style="border: none; color: #6b7280; vertical-align: middle;"><strong>High<br/>↑<br/>Med<br/>↑<br/>Low</strong></td>
-<td style="background: #94a3b8; color: white; padding: 15px; border-radius: 4px;"><strong>Defer</strong><br/><span style="font-size: 18pt;">{{ effort_impact_matrix.medium_low.count if effort_impact_matrix else 0 }}</span></td>
-<td style="background: #3b82f6; color: white; padding: 15px; border-radius: 4px;"><strong>Plan</strong><br/><span style="font-size: 18pt;">{{ effort_impact_matrix.medium_medium.count if effort_impact_matrix else 0 }}</span></td>
-<td style="background: #8b5cf6; color: white; padding: 15px; border-radius: 4px;"><strong>Priority</strong><br/><span style="font-size: 18pt;">{{ effort_impact_matrix.medium_high.count if effort_impact_matrix else 0 }}</span></td>
-</tr>
-<tr>
-<td style="border: none;"></td>
-<td style="background: #64748b; color: white; padding: 15px; border-radius: 4px;"><strong>If Time</strong><br/><span style="font-size: 18pt;">{{ effort_impact_matrix.low_low.count if effort_impact_matrix else 0 }}</span></td>
-<td style="background: #22c55e; color: white; padding: 15px; border-radius: 4px;"><strong>Quick Win</strong><br/><span style="font-size: 18pt;">{{ effort_impact_matrix.low_medium.count if effort_impact_matrix else 0 }}</span></td>
-<td style="background: #16a34a; color: white; padding: 15px; border-radius: 4px;"><strong>DO FIRST!</strong><br/><span style="font-size: 18pt;">{{ effort_impact_matrix.low_high.count if effort_impact_matrix else 0 }}</span></td>
-</tr>
-</table>
+<div class="chart chart-effort">
+{%- if effort_impact_matrix %}
+<svg viewBox="0 0 470 268" width="470" height="268" role="img" aria-label="Effort versus impact matrix" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+<text x="274" y="18" text-anchor="middle" font-size="10" font-weight="700" letter-spacing="1" fill="#475569">IMPACT</text>
+<text x="170" y="38" text-anchor="middle" font-size="9" fill="#6b7280">Low</text>
+<text x="274" y="38" text-anchor="middle" font-size="9" fill="#6b7280">Medium</text>
+<text x="378" y="38" text-anchor="middle" font-size="9" fill="#6b7280">High</text>
+<text x="22" y="144" text-anchor="middle" font-size="10" font-weight="700" letter-spacing="1" fill="#475569" transform="rotate(-90 22 144)">EFFORT</text>
+<text x="112" y="80" text-anchor="end" font-size="9" font-weight="600" fill="#475569">High</text>
+<text x="112" y="148" text-anchor="end" font-size="9" font-weight="600" fill="#475569">Med</text>
+<text x="112" y="216" text-anchor="end" font-size="9" font-weight="600" fill="#475569">Low</text>
+<rect x="120" y="44" width="100" height="64" rx="4" fill="#ef4444"/>
+<text x="170" y="66" text-anchor="middle" font-size="8" fill="#ffffff">Avoid</text>
+<text x="170" y="92" text-anchor="middle" font-size="19" font-weight="700" fill="#ffffff">{{ effort_impact_matrix.high_low.count }}</text>
+<rect x="224" y="44" width="100" height="64" rx="4" fill="#f97316"/>
+<text x="274" y="66" text-anchor="middle" font-size="8" fill="#ffffff">Consider</text>
+<text x="274" y="92" text-anchor="middle" font-size="19" font-weight="700" fill="#ffffff">{{ effort_impact_matrix.high_medium.count }}</text>
+<rect x="328" y="44" width="100" height="64" rx="4" fill="#eab308"/>
+<text x="378" y="66" text-anchor="middle" font-size="8" fill="#ffffff">Schedule</text>
+<text x="378" y="92" text-anchor="middle" font-size="19" font-weight="700" fill="#ffffff">{{ effort_impact_matrix.high_high.count }}</text>
+<rect x="120" y="112" width="100" height="64" rx="4" fill="#94a3b8"/>
+<text x="170" y="134" text-anchor="middle" font-size="8" fill="#ffffff">Defer</text>
+<text x="170" y="160" text-anchor="middle" font-size="19" font-weight="700" fill="#ffffff">{{ effort_impact_matrix.medium_low.count }}</text>
+<rect x="224" y="112" width="100" height="64" rx="4" fill="#3b82f6"/>
+<text x="274" y="134" text-anchor="middle" font-size="8" fill="#ffffff">Plan</text>
+<text x="274" y="160" text-anchor="middle" font-size="19" font-weight="700" fill="#ffffff">{{ effort_impact_matrix.medium_medium.count }}</text>
+<rect x="328" y="112" width="100" height="64" rx="4" fill="#8b5cf6"/>
+<text x="378" y="134" text-anchor="middle" font-size="8" fill="#ffffff">Priority</text>
+<text x="378" y="160" text-anchor="middle" font-size="19" font-weight="700" fill="#ffffff">{{ effort_impact_matrix.medium_high.count }}</text>
+<rect x="120" y="180" width="100" height="64" rx="4" fill="#64748b"/>
+<text x="170" y="202" text-anchor="middle" font-size="8" fill="#ffffff">If Time</text>
+<text x="170" y="228" text-anchor="middle" font-size="19" font-weight="700" fill="#ffffff">{{ effort_impact_matrix.low_low.count }}</text>
+<rect x="224" y="180" width="100" height="64" rx="4" fill="#22c55e"/>
+<text x="274" y="202" text-anchor="middle" font-size="8" fill="#ffffff">Quick Win</text>
+<text x="274" y="228" text-anchor="middle" font-size="19" font-weight="700" fill="#ffffff">{{ effort_impact_matrix.low_medium.count }}</text>
+<rect x="328" y="180" width="100" height="64" rx="4" fill="#16a34a"/>
+<text x="378" y="202" text-anchor="middle" font-size="8" fill="#ffffff">Do First</text>
+<text x="378" y="228" text-anchor="middle" font-size="19" font-weight="700" fill="#ffffff">{{ effort_impact_matrix.low_high.count }}</text>
+</svg>
+<span class="chart-caption">Figure 3 — Effort vs impact. Each cell counts findings by remediation effort and security impact; the green band is the highest-value work.</span>
+{%- else %}
+<p style="text-align:center;color:#64748b;font-style:italic;">Effort / impact prioritisation was not computed for this engagement.</p>
+{%- endif %}
+</div>
 
 {% if effort_impact_matrix %}
 **Prioritization Summary:**
@@ -432,6 +665,21 @@ Review findings marked as "Low" effort for quick security improvements.
 {% if effort_impact_matrix.medium_high.count > 0 %}- ⚡ **Priority ({{ effort_impact_matrix.medium_high.count }})**: Medium effort, high impact - plan these next{% endif %}
 {% if effort_impact_matrix.high_high.count > 0 %}- 📅 **Schedule ({{ effort_impact_matrix.high_high.count }})**: High effort, high impact - important but complex{% endif %}
 {% endif %}
+
+## 6.5 Bug Bounty Submission Readiness
+
+This section is an automated triage starting point, not a submission package. The findings in this report are **not confirmed vulnerabilities** and are **not submission-ready as they stand**: each one must be independently verified and backed by a working Proof of Concept before it is taken to any program. Most programs on Immunefi assess severity with the **Immunefi Vulnerability Severity Classification System V2.3** and, for **all** severities, require a mandatory Proof of Concept, an in-scope impact, a previously-unknown issue (not already covered by a prior audit or report), completion of KYC, and payment of a non-refundable submission fee. Read the table below as a list of work still outstanding, never as evidence that a finding can be submitted.
+
+| Finding | Severity | PoC available | Readiness |
+|---------|----------|:-------------:|-----------|
+{%- for finding in findings %}
+| {{ finding.id }}. {{ finding.title }} | {{ finding.severity_badge }} | {{ 'Yes' if finding.poc_available else 'No' }} | Requires manual triage + PoC |
+{%- endfor %}
+{%- if not findings %}
+| — | — | — | No findings to assess |
+{%- endif %}
+
+A "Yes" under **PoC available** means MIESC emitted a local Foundry PoC *template* for that finding — a reproduction starting point, not a validated exploit. Readiness stays "Requires manual triage + PoC" for every finding regardless of severity or PoC status: nothing here is ready to submit without human verification and a demonstrated in-scope impact.
 
 <!-- section-break -->
 
@@ -528,13 +776,25 @@ No PoC exploit templates were generated for this audit.
 | Analysis Started | {{ analysis_start | default(audit_date) }} | -- |
 | Analysis Completed | {{ analysis_end | default(generation_date) }} | -- |
 | Report Generated | {{ generation_date }} | -- |
-| Report Hash | {{ generation_date }} | `{{ report_hash | default('N/A') }}` |
+
+### Report Integrity
+
+| Attribute | Value |
+|-----------|-------|
+| Input results file (SHA-256) | `{{ input_sha256 | default('—', true) }}` |
+| Report template version | {{ report_version | default('1.0') }} |
+| Generator (MIESC) version | {{ generator_version | default(miesc_version) }} |
+| Generated (UTC) | {{ generated_at_utc | default(generation_date) }} |
+
+{% if input_sha256 %}This report was generated from results.json with SHA-256 `{{ input_sha256 }}`; recompute it (`shasum -a 256 <results.json>`) to verify the report corresponds to this scan.{% else %}The input results file was not available for hashing at report time, so no integrity hash is attested.{% endif %} This hash attests only the correspondence between this report and that results file; it does not attest that the scan was run correctly, that the analysis tools were unmodified, or that the analysed source was not substituted.
 
 <!-- section-break -->
 
 # Disclaimer
 
-This audit report is provided on an "AS IS" basis without warranties of any kind, whether express or implied. The findings and recommendations represent the auditor's professional opinion based on the scope and methodology described.
+This audit report is provided on an "AS IS" basis without warranties of any kind, whether express or implied. The findings and recommendations are the output of automated analysis based on the scope and methodology described, and do not constitute a human professional opinion unless an auditor is explicitly named on the cover and attests to them.
+
+**This report is the output of automated security tooling (plus optional local-LLM interpretation), not a manual professional audit.** It has not been reviewed or signed off by a human security auditor unless an auditor is explicitly named on the cover and attests to the findings.
 
 **Limitations:**
 - This audit does not guarantee the absence of vulnerabilities

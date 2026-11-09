@@ -15,7 +15,11 @@ import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, Dict, Iterable, List, Optional, Set, cast
+
+from miesc.core.fuzz_campaign_io import FUZZ_CAMPAIGN_KEY, collect_fuzz_campaign
+from miesc.core.llm_budget import get_llm_timeout, set_llm_timeout  # noqa: F401
+from miesc.core.rule_classes import apply_rule_class_caps
 
 from .constants import ADAPTER_MAP, LAYERS
 
@@ -300,6 +304,11 @@ class AdapterLoader:
 
     _adapters: Dict[str, Any] = {}
     _loaded = False
+    # Tool availability probed once per process (``reset_availability`` clears it).
+    # Probing is expensive for some adapters (SmartGuard shells out to ``ollama list``
+    # with a 5 s timeout) and the answer does not change between two contracts of
+    # the same run.
+    _availability: Dict[str, Any] = {}
 
     @classmethod
     def load_all(cls) -> Dict[str, Any]:
@@ -371,7 +380,9 @@ class AdapterLoader:
             # Import ToolStatus enum
             from miesc.core.tool_protocol import ToolStatus
 
-            status = adapter.is_available()
+            # Same per-process cache run_tool uses, so a probe made by an audit
+            # and the count ``miesc doctor`` prints come from one answer.
+            status = cls.get_availability(tool_name, adapter)
             return {
                 "status": status.value if hasattr(status, "value") else str(status),
                 "available": status == ToolStatus.AVAILABLE,
@@ -386,15 +397,162 @@ class AdapterLoader:
             }
 
     @classmethod
+    def get_availability(cls, tool_name: str, adapter: Any) -> Any:
+        """Return ``adapter.is_available()``, probing each tool at most once.
+
+        The first call for a tool runs the adapter's probe and caches the resulting
+        ``ToolStatus``; later calls return the cached value. ``reset_availability``
+        drops the cache (the evaluator does so at the start of every run).
+        """
+        if tool_name not in cls._availability:
+            cls._availability[tool_name] = adapter.is_available()
+        return cls._availability[tool_name]
+
+    @classmethod
+    def reset_availability(cls) -> None:
+        """Forget cached tool availability so the next ``run_tool`` probes again."""
+        cls._availability = {}
+
+    @classmethod
+    def llm_tools(cls) -> Set[str]:
+        """Names of the tools whose adapter declares ``requires_llm`` in its metadata.
+
+        These are the adapters that call an LLM backend (local Ollama or a hosted
+        API) to produce findings; ``miesc evaluate --no-llm`` skips them.
+        """
+        tools: Set[str] = set()
+        for tool_name, adapter in cls.load_all().items():
+            try:
+                if getattr(adapter.get_metadata(), "requires_llm", False):
+                    tools.add(tool_name)
+            except Exception as e:  # pragma: no cover - defensive, metadata is static
+                logger.debug(f"Could not read metadata for {tool_name}: {e}")
+        return tools
+
+    @classmethod
     def reset(cls) -> None:
         """Reset the loader state (useful for testing)."""
         cls._adapters = {}
         cls._loaded = False
+        cls._availability = {}
 
 
 # =============================================================================
 # Tool Execution
 # =============================================================================
+
+
+# One status vocabulary for every tool result record, across scan, audit, evaluate
+# and doctor:
+#   success  - the tool ran and produced a (possibly empty) findings list;
+#              ``fallback: True`` when a built-in heuristic stood in for the real tool
+#   skipped  - deliberately not run; ``reason`` says why (not_installed,
+#              configuration_error, license_required, no_adapter, no_llm,
+#              unsupported_source)
+#   timeout  - the tool was killed after the configured timeout
+#   error    - the tool ran and failed; ``error`` carries the message
+TOOL_STATUSES = ("success", "skipped", "timeout", "error")
+
+_STATUS_ALIASES = {
+    "success": "success",
+    "ok": "success",
+    "completed": "success",
+    "done": "success",
+    "skipped": "skipped",
+    "skip": "skipped",
+    "not_available": "skipped",
+    "unavailable": "skipped",
+    "no_adapter": "skipped",
+    "timeout": "timeout",
+    "timed_out": "timeout",
+    "error": "error",
+    "failed": "error",
+    "failure": "error",
+}
+
+
+def normalize_tool_status(raw: Any) -> str:
+    """Map whatever an adapter put in ``status`` onto :data:`TOOL_STATUSES`.
+
+    Unknown labels are kept out of the vocabulary deliberately: a label we
+    have never seen is reported as ``error`` so it is noticed, never as a
+    silent success.
+    """
+    key = str(raw or "success").strip().lower()
+    return _STATUS_ALIASES.get(key, "error")
+
+
+def normalize_tool_result(result: Dict[str, Any]) -> Dict[str, Any]:
+    """Rewrite ``result["status"]`` into the shared vocabulary in place and lift
+    ``reason`` / ``fallback`` out of ``metadata`` when the adapter put them there."""
+    raw = result.get("status")
+    status = normalize_tool_status(raw)
+    if status == "error" and raw and str(raw).lower() not in _STATUS_ALIASES:
+        result.setdefault("reason", f"unknown_status:{raw}")
+        result.setdefault("error", f"adapter returned unknown status {raw!r}")
+    result["status"] = status
+    metadata = result.get("metadata") or {}
+    if isinstance(metadata, dict):
+        if "reason" not in result and metadata.get("reason"):
+            result["reason"] = metadata["reason"]
+        if "fallback" not in result and metadata.get("fallback"):
+            result["fallback"] = True
+    if status == "skipped" and "reason" not in result and raw:
+        result["reason"] = str(raw).lower()
+    return result
+
+
+def summarize_tool_statuses(results: Iterable[Dict[str, Any]]) -> Dict[str, List[str]]:
+    """Tool names per status: ``success`` (of which ``fallback``), ``skipped``,
+    ``timeout``, ``error``. Pseudo-tools (``miesc-intelligence`` ...) are included
+    only where they carry a status."""
+    buckets: Dict[str, List[str]] = {
+        k: [] for k in ("success", "fallback", "skipped", "timeout", "error")
+    }
+    for r in results:
+        tool = str(r.get("tool") or "")
+        if not tool:
+            continue
+        status = normalize_tool_status(r.get("status"))
+        buckets[status].append(tool)
+        if status == "success" and r.get("fallback"):
+            buckets["fallback"].append(tool)
+    return buckets
+
+
+def format_tool_summary(results: Iterable[Dict[str, Any]]) -> str:
+    """One line a reader can trust: ``ran 42/50 (2 fallback) · skipped 6 · timeout 0 · error 2``."""
+    b = summarize_tool_statuses(results)
+    total = len(b["success"]) + len(b["skipped"]) + len(b["timeout"]) + len(b["error"])
+    ran = f"ran {len(b['success'])}/{total}"
+    if b["fallback"]:
+        ran += f" ({len(b['fallback'])} fallback)"
+    return f"{ran} · skipped {len(b['skipped'])} · timeout {len(b['timeout'])} · error {len(b['error'])}"
+
+
+def tool_availability(tools: Iterable[str]) -> Dict[str, Dict[str, Any]]:
+    """``AdapterLoader.check_tool_status`` for each tool. ``miesc doctor`` and the
+    audit summaries both go through here so they print the same denominator."""
+    return {tool: AdapterLoader.check_tool_status(tool) for tool in tools}
+
+
+def count_available(tools: Iterable[str]) -> tuple[int, int]:
+    """(available, total) over ``tools`` — the number ``miesc doctor`` prints."""
+    statuses = tool_availability(list(tools))
+    return sum(1 for info in statuses.values() if info.get("available")), len(statuses)
+
+
+# Wall-clock budget applied to LLM-backed adapters only (``--llm-timeout``).
+# The state lives in miesc.core.llm_budget so the ML orchestrator shares it.
+
+
+def effective_tool_timeout(tool: str, timeout: int) -> int:
+    """Timeout to hand to ``tool``: the LLM budget when one is set and the
+    adapter declares ``requires_llm``, otherwise ``timeout`` unchanged."""
+    budget = get_llm_timeout()
+    if budget and tool in AdapterLoader.llm_tools():
+        return budget
+    return timeout
 
 
 def run_tool(tool: str, contract: str, timeout: int = 0, **kwargs: Any) -> Dict[str, Any]:
@@ -404,7 +562,8 @@ def run_tool(tool: str, contract: str, timeout: int = 0, **kwargs: Any) -> Dict[
     Args:
         tool: Tool name (e.g., 'slither', 'mythril')
         contract: Path to Solidity contract
-        timeout: Timeout in seconds (0 = use config or default 300)
+        timeout: Timeout in seconds (0 = use config or default 300); LLM-backed
+            tools use the ``--llm-timeout`` budget instead when one is set.
         **kwargs: Additional tool-specific parameters
 
     Returns:
@@ -412,6 +571,7 @@ def run_tool(tool: str, contract: str, timeout: int = 0, **kwargs: Any) -> Dict[
     """
     if timeout <= 0:
         timeout = get_tool_timeout(tool, default=300)
+    timeout = effective_tool_timeout(tool, timeout)
     start_time = datetime.now()
 
     # Get adapter for tool
@@ -421,7 +581,8 @@ def run_tool(tool: str, contract: str, timeout: int = 0, **kwargs: Any) -> Dict[
         return {
             "tool": tool,
             "contract": contract,
-            "status": "no_adapter",
+            "status": "skipped",
+            "reason": "no_adapter",
             "findings": [],
             "execution_time": 0,
             "timestamp": datetime.now().isoformat(),
@@ -429,16 +590,34 @@ def run_tool(tool: str, contract: str, timeout: int = 0, **kwargs: Any) -> Dict[
         }
 
     try:
+        # Skip tools that don't apply to this file type (e.g. Solidity-only
+        # tools against a .vy file) before spending time on availability
+        # checks or a doomed analyze() call.
+        from miesc.core.tool_protocol import applies_to
+
+        if not applies_to(adapter, contract):
+            return {
+                "tool": tool,
+                "contract": contract,
+                "status": "skipped",
+                "reason": "unsupported_source",
+                "findings": [],
+                "execution_time": 0,
+                "timestamp": datetime.now().isoformat(),
+                "error": f"{tool} does not support this file type",
+            }
+
         # Check if tool is available
         from miesc.core.tool_protocol import ToolStatus
 
-        status = adapter.is_available()
+        status = AdapterLoader.get_availability(tool, adapter)
 
         if status != ToolStatus.AVAILABLE:
             return {
                 "tool": tool,
                 "contract": contract,
-                "status": "not_available",
+                "status": "skipped",
+                "reason": status.value,
                 "findings": [],
                 "execution_time": (datetime.now() - start_time).total_seconds(),
                 "timestamp": datetime.now().isoformat(),
@@ -448,19 +627,45 @@ def run_tool(tool: str, contract: str, timeout: int = 0, **kwargs: Any) -> Dict[
         # Run analysis
         result = adapter.analyze(contract, timeout=timeout, **kwargs)
 
+        findings = result.get("findings", [])
+        for finding in findings:
+            if isinstance(finding, dict):
+                finding.setdefault("tool", tool)
+        # Lint / informational rules are capped at their class ceiling here so
+        # every CLI path (scan, audit, evaluate) reports the same severity.
+        apply_rule_class_caps(findings)
+
         # Ensure consistent output format
-        return {
+        normalized = normalize_tool_result(dict(result))
+        record = {
             "tool": tool,
             "contract": contract,
-            "status": result.get("status", "success"),
-            "findings": result.get("findings", []),
+            "status": normalized["status"],
+            "findings": findings,
             "execution_time": result.get(
                 "execution_time", (datetime.now() - start_time).total_seconds()
             ),
             "timestamp": datetime.now().isoformat(),
             "metadata": result.get("metadata", {}),
-            "error": result.get("error"),
+            "error": normalized.get("error"),
+            "timeout_budget_s": timeout,
         }
+        if normalized.get("reason"):
+            record["reason"] = normalized["reason"]
+        if normalized.get("fallback"):
+            record["fallback"] = True
+        # Phase 4 (§4.6): preserve fuzzing-campaign statistics that the base schema
+        # drops (it carries only ``metadata``). Inert for non-fuzzing tools —
+        # ``collect_fuzz_campaign`` returns ``None`` and ``record["metadata"]`` stays
+        # byte-identical to today; additive for fuzzers, where existing ``metadata``
+        # keys are merged (never replaced) under one namespaced sub-key.
+        campaign = collect_fuzz_campaign(tool, result)
+        if campaign is not None:
+            record["metadata"] = {
+                **(result.get("metadata") or {}),
+                FUZZ_CAMPAIGN_KEY: campaign,
+            }
+        return record
 
     except Exception as e:
         logger.error(f"Error running {tool}: {e}", exc_info=True)
@@ -475,13 +680,56 @@ def run_tool(tool: str, contract: str, timeout: int = 0, **kwargs: Any) -> Dict[
         }
 
 
-def run_layer(layer: int, contract: str, timeout: int = 300) -> List[Dict[str, Any]]:
-    """Run all tools in a specific layer."""
+def _skipped_tool_result(
+    tool: str, contract: str, reason: str, *, reason_code: str = "no_llm"
+) -> Dict[str, Any]:
+    """Result record for a tool deliberately left out of a run (not probed, not run)."""
+    return {
+        "tool": tool,
+        "contract": contract,
+        "status": "skipped",
+        "reason": reason_code,
+        "findings": [],
+        "execution_time": 0,
+        "timestamp": datetime.now().isoformat(),
+        "error": reason,
+    }
+
+
+def run_layer(
+    layer: int,
+    contract: str,
+    timeout: int = 300,
+    *,
+    exclude_tools: Optional[Iterable[str]] = None,
+) -> List[Dict[str, Any]]:
+    """Run all tools in a specific layer.
+
+    ``exclude_tools`` names tools to leave out entirely: they are neither probed
+    for availability nor run, and appear in the result with status ``"skipped"``
+    so callers that count tools per layer see the same shape either way.
+    """
     if layer not in LAYERS:
         return []
 
+    from miesc.core.tool_protocol import applies_to
+
     layer_info = LAYERS[layer]
-    tools = list(layer_info["tools"])
+    excluded = set(exclude_tools or ())
+    # A tool that does not read this file type is left out, not run and skipped:
+    # the Vyper analyzer adds no row to a Solidity scan, and vice versa.
+    tools = [
+        tool
+        for tool in layer_info["tools"]
+        if tool not in excluded and applies_to(AdapterLoader.get_adapter(tool), contract)
+    ]
+    skipped = [
+        _skipped_tool_result(tool, contract, "skipped: LLM-dependent tool (--no-llm)")
+        for tool in layer_info["tools"]
+        if tool in excluded
+    ]
+    for result in skipped:
+        _print_tool_result(result["tool"], result)
     max_workers = min(max(get_max_workers(default=4), 1), len(tools) or 1)
 
     if max_workers == 1 or len(tools) <= 1:
@@ -491,7 +739,7 @@ def run_layer(layer: int, contract: str, timeout: int = 300) -> List[Dict[str, A
             result = run_tool(tool, contract, timeout)
             results.append(result)
             _print_tool_result(tool, result)
-        return results
+        return results + skipped
 
     for tool in tools:
         info(f"Running {tool}...")
@@ -521,15 +769,78 @@ def run_layer(layer: int, contract: str, timeout: int = 300) -> List[Dict[str, A
     for tool, result in zip(tools, results, strict=True):
         _print_tool_result(tool, result)
 
-    return results
+    return results + skipped
+
+
+def print_tool_timing(results: List[Dict[str, Any]], top: int = 8) -> None:
+    """Show the slowest tools of a run so a slow adapter is visible, not hidden
+    in the total. ``results`` are ``run_tool`` dicts (``execution_time`` in s,
+    optional ``timeout_budget_s``). Skipped tools (0 s) are left out."""
+    rows = []
+    for r in results:
+        if not isinstance(r, dict):
+            continue
+        try:
+            secs = float(r.get("execution_time") or 0)
+        except (TypeError, ValueError):
+            continue
+        if secs <= 0:
+            continue
+        status = describe_tool_status(r)
+        cached = bool(r.get("from_cache") or (r.get("metadata") or {}).get("from_cache"))
+        if cached:
+            status += " (cached)"
+        rows.append((secs, str(r.get("tool", "?")), status, r.get("timeout_budget_s"), cached))
+    if not rows:
+        return
+    rows.sort(reverse=True)
+    # Cached results carry the time of the run that produced them, not this one.
+    total = sum(secs for secs, _t, _s, _b, cached in rows if not cached)
+    shown = rows[:top]
+    if RICH_AVAILABLE and console:
+        from rich import box
+        from rich.table import Table
+
+        table = Table(
+            title=f"Slowest tools (of {len(rows)}, {total:.1f}s tool time)", box=box.SIMPLE
+        )
+        table.add_column("Tool")
+        table.add_column("Status")
+        table.add_column("Time (s)", justify="right")
+        table.add_column("Budget (s)", justify="right")
+        for secs, tool, status, budget, _cached in shown:
+            table.add_row(tool, status, f"{secs:.1f}", str(budget) if budget else "-")
+        console.print(table)
+    else:
+        print(f"Slowest tools (of {len(rows)}, {total:.1f}s tool time):")  # noqa: T201
+        for secs, tool, status, budget, _cached in shown:
+            print(f"  {tool:<24} {status:<22} {secs:7.1f}s  budget={budget or '-'}")  # noqa: T201
+
+
+def describe_tool_status(result: Dict[str, Any]) -> str:
+    """Short human label for a tool result: ``success``, ``success (fallback)``,
+    ``skipped (not_installed)``, ``timeout``, ``error``."""
+    status = normalize_tool_status(result.get("status"))
+    if status == "success":
+        return "success (fallback)" if result.get("fallback") else "success"
+    if status == "skipped":
+        reason = result.get("reason") or "excluded"
+        return f"skipped ({reason})"
+    return status
 
 
 def _print_tool_result(tool: str, result: Dict[str, Any]) -> None:
-    if result["status"] == "success":
+    status = normalize_tool_status(result.get("status"))
+    if status == "success":
         findings_count = len(result.get("findings", []))
-        success(f"{tool}: {findings_count} findings in {result.get('execution_time', 0):.1f}s")
-    elif result["status"] == "not_available":
-        warning(f"{tool}: not installed")
+        tag = " (fallback)" if result.get("fallback") else ""
+        success(f"{tool}: {findings_count} findings in {result.get('execution_time', 0):.1f}s{tag}")
+    elif status == "skipped":
+        reason = result.get("reason") or "excluded"
+        detail = "not installed" if reason == "not_installed" else result.get("error") or reason
+        info(f"{tool}: skipped ({detail})")
+    elif status == "timeout":
+        warning(f"{tool}: timeout after {result.get('execution_time', 0):.0f}s")
     else:
         warning(f"{tool}: {result.get('error', 'Unknown error')}")
 
@@ -623,6 +934,52 @@ def run_plugins(contract: str, timeout: int = 300) -> List[Dict[str, Any]]:
         pass  # Plugin system not available
 
     return results
+
+
+def finding_list(value: Any) -> List[Dict[str, Any]]:
+    """Findings from either shape the result files use: a list of findings, or a
+    dict with a ``findings`` key (``raw_findings`` is a dict in the audit JSON and a
+    list in older files). Non-dict entries are dropped."""
+    if isinstance(value, dict):
+        value = value.get("findings", [])
+    if not isinstance(value, list):
+        return []
+    return [f for f in value if isinstance(f, dict)]
+
+
+def results_from_result_file(data: Dict[str, Any], contract: str) -> List[Dict[str, Any]]:
+    """Per-tool ``{"tool", "findings"}`` results from any result file MIESC writes.
+
+    ``miesc scan`` / ``audit`` write ``{"results": [...]}``; some older files put a
+    flat ``findings`` list at the root; the ML orchestrator behind ``audit full``
+    writes ``raw_findings`` (a dict capped to 20 entries) and ``ml_enhanced`` (the
+    complete, severity-adjusted list) with no ``results`` key at all. ``report``
+    reads all of them; the exporters consume the per-tool list, so the ML shape is
+    regrouped by each finding's ``tool``. Unknown shapes degrade to ``[data]``.
+    """
+    results = data.get("results")
+    if isinstance(results, list):
+        return [r for r in results if isinstance(r, dict)]
+    if isinstance(data.get("findings"), list):
+        return [data]
+
+    ml_enhanced = data.get("ml_enhanced")
+    findings = finding_list(ml_enhanced)
+    if not findings and isinstance(ml_enhanced, dict):
+        findings = finding_list(ml_enhanced.get("top_findings"))
+    if not findings:
+        findings = finding_list(data.get("raw_findings"))
+    if not findings:
+        return [data]
+
+    contract = str(data.get("contract") or data.get("contract_path") or contract)
+    grouped: Dict[str, List[Dict[str, Any]]] = {}
+    for finding in findings:
+        grouped.setdefault(str(finding.get("tool") or "miesc"), []).append(finding)
+    return [
+        {"tool": tool, "contract": contract, "status": "success", "findings": tool_findings}
+        for tool, tool_findings in grouped.items()
+    ]
 
 
 def summarize_findings(all_results: List[Dict[str, Any]]) -> Dict[str, int]:

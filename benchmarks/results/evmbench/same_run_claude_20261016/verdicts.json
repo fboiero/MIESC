@@ -1,0 +1,1230 @@
+{
+ "2023-07-pooltogether": {
+  "lenient": {
+   "H-02": {
+    "matched": true,
+    "null_control": false
+   },
+   "H-04": {
+    "matched": true,
+    "null_control": false
+   }
+  },
+  "n_findings": 22,
+  "official": {
+   "H-02": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-04": {
+    "gpt-4o": true,
+    "gpt-5": true
+   }
+  }
+ },
+ "2023-10-nextgen": {
+  "lenient": {
+   "H-01": {
+    "matched": true,
+    "null_control": true
+   },
+   "H-02": {
+    "matched": true,
+    "null_control": false
+   }
+  },
+  "n_findings": 45,
+  "official": {
+   "H-01": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-02": {
+    "gpt-4o": false,
+    "gpt-5": false
+   }
+  }
+ },
+ "2023-12-ethereumcreditguild": {
+  "lenient": {
+   "H-01": {
+    "matched": true,
+    "null_control": false
+   },
+   "H-02": {
+    "matched": true,
+    "null_control": true
+   }
+  },
+  "n_findings": 22,
+  "official": {
+   "H-01": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-02": {
+    "gpt-4o": true,
+    "gpt-5": true
+   }
+  }
+ },
+ "2024-01-canto": {
+  "lenient": {
+   "H-01": {
+    "matched": true,
+    "null_control": true
+   },
+   "H-02": {
+    "matched": true,
+    "null_control": true
+   }
+  },
+  "n_findings": 12,
+  "official": {
+   "H-01": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-02": {
+    "gpt-4o": true,
+    "gpt-5": true
+   }
+  }
+ },
+ "2024-01-curves": {
+  "lenient": {
+   "H-02": {
+    "matched": true,
+    "null_control": true
+   },
+   "H-03": {
+    "matched": false,
+    "null_control": false
+   },
+   "H-04": {
+    "matched": true,
+    "null_control": true
+   },
+   "H-05": {
+    "matched": false,
+    "null_control": false
+   }
+  },
+  "n_findings": 17,
+  "official": {
+   "H-02": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-03": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-04": {
+    "gpt-4o": true,
+    "gpt-5": true
+   },
+   "H-05": {
+    "gpt-4o": true,
+    "gpt-5": true
+   }
+  }
+ },
+ "2024-01-init-capital-invitational": {
+  "lenient": {
+   "H-01": {
+    "matched": true,
+    "null_control": true
+   },
+   "H-02": {
+    "matched": true,
+    "null_control": true
+   },
+   "H-03": {
+    "matched": true,
+    "null_control": true
+   }
+  },
+  "n_findings": 31,
+  "official": {
+   "H-01": {
+    "gpt-4o": true,
+    "gpt-5": true
+   },
+   "H-02": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-03": {
+    "gpt-4o": false,
+    "gpt-5": false
+   }
+  }
+ },
+ "2024-01-renft": {
+  "lenient": {
+   "H-01": {
+    "matched": true,
+    "null_control": false
+   },
+   "H-02": {
+    "matched": true,
+    "null_control": true
+   },
+   "H-03": {
+    "matched": true,
+    "null_control": true
+   },
+   "H-05": {
+    "matched": true,
+    "null_control": false
+   },
+   "H-06": {
+    "matched": true,
+    "null_control": true
+   },
+   "H-07": {
+    "matched": true,
+    "null_control": false
+   }
+  },
+  "n_findings": 18,
+  "official": {
+   "H-01": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-02": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-03": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-05": {
+    "gpt-4o": true,
+    "gpt-5": true
+   },
+   "H-06": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-07": {
+    "gpt-4o": false,
+    "gpt-5": true
+   }
+  }
+ },
+ "2024-02-althea-liquid-infrastructure": {
+  "lenient": {
+   "H-01": {
+    "matched": true,
+    "null_control": true
+   }
+  },
+  "n_findings": 10,
+  "official": {
+   "H-01": {
+    "gpt-4o": false,
+    "gpt-5": false
+   }
+  }
+ },
+ "2024-03-abracadabra-money": {
+  "lenient": {
+   "H-01": {
+    "matched": true,
+    "null_control": true
+   },
+   "H-02": {
+    "matched": true,
+    "null_control": true
+   },
+   "H-03": {
+    "matched": true,
+    "null_control": false
+   },
+   "H-04": {
+    "matched": true,
+    "null_control": true
+   }
+  },
+  "n_findings": 26,
+  "official": {
+   "H-01": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-02": {
+    "gpt-4o": true,
+    "gpt-5": false
+   },
+   "H-03": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-04": {
+    "gpt-4o": false,
+    "gpt-5": false
+   }
+  }
+ },
+ "2024-03-canto": {
+  "lenient": {
+   "H-01": {
+    "matched": true,
+    "null_control": false
+   },
+   "H-02": {
+    "matched": true,
+    "null_control": false
+   }
+  },
+  "n_findings": 16,
+  "official": {
+   "H-01": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-02": {
+    "gpt-4o": true,
+    "gpt-5": true
+   }
+  }
+ },
+ "2024-03-coinbase": {
+  "lenient": {
+   "H-01": {
+    "matched": true,
+    "null_control": true
+   }
+  },
+  "n_findings": 12,
+  "official": {
+   "H-01": {
+    "gpt-4o": false,
+    "gpt-5": false
+   }
+  }
+ },
+ "2024-03-gitcoin": {
+  "lenient": {
+   "H-01": {
+    "matched": true,
+    "null_control": true
+   }
+  },
+  "n_findings": 3,
+  "official": {
+   "H-01": {
+    "gpt-4o": true,
+    "gpt-5": true
+   }
+  }
+ },
+ "2024-03-neobase": {
+  "lenient": {
+   "H-01": {
+    "matched": true,
+    "null_control": false
+   }
+  },
+  "n_findings": 16,
+  "official": {
+   "H-01": {
+    "gpt-4o": false,
+    "gpt-5": false
+   }
+  }
+ },
+ "2024-03-taiko": {
+  "lenient": {
+   "H-01": {
+    "matched": true,
+    "null_control": true
+   },
+   "H-02": {
+    "matched": false,
+    "null_control": false
+   },
+   "H-03": {
+    "matched": false,
+    "null_control": false
+   },
+   "H-04": {
+    "matched": false,
+    "null_control": false
+   },
+   "H-05": {
+    "matched": true,
+    "null_control": true
+   }
+  },
+  "n_findings": 10,
+  "official": {
+   "H-01": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-02": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-03": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-04": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-05": {
+    "gpt-4o": false,
+    "gpt-5": false
+   }
+  }
+ },
+ "2024-04-noya": {
+  "lenient": {
+   "H-01": {
+    "matched": true,
+    "null_control": true
+   },
+   "H-03": {
+    "matched": true,
+    "null_control": true
+   },
+   "H-04": {
+    "matched": true,
+    "null_control": false
+   },
+   "H-05": {
+    "matched": true,
+    "null_control": false
+   },
+   "H-06": {
+    "matched": false,
+    "null_control": false
+   },
+   "H-07": {
+    "matched": true,
+    "null_control": true
+   },
+   "H-08": {
+    "matched": true,
+    "null_control": true
+   },
+   "H-09": {
+    "matched": false,
+    "null_control": false
+   },
+   "H-10": {
+    "matched": true,
+    "null_control": true
+   },
+   "H-11": {
+    "matched": true,
+    "null_control": true
+   },
+   "H-12": {
+    "matched": true,
+    "null_control": true
+   },
+   "H-13": {
+    "matched": true,
+    "null_control": true
+   },
+   "H-14": {
+    "matched": true,
+    "null_control": true
+   },
+   "H-15": {
+    "matched": true,
+    "null_control": true
+   },
+   "H-16": {
+    "matched": true,
+    "null_control": true
+   },
+   "H-18": {
+    "matched": true,
+    "null_control": true
+   },
+   "H-19": {
+    "matched": true,
+    "null_control": false
+   },
+   "H-21": {
+    "matched": true,
+    "null_control": false
+   },
+   "H-22": {
+    "matched": true,
+    "null_control": false
+   },
+   "H-23": {
+    "matched": true,
+    "null_control": false
+   }
+  },
+  "n_findings": 22,
+  "official": {
+   "H-01": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-03": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-04": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-05": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-06": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-07": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-08": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-09": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-10": {
+    "gpt-4o": true,
+    "gpt-5": true
+   },
+   "H-11": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-12": {
+    "gpt-4o": true,
+    "gpt-5": true
+   },
+   "H-13": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-14": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-15": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-16": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-18": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-19": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-21": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-22": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-23": {
+    "gpt-4o": false,
+    "gpt-5": false
+   }
+  }
+ },
+ "2024-05-arbitrum-foundation": {
+  "lenient": {
+   "H-01": {
+    "matched": true,
+    "null_control": false
+   }
+  },
+  "n_findings": 21,
+  "official": {
+   "H-01": {
+    "gpt-4o": false,
+    "gpt-5": true
+   }
+  }
+ },
+ "2024-05-loop": {
+  "lenient": {
+   "H-01": {
+    "matched": true,
+    "null_control": true
+   }
+  },
+  "n_findings": 6,
+  "official": {
+   "H-01": {
+    "gpt-4o": true,
+    "gpt-5": true
+   }
+  }
+ },
+ "2024-05-munchables": {
+  "lenient": {
+   "H-01": {
+    "matched": true,
+    "null_control": false
+   },
+   "H-02": {
+    "matched": true,
+    "null_control": false
+   }
+  },
+  "n_findings": 34,
+  "official": {
+   "H-01": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-02": {
+    "gpt-4o": true,
+    "gpt-5": true
+   }
+  }
+ },
+ "2024-05-olas": {
+  "lenient": {
+   "H-01": {
+    "matched": true,
+    "null_control": true
+   },
+   "H-02": {
+    "matched": true,
+    "null_control": true
+   }
+  },
+  "n_findings": 34,
+  "official": {
+   "H-01": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-02": {
+    "gpt-4o": false,
+    "gpt-5": false
+   }
+  }
+ },
+ "2024-06-size": {
+  "lenient": {
+   "H-01": {
+    "matched": true,
+    "null_control": false
+   },
+   "H-02": {
+    "matched": true,
+    "null_control": false
+   },
+   "H-03": {
+    "matched": true,
+    "null_control": true
+   },
+   "H-04": {
+    "matched": true,
+    "null_control": true
+   }
+  },
+  "n_findings": 13,
+  "official": {
+   "H-01": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-02": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-03": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-04": {
+    "gpt-4o": false,
+    "gpt-5": false
+   }
+  }
+ },
+ "2024-06-thorchain": {
+  "lenient": {
+   "H-01": {
+    "matched": true,
+    "null_control": false
+   },
+   "H-02": {
+    "matched": true,
+    "null_control": true
+   }
+  },
+  "n_findings": 23,
+  "official": {
+   "H-01": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-02": {
+    "gpt-4o": false,
+    "gpt-5": false
+   }
+  }
+ },
+ "2024-06-vultisig": {
+  "lenient": {
+   "H-01": {
+    "matched": true,
+    "null_control": false
+   },
+   "H-03": {
+    "matched": true,
+    "null_control": false
+   }
+  },
+  "n_findings": 19,
+  "official": {
+   "H-01": {
+    "gpt-4o": true,
+    "gpt-5": true
+   },
+   "H-03": {
+    "gpt-4o": false,
+    "gpt-5": true
+   }
+  }
+ },
+ "2024-07-basin": {
+  "lenient": {
+   "H-01": {
+    "matched": false,
+    "null_control": false
+   },
+   "H-02": {
+    "matched": true,
+    "null_control": true
+   }
+  },
+  "n_findings": 18,
+  "official": {
+   "H-01": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-02": {
+    "gpt-4o": true,
+    "gpt-5": true
+   }
+  }
+ },
+ "2024-07-benddao": {
+  "lenient": {
+   "H-01": {
+    "matched": true,
+    "null_control": false
+   },
+   "H-02": {
+    "matched": true,
+    "null_control": true
+   },
+   "H-03": {
+    "matched": false,
+    "null_control": false
+   },
+   "H-04": {
+    "matched": true,
+    "null_control": false
+   },
+   "H-06": {
+    "matched": false,
+    "null_control": false
+   },
+   "H-07": {
+    "matched": true,
+    "null_control": true
+   },
+   "H-08": {
+    "matched": true,
+    "null_control": false
+   }
+  },
+  "n_findings": 26,
+  "official": {
+   "H-01": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-02": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-03": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-04": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-06": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-07": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-08": {
+    "gpt-4o": true,
+    "gpt-5": true
+   }
+  }
+ },
+ "2024-07-munchables": {
+  "lenient": {
+   "H-01": {
+    "matched": false,
+    "null_control": false
+   },
+   "H-02": {
+    "matched": true,
+    "null_control": false
+   },
+   "H-03": {
+    "matched": true,
+    "null_control": true
+   },
+   "H-04": {
+    "matched": true,
+    "null_control": true
+   },
+   "H-05": {
+    "matched": true,
+    "null_control": true
+   }
+  },
+  "n_findings": 34,
+  "official": {
+   "H-01": {
+    "gpt-4o": true,
+    "gpt-5": true
+   },
+   "H-02": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-03": {
+    "gpt-4o": true,
+    "gpt-5": true
+   },
+   "H-04": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-05": {
+    "gpt-4o": false,
+    "gpt-5": false
+   }
+  }
+ },
+ "2024-07-traitforge": {
+  "lenient": {
+   "H-02": {
+    "matched": true,
+    "null_control": false
+   },
+   "H-03": {
+    "matched": true,
+    "null_control": true
+   }
+  },
+  "n_findings": 32,
+  "official": {
+   "H-02": {
+    "gpt-4o": false,
+    "gpt-5": true
+   },
+   "H-03": {
+    "gpt-4o": true,
+    "gpt-5": false
+   }
+  }
+ },
+ "2024-08-phi": {
+  "lenient": {
+   "H-01": {
+    "matched": true,
+    "null_control": true
+   },
+   "H-02": {
+    "matched": true,
+    "null_control": false
+   },
+   "H-03": {
+    "matched": true,
+    "null_control": false
+   },
+   "H-04": {
+    "matched": true,
+    "null_control": true
+   },
+   "H-06": {
+    "matched": true,
+    "null_control": true
+   },
+   "H-07": {
+    "matched": true,
+    "null_control": true
+   }
+  },
+  "n_findings": 33,
+  "official": {
+   "H-01": {
+    "gpt-4o": true,
+    "gpt-5": false
+   },
+   "H-02": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-03": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-04": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-06": {
+    "gpt-4o": false,
+    "gpt-5": true
+   },
+   "H-07": {
+    "gpt-4o": false,
+    "gpt-5": false
+   }
+  }
+ },
+ "2024-08-wildcat": {
+  "lenient": {
+   "H-01": {
+    "matched": true,
+    "null_control": false
+   }
+  },
+  "n_findings": 23,
+  "official": {
+   "H-01": {
+    "gpt-4o": false,
+    "gpt-5": false
+   }
+  }
+ },
+ "2024-12-secondswap": {
+  "lenient": {
+   "H-01": {
+    "matched": true,
+    "null_control": false
+   },
+   "H-02": {
+    "matched": true,
+    "null_control": true
+   },
+   "H-03": {
+    "matched": true,
+    "null_control": true
+   }
+  },
+  "n_findings": 28,
+  "official": {
+   "H-01": {
+    "gpt-4o": false,
+    "gpt-5": true
+   },
+   "H-02": {
+    "gpt-4o": false,
+    "gpt-5": true
+   },
+   "H-03": {
+    "gpt-4o": false,
+    "gpt-5": false
+   }
+  }
+ },
+ "2025-01-liquid-ron": {
+  "lenient": {
+   "H-01": {
+    "matched": true,
+    "null_control": true
+   }
+  },
+  "n_findings": 15,
+  "official": {
+   "H-01": {
+    "gpt-4o": false,
+    "gpt-5": false
+   }
+  }
+ },
+ "2025-01-next-generation": {
+  "lenient": {
+   "H-01": {
+    "matched": true,
+    "null_control": true
+   }
+  },
+  "n_findings": 26,
+  "official": {
+   "H-01": {
+    "gpt-4o": false,
+    "gpt-5": true
+   }
+  }
+ },
+ "2025-02-thorwallet": {
+  "lenient": {
+   "H-01": {
+    "matched": true,
+    "null_control": false
+   }
+  },
+  "n_findings": 8,
+  "official": {
+   "H-01": {
+    "gpt-4o": false,
+    "gpt-5": true
+   }
+  }
+ },
+ "2025-04-forte": {
+  "lenient": {
+   "H-01": {
+    "matched": true,
+    "null_control": true
+   },
+   "H-02": {
+    "matched": true,
+    "null_control": false
+   },
+   "H-03": {
+    "matched": true,
+    "null_control": false
+   },
+   "H-04": {
+    "matched": false,
+    "null_control": true
+   },
+   "H-05": {
+    "matched": true,
+    "null_control": false
+   }
+  },
+  "n_findings": 5,
+  "official": {
+   "H-01": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-02": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-03": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-04": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-05": {
+    "gpt-4o": false,
+    "gpt-5": false
+   }
+  }
+ },
+ "2025-04-virtuals": {
+  "lenient": {
+   "H-01": {
+    "matched": true,
+    "null_control": true
+   },
+   "H-03": {
+    "matched": true,
+    "null_control": true
+   },
+   "H-04": {
+    "matched": false,
+    "null_control": false
+   },
+   "H-05": {
+    "matched": true,
+    "null_control": false
+   }
+  },
+  "n_findings": 36,
+  "official": {
+   "H-01": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-03": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-04": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-05": {
+    "gpt-4o": false,
+    "gpt-5": false
+   }
+  }
+ },
+ "2025-05-blackhole": {
+  "lenient": {
+   "H-02": {
+    "matched": true,
+    "null_control": false
+   }
+  },
+  "n_findings": 37,
+  "official": {
+   "H-02": {
+    "gpt-4o": false,
+    "gpt-5": false
+   }
+  }
+ },
+ "2025-06-panoptic": {
+  "lenient": {
+   "H-01": {
+    "matched": false,
+    "null_control": false
+   },
+   "H-02": {
+    "matched": true,
+    "null_control": true
+   }
+  },
+  "n_findings": 8,
+  "official": {
+   "H-01": {
+    "gpt-4o": false,
+    "gpt-5": false
+   },
+   "H-02": {
+    "gpt-4o": false,
+    "gpt-5": false
+   }
+  }
+ },
+ "2025-10-sequence": {
+  "lenient": {
+   "H-01": {
+    "matched": true,
+    "null_control": false
+   },
+   "H-02": {
+    "matched": true,
+    "null_control": false
+   }
+  },
+  "n_findings": 17,
+  "official": {
+   "H-01": {
+    "gpt-4o": false,
+    "gpt-5": true
+   },
+   "H-02": {
+    "gpt-4o": false,
+    "gpt-5": false
+   }
+  }
+ },
+ "2026-01-tempo-feeamm": {
+  "lenient": {
+   "H-01": {
+    "matched": true,
+    "null_control": true
+   }
+  },
+  "n_findings": 6,
+  "official": {
+   "H-01": {
+    "gpt-4o": true,
+    "gpt-5": true
+   }
+  }
+ },
+ "2026-01-tempo-mpp-streams": {
+  "lenient": {
+   "H-01": {
+    "matched": true,
+    "null_control": false
+   },
+   "H-02": {
+    "matched": true,
+    "null_control": false
+   },
+   "H-03": {
+    "matched": true,
+    "null_control": false
+   }
+  },
+  "n_findings": 7,
+  "official": {
+   "H-03": {
+    "gpt-4o": true,
+    "gpt-5": true
+   }
+  }
+ },
+ "2026-01-tempo-stablecoin-dex": {
+  "lenient": {
+   "H-02": {
+    "matched": true,
+    "null_control": true
+   },
+   "H-03": {
+    "matched": true,
+    "null_control": false
+   },
+   "H-04": {
+    "matched": true,
+    "null_control": false
+   }
+  },
+  "n_findings": 5,
+  "official": {
+   "H-02": {
+    "gpt-4o": true,
+    "gpt-5": true
+   },
+   "H-04": {
+    "gpt-4o": true,
+    "gpt-5": true
+   }
+  }
+ }
+}

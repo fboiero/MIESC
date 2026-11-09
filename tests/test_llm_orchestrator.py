@@ -70,7 +70,8 @@ class TestLLMProvider:
     def test_all_providers(self):
         """Test all providers are accessible."""
         providers = list(LLMProvider)
-        assert len(providers) == 5
+        assert len(providers) == 6  # ollama, openai, anthropic, deepseek, kimi, local
+        assert LLMProvider.KIMI.value == "kimi"
 
 
 class TestLLMConfig:

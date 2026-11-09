@@ -162,6 +162,13 @@ def poc_generate(
             options=options,
         )
 
+        if poc_template is None:
+            error(
+                "No PoC template available for vulnerability type "
+                f"'{finding.get('type', 'unknown')}'. Skipping (no exploit fabricated)."
+            )
+            sys.exit(1)
+
         # Save PoC
         saved_path = poc_template.save(output)
 

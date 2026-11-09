@@ -51,7 +51,6 @@ Ignored local files and directories:
 | `.tools/` | Isolated heavyweight tool environments |
 | `apik.sh` | Optional local API keys or licensed-tool credentials |
 | `diagnostic-report.json` | Generated diagnostic output |
-| `.paper-freeze-local/` | Local reproducibility freeze checks |
 
 These files are intentionally not part of the public repository state.
 

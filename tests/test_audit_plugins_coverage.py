@@ -313,7 +313,7 @@ class TestAuditQuick:
 
         def fake_run(tool, *a, **k):
             if tool == "slither":
-                return _tool_result(tool, "not_available", [])
+                return _tool_result(tool, "skipped", [])
             return _tool_result(tool, "error", [])
 
         with patch(f"{AUDIT}.run_tool", side_effect=fake_run):

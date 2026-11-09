@@ -295,3 +295,290 @@ class TestExitCodeContract:
             instance.run_halmos.return_value = fake_result
             result = runner.invoke(verify, [contract, "--tool", "halmos", "--quiet"])
             assert result.exit_code == 0
+
+
+# ---------------------------------------------------------------------------
+# Economic invariant synthesis (--economic-invariants)
+# ---------------------------------------------------------------------------
+
+ERC4626_VAULT_SRC = """// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+contract Vault {
+    uint256 public totalSupply;
+    mapping(address => uint256) public balanceOf;
+    function totalAssets() public view returns (uint256) {}
+    function convertToShares(uint256 a) public view returns (uint256) {}
+    function convertToAssets(uint256 s) public view returns (uint256) {}
+    function deposit(uint256 a, address r) public returns (uint256) {}
+    function withdraw(uint256 a, address r, address o) public returns (uint256) {}
+}
+"""
+
+
+@pytest.fixture
+def vault_contract(tmp_path):
+    p = tmp_path / "Vault.sol"
+    p.write_text(ERC4626_VAULT_SRC)
+    return str(p)
+
+
+CTOKEN_BALANCEOF_SRC = """// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+interface IERC20 { function balanceOf(address) external view returns (uint256); }
+contract CErc20 {
+    uint256 public totalSupply;
+    IERC20 public underlying;
+    function getCashPrior() internal view returns (uint256) {
+        return underlying.balanceOf(address(this));
+    }
+    function exchangeRateStored() public view returns (uint256) {}
+    function mint(uint256 amount) public returns (uint256) {}
+    function redeem(uint256 cTokens) public returns (uint256) {}
+}
+"""
+
+
+@pytest.fixture
+def ctoken_contract(tmp_path):
+    p = tmp_path / "CErc20.sol"
+    p.write_text(CTOKEN_BALANCEOF_SRC)
+    return str(p)
+
+
+MTOKEN_TRACKED_SRC = """// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+interface IERC20 { function balanceOf(address) external view returns (uint256); }
+contract mErc20 {
+    uint256 public totalSupply;
+    uint256 public totalUnderlying;
+    IERC20 public underlying;
+    function _getCashPrior() internal view returns (uint256) {
+        return totalUnderlying;
+    }
+    function exchangeRateStored() public view returns (uint256) {}
+    function mint(uint256 amount) public returns (uint256) {}
+    function redeem(uint256 cTokens) public returns (uint256) {}
+}
+"""
+
+
+@pytest.fixture
+def mtoken_tracked_contract(tmp_path):
+    p = tmp_path / "mErc20.sol"
+    p.write_text(MTOKEN_TRACKED_SRC)
+    return str(p)
+
+
+class TestEconomicInvariantsFlag:
+    def test_help_lists_economic_flag(self):
+        runner = CliRunner()
+        result = runner.invoke(verify, ["--help"])
+        assert result.exit_code == 0
+        assert "--economic-invariants" in result.output
+        assert "--invariants-out" in result.output
+
+    def test_economic_invariants_emitted_without_provers(self, vault_contract, tmp_path):
+        """Economic invariant synthesis must work with zero provers installed
+        (prover-independent path) and write CVL/Echidna/Foundry artifacts."""
+        out = tmp_path / "econ"
+        runner = CliRunner()
+        with patch("miesc.formal.SpecRunner") as SR:
+            SR.return_value.availability_report.return_value = {
+                "certora": False,
+                "halmos": False,
+                "smtchecker": False,
+                "scribble": False,
+                "kontrol": False,
+            }
+            result = runner.invoke(
+                verify,
+                [
+                    vault_contract,
+                    "--economic-invariants",
+                    "--invariants-out",
+                    str(out),
+                    "--quiet",
+                ],
+            )
+        assert result.exit_code == 0
+        assert (out / "Vault.economic-invariants.json").exists()
+        assert (out / "Vault.economic.spec").exists()
+        assert (out / "Vault.economic.echidna.sol").exists()
+        assert (out / "Vault.economic.invariants.t.sol").exists()
+        cvl = (out / "Vault.economic.spec").read_text()
+        assert "vaultSolvency" in cvl
+
+    def test_compound_artifact_header_carries_inflation_surface(self, ctoken_contract, tmp_path):
+        """A balanceOf-cash cToken's Echidna artifact header must carry the OPEN
+        inflation-surface note — the surface a reviewer reads before fuzzing."""
+        out = tmp_path / "econ"
+        runner = CliRunner()
+        with patch("miesc.formal.SpecRunner") as SR:
+            SR.return_value.availability_report.return_value = {
+                "certora": False,
+                "halmos": False,
+                "smtchecker": False,
+                "scribble": False,
+                "kontrol": False,
+            }
+            with patch(
+                "miesc.adapters.invariant_synthesizer.InvariantSynthesizer._is_ollama_available",
+                return_value=False,
+            ):
+                result = runner.invoke(
+                    verify,
+                    [
+                        ctoken_contract,
+                        "--economic-invariants",
+                        "--invariants-out",
+                        str(out),
+                        "--quiet",
+                    ],
+                )
+        assert result.exit_code == 0
+        ech = (out / "CErc20.economic.echidna.sol").read_text()
+        assert "inflation surface: OPEN" in ech
+        assert "balanceOf(this)" in ech
+
+    def test_tracked_cash_artifact_header_is_closed(self, mtoken_tracked_contract, tmp_path):
+        """The Malda-style tracked-cash market renders a CLOSED note — the headline:
+        MIESC no longer implies an inflation bug on a market that shuts the vector."""
+        out = tmp_path / "econ"
+        runner = CliRunner()
+        with patch("miesc.formal.SpecRunner") as SR:
+            SR.return_value.availability_report.return_value = {
+                "certora": False,
+                "halmos": False,
+                "smtchecker": False,
+                "scribble": False,
+                "kontrol": False,
+            }
+            with patch(
+                "miesc.adapters.invariant_synthesizer.InvariantSynthesizer._is_ollama_available",
+                return_value=False,
+            ):
+                result = runner.invoke(
+                    verify,
+                    [
+                        mtoken_tracked_contract,
+                        "--economic-invariants",
+                        "--invariants-out",
+                        str(out),
+                        "--quiet",
+                    ],
+                )
+        assert result.exit_code == 0
+        ech = (out / "mErc20.economic.echidna.sol").read_text()
+        assert "inflation surface: closed" in ech
+        assert "internally tracked" in ech
+
+    def test_economic_only_is_offline_no_ollama_required(self, vault_contract):
+        """No --invariants-out, no provers, no Ollama — must still succeed."""
+        runner = CliRunner()
+        with patch("miesc.formal.SpecRunner") as SR:
+            SR.return_value.availability_report.return_value = {
+                "certora": False,
+                "halmos": False,
+                "smtchecker": False,
+                "scribble": False,
+                "kontrol": False,
+            }
+            with patch(
+                "miesc.adapters.invariant_synthesizer.InvariantSynthesizer._is_ollama_available",
+                return_value=False,
+            ):
+                result = runner.invoke(verify, [vault_contract, "--economic-invariants", "--quiet"])
+        assert result.exit_code == 0
+
+
+class TestEconomicFuzzFlag:
+    def test_help_lists_fuzz_flag(self):
+        runner = CliRunner()
+        result = runner.invoke(verify, ["--help"])
+        assert result.exit_code == 0
+        assert "--fuzz" in result.output
+        assert "--fuzz-test-limit" in result.output
+
+    def test_fuzz_without_economic_invariants_warns(self, contract):
+        runner = CliRunner()
+        with patch("miesc.formal.SpecRunner") as SR:
+            SR.return_value.availability_report.return_value = {
+                "certora": False,
+                "halmos": False,
+                "smtchecker": False,
+                "scribble": False,
+                "kontrol": False,
+            }
+            result = runner.invoke(verify, [contract, "--fuzz", "--quiet"])
+        assert "no effect" in result.output.lower()
+
+    def test_fuzz_detected_bug_sets_exit_one(self, vault_contract):
+        """A fuzz-detected economic bug must drive exit code 1 (real failure)."""
+        runner = CliRunner()
+        detected = {
+            "status": "detected",
+            "properties": ["echidna_deposit_mints_nonzero_shares"],
+            "findings": [
+                {
+                    "severity": "critical",
+                    "invariant": "erc4626_first_deposit_guard",
+                    "property": "echidna_deposit_mints_nonzero_shares",
+                    "description": "share price inflated",
+                    "call_sequence": ["h_donate(1000)", "h_deposit(0)"],
+                }
+            ],
+        }
+        with patch("miesc.formal.SpecRunner") as SR:
+            SR.return_value.availability_report.return_value = {
+                "certora": False,
+                "halmos": False,
+                "smtchecker": False,
+                "scribble": False,
+                "kontrol": False,
+            }
+            with patch(
+                "miesc.formal.economic_harness.run_economic_fuzz", return_value=detected
+            ) as rf:
+                result = runner.invoke(
+                    verify, [vault_contract, "--economic-invariants", "--fuzz", "--quiet"]
+                )
+                assert rf.called
+        assert result.exit_code == 1
+
+    def test_fuzz_clean_keeps_exit_zero(self, vault_contract):
+        runner = CliRunner()
+        clean = {
+            "status": "clean",
+            "properties": ["echidna_vault_solvent"],
+            "findings": [],
+        }
+        with patch("miesc.formal.SpecRunner") as SR:
+            SR.return_value.availability_report.return_value = {
+                "certora": False,
+                "halmos": False,
+                "smtchecker": False,
+                "scribble": False,
+                "kontrol": False,
+            }
+            with patch("miesc.formal.economic_harness.run_economic_fuzz", return_value=clean):
+                result = runner.invoke(
+                    verify, [vault_contract, "--economic-invariants", "--fuzz", "--quiet"]
+                )
+        assert result.exit_code == 0
+
+    def test_fuzz_skipped_when_echidna_absent(self, vault_contract):
+        runner = CliRunner()
+        skipped = {"status": "skipped", "reason": "Echidna not installed", "findings": []}
+        with patch("miesc.formal.SpecRunner") as SR:
+            SR.return_value.availability_report.return_value = {
+                "certora": False,
+                "halmos": False,
+                "smtchecker": False,
+                "scribble": False,
+                "kontrol": False,
+            }
+            with patch("miesc.formal.economic_harness.run_economic_fuzz", return_value=skipped):
+                result = runner.invoke(
+                    verify, [vault_contract, "--economic-invariants", "--fuzz", "--quiet"]
+                )
+        assert result.exit_code == 0

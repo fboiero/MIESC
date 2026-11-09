@@ -1,0 +1,325 @@
+[
+ {
+  "type": "reentrancy",
+  "title": "Reentrancy in _transferFees allows attacker to drain ETH",
+  "severity": "Critical",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-curves_4j1ha679/repo/contracts/Curves.sol",
+   "line": 0,
+   "function": "_transferFees / sellCurvesToken"
+  },
+  "description": "In sellCurvesToken, state (balance and supply) is updated BEFORE _transferFees is called. However, _transferFees makes external calls to curvesTokenSubject.call{value: subjectFee} and firstDestination.call{value: sellValue} (which is msg.sender when isBuy=false). A malicious curvesTokenSubject (attacker creates their own subject address that is a contract) can reenter sellCurvesToken during the curvesTokenSubject.call callback. Since the balance was already decremented, the attacker cannot reenter via the same path easily, BUT the attacker can reenter buyCurvesToken to manipulate the price/supply state, or more critically, the msg.sender receives ETH via firstDestination.call{value: sellValue} and can reenter. Actually: during a sell, firstDestination = msg.sender, so the seller's fallback is called with sellValue ETH. At this point curvesTokenBalance and curvesTokenSupply are already updated (decremented). The reentrant call can then call sellCurvesToken again \u2014 wait, balance was already decremented so this is safe. BUT the curvesTokenSubject.call happens after msg.sender receives ETH. If curvesTokenSubject == attacker's contract, and the attacker sets up a subject for themselves, during the subjectFee callback they can reenter. More critically: in buyCurvesToken flow, _buyCurvesToken updates balances THEN calls _transferFees which calls firstDestination (protocolFeeDestination) then curvesTokenSubject. The curvesTokenSubject is msg.sender's chosen subject. If the curvesTokenSubject is a malicious contract it gets subjectFee ETH and can call back into sellCurvesToken. Since curvesTokenBalance was already incremented, a reentrant sell would succeed, getting the sell price. Then when the original buy completes, the feeRedistributor also gets called. The net effect: attacker buys, reenters to sell during subjectFee callback (balance already credited), receives sell proceeds, then the buy finishes normally.",
+  "message": "An attacker who controls both a buyer address and the curvesTokenSubject address (a contract) can perform reentrancy attacks during the fee transfer phase. This can lead to double-spending of balances or ETH drainage from the contract.",
+  "recommendation": "Add a nonReentrant modifier (OpenZeppelin ReentrancyGuard) to buyCurvesToken, sellCurvesToken, and _transferFees. Follow checks-effects-interactions pattern strictly \u2014 all state changes should occur before any external calls.",
+  "exploit_scenario": "1. Attacker deploys MaliciousSubject contract with a receive() that calls curves.sellCurvesToken(maliciousSubject, amount). 2. Attacker (EOA or contract) calls buyCurvesToken(maliciousSubject, amount) with sufficient ETH. 3. _buyCurvesToken executes: balance[maliciousSubject][attacker] += amount, supply increases. 4. _transferFees is called; firstDestination (protocolFeeDestination) receives fee. 5. Then maliciousSubject.call{value: subjectFee} is triggered. 6. MaliciousSubject.receive() calls curves.sellCurvesToken(maliciousSubject, amount). 7. Sell checks pass (balance is credited, supply > amount). 8. Balance and supply are decremented. _transferFees for sell sends ETH to msg.sender (original attacker, since sell is called from MaliciousSubject... actually this is the MaliciousSubject calling so msg.sender=MaliciousSubject). Actually the sell would need to be called from the attacker EOA. More precise: attacker calls sell from EOA during a separate tx. OR: attacker EOA calls buyCurvesTokenForPresale or similar. The realistic scenario: if curvesTokenSubject is attacker's contract, it receives subjectFee and can reenter buyCurvesToken to buy at current (post-buy) price then the original tx finishes with inflated supply.",
+  "swc_id": "",
+  "file": "Curves.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "reentrancy",
+  "title": "Reentrancy via feeRedistributor.addFees in buy flow allows supply manipulation",
+  "severity": "Critical",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-curves_4j1ha679/repo/contracts/Curves.sol",
+   "line": 0,
+   "function": "_transferFees"
+  },
+  "description": "In _transferFees, after sending ETH to protocolFeeDestination, curvesTokenSubject, and referralFeeDestination, the function calls feeRedistributor.addFees{value: holderFee}(curvesTokenSubject). The feeRedistributor is an external contract (FeeSplitter) that receives ETH. If feeRedistributor is compromised or set to a malicious address (setFeeRedistributor is onlyOwner but represents centralization risk), or if the FeeSplitter itself has a callback, reentrancy can occur. More critically, feeRedistributor.onBalanceChange is called before addFees \u2014 this calls into the external FeeSplitter contract which could potentially reenter Curves.",
+  "message": "If the FeeSplitter contract is malicious or exploitable, it can reenter Curves during addFees to manipulate state.",
+  "recommendation": "Add ReentrancyGuard to all public/external state-changing functions. Apply checks-effects-interactions: complete all state updates before any external calls.",
+  "exploit_scenario": "Owner sets feeRedistributor to malicious contract. Malicious contract's addFees() reenters buyCurvesToken/sellCurvesToken. Since balances are already updated, this could allow buying at stale prices or draining ETH.",
+  "swc_id": "",
+  "file": "Curves.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Price formula integer overflow/underflow when supply=0 and amount>1 in getPrice",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-curves_4j1ha679/repo/contracts/Curves.sol",
+   "line": 0,
+   "function": "getPrice"
+  },
+  "description": "In getPrice, when supply == 0 and amount > 1, sum1 = 0, but sum2 is computed as: ((supply - 1 + amount) * (supply + amount) * (2 * (supply - 1 + amount) + 1)) / 6. When supply == 0: supply - 1 in Solidity 0.8.7 would underflow and revert because supply is uint256 and supply-1 when supply=0 causes underflow. However the condition checks: supply == 0 && amount == 1 to set sum2 = 0, but for supply==0 and amount > 1, the code falls to the else branch and computes (supply - 1 + amount) = (0 - 1 + amount) which underflows. This causes a revert, preventing buying more than 1 token when supply is 0, but this is an unintended denial of service.",
+  "message": "When a new curvesTokenSubject tries to buy more than 1 token in their initial purchase (supply=0), the transaction reverts due to underflow in the price formula. This blocks the buyCurvesTokenWithName and buyCurvesTokenForPresale functions when amount > 1.",
+  "recommendation": "Fix the price formula to handle supply=0 correctly: use (supply + amount - 1) instead of (supply - 1 + amount) to avoid underflow, or restructure the formula. Specifically: sum2 = ((supply + amount - 1) * (supply + amount) * (2*(supply + amount - 1) + 1)) / 6.",
+  "exploit_scenario": "1. Call buyCurvesTokenWithName(subject, 5, 'name', 'SYM') as subject. 2. _buyCurvesToken is called with supply=0, amount=5. 3. getPrice(0, 5) is called. 4. sum1 = 0. 5. sum2 condition: NOT (supply==0 && amount==1), so else branch: ((0-1+5)*(0+5)*(2*(0-1+5)+1))/6 = (4*5*9)/6 = 30. Wait, 0-1 in uint256 underflows. (0 - 1 + 5): in Solidity 0.8, this is evaluated as (0-1) first which reverts. So the function reverts for any initial purchase > 1 token.",
+  "swc_id": "",
+  "file": "Curves.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Unchecked ETH refund - excess payment not returned to buyer",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-curves_4j1ha679/repo/contracts/Curves.sol",
+   "line": 0,
+   "function": "_buyCurvesToken"
+  },
+  "description": "In _buyCurvesToken, the contract checks msg.value >= price + totalFee but never refunds the excess. Any ETH sent beyond the required amount is permanently locked in the contract or effectively donated. This is a value loss for users who overpay (which is common when using getBuyPriceAfterFee as an estimate but supply changes due to front-running).",
+  "message": "Users lose excess ETH paid beyond the purchase price. While not directly exploitable by an attacker to steal funds, it results in permanent loss of user funds. Front-runners can also manipulate this by buying before a victim's transaction, causing the victim to pay more than expected and lose the overpayment.",
+  "recommendation": "Refund excess ETH to msg.sender: after fee transfers, send back (msg.value - price - totalFee) to msg.sender if positive. Use a pull-payment pattern or add explicit refund: `if (msg.value > price + totalFee) { (bool refunded,) = msg.sender.call{value: msg.value - price - totalFee}(''); require(refunded); }`",
+  "exploit_scenario": "1. User calls getBuyPriceAfterFee(subject, 1) = 0.001 ETH. 2. User submits buyCurvesToken(subject, 1) with msg.value = 0.001 ETH. 3. Front-runner buys first, increasing supply and price. 4. User's tx executes: new price is 0.0012 ETH. msg.value=0.001 < price+fee \u2192 reverts. Or: User sends 0.002 ETH to be safe \u2192 0.0008 ETH is permanently locked.",
+  "swc_id": "",
+  "file": "Curves.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Missing removal from ownedCurvesTokenSubjects on token transfer/sell - unbounded array growth",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-curves_4j1ha679/repo/contracts/Curves.sol",
+   "line": 0,
+   "function": "_transfer / sellCurvesToken"
+  },
+  "description": "When tokens are sold or transferred out, curvesTokenBalance[subject][from] becomes 0, but the subject address is never removed from ownedCurvesTokenSubjects[from]. This means: (1) transferAllCurvesTokens will iterate over subjects with 0 balance (wasted gas but handled by amount > 0 check), (2) the array grows unboundedly and can never be cleaned up, (3) over time transferAllCurvesTokens becomes DoS'd by excessive gas costs. More critically, a user who sells all tokens then receives tokens again via _addOwnedCurvesTokenSubject \u2014 the function will find the existing entry and not re-add, which is correct. But the stale zero-balance entries remain forever causing the array to grow without bound.",
+  "message": "Long-term DoS of transferAllCurvesTokens for active traders. The array grows continuously and iteration becomes too expensive, effectively locking the function.",
+  "recommendation": "Remove the subject from ownedCurvesTokenSubjects when balance reaches zero. Implement a swap-and-pop removal in _transfer when curvesTokenBalance[subject][from] == 0 after deduction.",
+  "exploit_scenario": "1. Attacker repeatedly: buys 1 token of subject[i], then sells it. 2. Each unique subject[i] adds a permanent entry to ownedCurvesTokenSubjects[attacker]. 3. After N iterations, transferAllCurvesTokens(attacker) iterates N times, hitting gas limits. 4. Attacker's tokens are effectively untransferable in bulk.",
+  "swc_id": "",
+  "file": "Curves.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "access_control",
+  "title": "Whitelist/presale supply check allows bypassing whitelist after presale ends",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-curves_4j1ha679/repo/contracts/Curves.sol",
+   "line": 0,
+   "function": "setWhitelist"
+  },
+  "description": "setWhitelist allows the curvesTokenSubject (msg.sender) to set a new merkleRoot when supply <= 1. This means: (1) a subject can call setWhitelist to add themselves to a presale that never had one, (2) more critically, the condition is supply > 1 to revert \u2014 if supply is exactly 1 (initial purchase by subject), whitelist can still be changed. The subject could change the merkleRoot AFTER some whitelisted users have bought, retroactively excluding them from future buys but this doesn't affect already-bought tokens. However, the subject can also set an empty/invalid merkleRoot to block all presale purchases.",
+  "message": "A curvesTokenSubject can manipulate the whitelist (merkleRoot) during presale, potentially blocking legitimate whitelisted users from purchasing or changing who can buy during the presale period.",
+  "recommendation": "Once a presale is started (presalesMeta has a startTime), do not allow changing the merkleRoot. Add a check: if presalesMeta[msg.sender].startTime != 0 revert. Or only allow changes before the presale starts.",
+  "exploit_scenario": "1. Subject calls buyCurvesTokenForPresale with merkleRoot that includes address A. 2. User A buys during presale. 3. Subject calls setWhitelist with a new merkleRoot that excludes address B (who was previously whitelisted). 4. User B can no longer buy during presale despite being originally whitelisted.",
+  "swc_id": "",
+  "file": "Curves.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Missing check in deposit: contract balance can be insufficient due to direct ERC20 minting",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-curves_4j1ha679/repo/contracts/Curves.sol",
+   "line": 0,
+   "function": "deposit"
+  },
+  "description": "In deposit, the function checks tokenAmount > curvesTokenBalance[curvesTokenSubject][address(this)]. However, curvesTokenBalance[subject][address(this)] is only credited when users call withdraw() (which calls _transfer(subject, msg.sender, address(this), amount)). If somehow the ERC20 supply exceeds the contract's internal balance (e.g., due to a bug in withdraw where _deployERC20 is called multiple times, or if the ERC20 is minted externally), the check would pass but the _transfer would grant more internal tokens than actually exist. More specifically: the CurvesERC20 contract's total supply should always equal curvesTokenBalance[subject][address(this)] * 1 ether, but there's no enforcement of this invariant.",
+  "message": "If the ERC20 token's supply can be inflated beyond the contract's internal balance tracking, users could deposit inflated ERC20 tokens and receive more internal tokens than deposited, allowing double-spending.",
+  "recommendation": "Ensure CurvesERC20 tokens can only be minted by the Curves contract. Verify the factory and ERC20 implementation restrict minting rights. Add invariant checks.",
+  "exploit_scenario": "This requires a bug in CurvesERC20Factory or a compromised factory to mint extra tokens. If curvesERC20Factory is set to a malicious factory (setERC20Factory is onlyOwner), the owner could deploy ERC20s that can be minted freely, then deposit them to drain the contract's internal token balances.",
+  "swc_id": "",
+  "file": "Curves.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "ETH permanently locked when holdersFeePercent > 0 but feeRedistributor is address(0)",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-curves_4j1ha679/repo/contracts/Curves.sol",
+   "line": 0,
+   "function": "_transferFees"
+  },
+  "description": "In _transferFees, when holdersFeePercent > 0 but feeRedistributor == address(0), the condition `feesEconomics.holdersFeePercent > 0 && address(feeRedistributor) != address(0)` is false. This means holderFee ETH is neither sent to feeRedistributor nor returned to anyone \u2014 it remains in the Curves contract with no way to retrieve it. The ETH from holderFee is included in msg.value for buys (the buyer pays it) but never distributed. For sells, the sellValue already subtracts holderFee from what the seller receives, so that ETH also sits in the contract forever.",
+  "message": "Permanent ETH lockup in the Curves contract when holdersFeePercent is set but feeRedistributor is zero (possible during contract initialization or after setFeeRedistributor(address(0)) which is possible since onlyOwner doesn't validate the address).",
+  "recommendation": "Either validate that feeRedistributor != address(0) when holdersFeePercent > 0, or send holderFee to protocolFeeDestination as fallback. Also validate in setFeeRedistributor that address cannot be set to zero when holdersFeePercent > 0.",
+  "exploit_scenario": "1. Deploy Curves with feeRedistributor_ = address(0). 2. setExternalFeePercent sets holdersFeePercent = 0.05 ether. 3. Users buy/sell tokens. 4. holderFee ETH accumulates in the contract with no distribution mechanism. 5. No function exists to rescue these funds.",
+  "swc_id": "",
+  "file": "Curves.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "access_control",
+  "title": "setCurves() has no access control \u2014 anyone can replace the Curves contract",
+  "severity": "Critical",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-curves_4j1ha679/repo/contracts/FeeSplitter.sol",
+   "line": 34,
+   "function": "setCurves"
+  },
+  "description": "setCurves() is declared as `public` with no modifier (no `onlyOwner`, no `onlyManager`). Any external actor can call it and replace `curves` with a malicious contract that returns arbitrary values for `curvesTokenBalance` and `curvesTokenSupply`. This completely undermines every accounting invariant in the contract.",
+  "message": "An attacker can point `curves` to a crafted contract that inflates their own balance to the entire supply, then drain all ETH held by FeeSplitter via claimFees/batchClaiming. Protocol is fully compromised.",
+  "recommendation": "Add an access-control modifier: `function setCurves(Curves curves_) public onlyOwner { curves = curves_; }`. Also consider emitting an event and using a timelock for sensitive parameter changes.",
+  "exploit_scenario": "1. Deploy MaliciousCurves that returns type(uint256).max for curvesTokenBalance(token, attacker) and a slightly larger value for curvesTokenSupply(token).\n2. Call FeeSplitter.setCurves(MaliciousCurves).\n3. Call claimFees(token) \u2014 getClaimableFees returns an enormous value.\n4. Drain the entire ETH balance of FeeSplitter.",
+  "swc_id": "",
+  "file": "FeeSplitter.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "onBalanceChange() does not update fee credit before resetting userFeeOffset \u2014 accrued fees permanently lost",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-curves_4j1ha679/repo/contracts/FeeSplitter.sol",
+   "line": 82,
+   "function": "onBalanceChange"
+  },
+  "description": "onBalanceChange() immediately overwrites `data.userFeeOffset[account] = data.cumulativeFeePerToken` without first calling `updateFeeCredit(token, account)`. Any fees that had accrued since the user's last interaction (i.e., the delta between the old offset and the current cumulativeFeePerToken) are permanently lost and cannot be recovered by the user, even though the ETH is already in the contract.",
+  "message": "Every time a user's balance changes (buy/sell a curve token), their pending unclaimed fees are silently wiped. Over time, significant amounts of ETH accumulate as permanently locked dust.",
+  "recommendation": "Call updateFeeCredit before resetting the offset:\n\nfunction onBalanceChange(address token, address account) public onlyManager {\n    updateFeeCredit(token, account); // credit pending fees first\n    if (balanceOf(token, account) > 0) {\n        if (userTokens[account].length == 0 || /* not already tracked */) {\n            userTokens[account].push(token);\n        }\n    }\n}\n",
+  "exploit_scenario": "1. User A holds tokens while fees accumulate: cumulativeFeePerToken rises.\n2. User A triggers a buy/sell on Curves, which calls onBalanceChange(token, A).\n3. userFeeOffset[A] is set to current cumulativeFeePerToken without crediting the difference.\n4. User A calls claimFees \u2014 receives 0 for the period before the balance change.",
+  "swc_id": "",
+  "file": "FeeSplitter.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "claimFees() uses transfer() for ETH \u2014 hardcoded 2300 gas stipend causes reverts for contract recipients",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-curves_4j1ha679/repo/contracts/FeeSplitter.sol",
+   "line": 72,
+   "function": "claimFees"
+  },
+  "description": "`payable(msg.sender).transfer(claimable)` forwards only 2300 gas. Any msg.sender that is a smart contract (multisig, DAO treasury, etc.) with a receive() or fallback() that costs more than 2300 gas will always revert. Their fees are permanently locked since the state is not updated before the revert (unclaimedFees IS set to 0 before the transfer, so fees ARE lost on revert \u2014 wait, actually unclaimedFees is set to 0 BEFORE the transfer, meaning on revert the storage write is also reverted and fees are safe, but the user is still permanently DoS'd if transfer always reverts).",
+  "message": "Any contract-based wallet or multisig with a non-trivial receive() function cannot claim fees. Their fees accumulate forever but are uncollectable. This is a DoS of the claim mechanism for a significant user class.",
+  "recommendation": "Use .call{value:} instead of .transfer():\n\n(bool success, ) = payable(msg.sender).call{value: claimable}(\"\");\nrequire(success, \"ETH transfer failed\");\n\nAlso apply checks-effects-interactions: set unclaimedFees to 0 before the external call (already done in the current code, which is correct).",
+  "exploit_scenario": "1. DAO treasury (Gnosis Safe) holds curve tokens.\n2. Fees accumulate for the treasury address.\n3. Treasury calls claimFees \u2014 transfer() reverts because Safe's receive() uses >2300 gas.\n4. Fees are permanently uncollectable for the treasury.",
+  "swc_id": "",
+  "file": "FeeSplitter.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "reentrancy",
+  "title": "Reentrancy in claimFees() and batchClaiming() via .call{value:} if transfer is replaced \u2014 state set to 0 before call but new fees can be injected",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-curves_4j1ha679/repo/contracts/FeeSplitter.sol",
+   "line": 72,
+   "function": "claimFees / batchClaiming"
+  },
+  "description": "Even with the current transfer() (2300 gas), if the recommended fix of using .call{} is applied without a reentrancy guard, an attacker can reenter claimFees or batchClaiming. Specifically: unclaimedFees is set to 0 before the ETH send, but if the attacker's fallback immediately calls addFees() to add new fees and then getClaimableFees(), the state is consistent. However the real risk is: in batchClaiming, the loop processes multiple tokens \u2014 if during the ETH send for the accumulated total, the attacker reenters batchClaiming again, the second invocation sees unclaimedFees already 0 for processed tokens (safe) but the outer call's totalClaimable was already computed without the reentrant call's deductions. This needs a reentrancy guard.",
+  "message": "If .call{} is used without nonReentrant, a malicious recipient could potentially double-claim in edge cases involving multiple tokens in batchClaiming.",
+  "recommendation": "Add OpenZeppelin's ReentrancyGuard to the contract and apply `nonReentrant` to claimFees() and batchClaiming(). Combined with the .call fix, this eliminates all reentrancy vectors.",
+  "exploit_scenario": "1. Attacker has fees in token A and token B.\n2. Calls batchClaiming([A, B]) \u2014 totalClaimable computed.\n3. During the final .call{value: totalClaimable}, fallback reenters batchClaiming([A, B]).\n4. Inner call: both unclaimedFees are already 0 \u2192 inner call reverts (NoFeesToClaim) \u2014 so this specific pattern is safe.\n5. However more complex cross-function reentrancy (claimFees during batchClaiming) may allow double-claim if timing is right.",
+  "swc_id": "",
+  "file": "FeeSplitter.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "updateFeeCredit() sets userFeeOffset even when balance is 0 \u2014 users who later receive tokens miss early fees",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-curves_4j1ha679/repo/contracts/FeeSplitter.sol",
+   "line": 55,
+   "function": "updateFeeCredit"
+  },
+  "description": "updateFeeCredit() only updates userFeeOffset when balance > 0. However, onBalanceChange() unconditionally sets userFeeOffset to the current cumulativeFeePerToken regardless of balance. This means a user whose balance drops to 0 still has their offset updated to the current cumulative value. When they later buy tokens again, their baseline is the current cumulative rather than 0, so they miss fees that were distributed before their re-entry \u2014 which is correct. But the combination with the duplicate-push bug means that if a user sells all tokens (balance=0) but their token is still in userTokens, getClaimableFees returns 0 (correct since balance is 0 in balanceOf calculation).",
+  "message": "Medium impact on its own, but combined with other bugs creates accounting inconsistencies.",
+  "recommendation": "Ensure onBalanceChange calls updateFeeCredit first (as noted in finding #2), and only push to userTokens when not already tracked.",
+  "exploit_scenario": "This is more of a design note that combined with the duplicate entry bug creates complex accounting issues.",
+  "swc_id": "",
+  "file": "FeeSplitter.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "access_control",
+  "title": "Broken Access Control: onlyOwner and onlyManager Modifiers Never Revert",
+  "severity": "Critical",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-curves_4j1ha679/repo/contracts/Security.sol",
+   "line": 9,
+   "function": "onlyOwner, onlyManager, setManager, transferOwnership"
+  },
+  "description": "Both `onlyOwner` and `onlyManager` modifiers perform boolean comparisons (`msg.sender == owner` and `managers[msg.sender] == true`) but do NOT use `require()`, `revert()`, or `if(...) revert` to enforce the condition. The comparison result is simply discarded (it evaluates to a boolean that is thrown away), and execution always continues with `_;`. This means ANY address can call `setManager()` and `transferOwnership()` without restriction.",
+  "message": "Any external actor can call `transferOwnership()` to seize ownership of the contract, or call `setManager()` to grant/revoke manager privileges for any address. All access control in the contract is completely bypassed. An attacker can immediately take over the contract the moment it is deployed.",
+  "recommendation": "Use `require()` or custom errors in both modifiers:\n\n\nmodifier onlyOwner() {\n    require(msg.sender == owner, 'Not owner');\n    _;\n}\n\nmodifier onlyManager() {\n    require(managers[msg.sender], 'Not manager');\n    _;\n}\n\nOr with custom errors (more gas efficient):\n\nerror NotOwner();\nerror NotManager();\n\nmodifier onlyOwner() {\n    if (msg.sender != owner) revert NotOwner();\n    _;\n}\n\nmodifier onlyManager() {\n    if (!managers[msg.sender]) revert NotManager();\n    _;\n}\n",
+  "exploit_scenario": "1. Contract is deployed; owner is set to deployer.\n2. Attacker calls `transferOwnership(attackerAddress)` from any EOA.\n3. Because `onlyOwner` modifier does not revert (it just evaluates `msg.sender == owner` and discards the result), the call succeeds.\n4. `owner` is now set to `attackerAddress`.\n5. Attacker now has full ownership and can call `setManager()` to revoke all existing managers or add arbitrary managers.\n6. Any downstream contracts relying on this Security contract for access control are fully compromised.",
+  "swc_id": "",
+  "file": "Security.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "transferOwnership Does Not Remove Previous Owner from Managers Mapping",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-curves_4j1ha679/repo/contracts/Security.sol",
+   "line": 27,
+   "function": "transferOwnership"
+  },
+  "description": "When ownership is transferred via `transferOwnership()`, the function only updates the `owner` state variable but does NOT remove the previous owner from the `managers` mapping. The old owner retains manager privileges indefinitely after ownership transfer. Additionally, the new owner is not automatically added to the `managers` mapping, creating an inconsistent state where the owner may not be a manager.",
+  "message": "After ownership transfer: (1) The old owner retains manager-level privileges permanently, undermining the intent of the ownership transfer. (2) The new owner may not have manager privileges unless explicitly granted. This leads to a state where a supposedly-removed owner retains elevated access, which could be exploited in any system relying on this contract for role-based access control.",
+  "recommendation": "Update the `transferOwnership` function to also update the managers mapping:\n\n\nfunction transferOwnership(address owner_) public onlyOwner {\n    require(owner_ != address(0), 'New owner is zero address');\n    managers[owner] = false;  // Remove old owner from managers\n    owner = owner_;\n    managers[owner_] = true;  // Add new owner as manager\n}\n",
+  "exploit_scenario": "1. Owner (Alice) calls `transferOwnership(Bob)`.\n2. `owner` is now Bob, but `managers[Alice]` remains `true`.\n3. Alice still passes the `onlyManager` check in any system using this contract.\n4. Bob is now owner but `managers[Bob]` is `false` unless explicitly set.\n5. If there are any manager-restricted functions in inheriting contracts, Alice retains access while Bob (the new owner) does not.",
+  "swc_id": "",
+  "file": "Security.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "access_control",
+  "title": "Owner Can Arbitrarily Mint Unlimited Tokens",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-curves_4j1ha679/repo/contracts/CurvesERC20.sol",
+   "line": 11,
+   "function": "mint"
+  },
+  "description": "The mint() function is restricted to onlyOwner, but the owner (set at construction time to an arbitrary address passed as parameter) has unrestricted ability to mint any amount of tokens to any address with no supply cap, no timelock, and no multi-sig requirement. If the owner is a single EOA or a compromised contract, this allows unlimited token inflation.",
+  "message": "The owner can inflate the total supply arbitrarily, diluting all existing token holders to near-zero value. In DeFi contexts where this token is used as collateral or in AMM pools, this could be used to drain liquidity or manipulate prices.",
+  "recommendation": "Implement a maximum supply cap enforced in the mint function: `uint256 public constant MAX_SUPPLY = <value>; require(totalSupply() + amount <= MAX_SUPPLY, 'Exceeds max supply');`. Additionally, consider using a timelock or multi-sig for the owner role.",
+  "exploit_scenario": "1. Deployer sets `owner` to their own EOA. 2. Owner calls mint(attacker_address, type(uint256).max). 3. Attacker now holds effectively the entire supply. 4. If token is used in a Curves protocol with bonding curve mechanics, attacker can sell into the curve draining all ETH reserves.",
+  "swc_id": "",
+  "file": "CurvesERC20.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "access_control",
+  "title": "Owner Can Burn Tokens From Any Address Without Approval",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-01-curves_4j1ha679/repo/contracts/CurvesERC20.sol",
+   "line": 15,
+   "function": "burn"
+  },
+  "description": "The burn() function allows the owner to burn tokens from ANY address without requiring the token holder's approval or consent. Standard ERC20 burn mechanisms require either the holder to call burn themselves, or the burner to have an allowance. This completely bypasses ERC20's allowance model.",
+  "message": "A malicious or compromised owner can burn tokens from any user's wallet, effectively stealing their economic value (especially if the token has redemption value in a bonding curve). Users have no protection against having their balances forcibly reduced to zero.",
+  "recommendation": "Restrict burn to only allow burning from msg.sender (self-burn) or require explicit allowance: `require(from == msg.sender || allowance(from, msg.sender) >= amount, 'Not authorized');`. Alternatively, if owner-controlled burning is a design requirement, implement a timelock and emit events with sufficient warning time.",
+  "exploit_scenario": "1. User holds 1000 tokens worth 10 ETH in bonding curve redemption value. 2. Owner (malicious or compromised) calls burn(user_address, 1000). 3. User's balance is now 0. 4. User cannot redeem any ETH from the bonding curve. 5. Owner can repeat for all holders.",
+  "swc_id": "",
+  "file": "CurvesERC20.sol",
+  "backend": "claude"
+ }
+]

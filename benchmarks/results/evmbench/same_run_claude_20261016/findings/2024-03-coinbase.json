@@ -1,0 +1,230 @@
+[
+ {
+  "type": "signature_malleability",
+  "title": "Signature Malleability: No Upper Bound Check on s",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-03-coinbase_fikwb4aa/repo/src/FreshCryptoLib/FCL.sol",
+   "line": 51,
+   "function": "ecdsa_verify"
+  },
+  "description": "The ecdsa_verify function only checks that s != 0 and s < n, but does not enforce s <= n/2. For any valid signature (r, s), the signature (r, n-s) is also valid for the same message and public key. This is because ECDSA arithmetic is symmetric: negating s corresponds to negating the ephemeral key k, which produces the same r value. This means every valid signature has two valid forms.",
+  "message": "Any system that relies on signature uniqueness for replay protection, deduplication, or transaction ID computation can be attacked. An attacker who observes a valid signature (r, s) can immediately produce a second valid signature (r, n-s) for the same message. This can break: (1) systems that use signature hashes as unique identifiers, (2) EIP-2098 compact signature schemes, (3) any protocol that assumes one message has exactly one valid signature per key pair. If used in a permit/approval context, an attacker can reuse the alternate form of a signature that was already 'consumed'.",
+  "recommendation": "Add a check that s <= n/2 to enforce canonical signature form: `if (s > n/2) return false;`. Specifically, add after line 51: `uint256 constant half_n = 0x7FFFFFFFFFFFFFFF800000000000000DE6FAADA7179E84F3B9CAC2FC632551; if (s > half_n) return false;`",
+  "exploit_scenario": "1. Alice signs a message with private key, producing signature (r, s) where s > n/2. 2. The verifying contract marks (r, s) as used/consumed. 3. Attacker computes s' = n - s. Since s > n/2, we have s' < n/2 and s' is also valid. 4. Attacker calls ecdsa_verify(message, r, s', Qx, Qy) - returns true. 5. If the consuming contract only checked (r, s) as used, the alternate signature (r, s') passes as a fresh valid signature.",
+  "swc_id": "",
+  "file": "FCL.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "ecAff_IsZero Ignores X Coordinate - Incorrect Identity Check",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-03-coinbase_fikwb4aa/repo/src/FreshCryptoLib/FCL.sol",
+   "line": 0,
+   "function": "ecAff_IsZero"
+  },
+  "description": "The function `ecAff_IsZero(uint256, uint256 y)` entirely ignores the x coordinate (the first parameter is unnamed/discarded) and only checks if y == 0. This means any point with y-coordinate equal to 0 is treated as the point at infinity (identity element), regardless of x. A point (x, 0) for non-zero x is NOT the identity element in affine coordinates - the identity/point-at-infinity has no valid affine representation. This logic error propagates into `ecAff_add` which uses `ecAff_IsZero` to decide whether to skip addition and return the other operand.",
+  "message": "If an attacker can supply crafted input points where y=0 but x\u22600, the ecAff_add function would treat it as the identity and return the other operand unchanged, bypassing the actual addition. In the context of ecdsa_verify, this could lead to incorrect verification results - specifically, a crafted public key point or intermediate computation result with y=0 could cause the scalar multiplication to produce wrong results. This could potentially lead to signature forgery or acceptance of invalid signatures.",
+  "recommendation": "Fix ecAff_IsZero to check both coordinates: `function ecAff_IsZero(uint256 x, uint256 y) internal pure returns (bool flag) { return (x == 0 && y == 0); }` The point at infinity in projective coordinates maps to (0,0) in the convention used here. Alternatively, use a dedicated flag or the projective z-coordinate to represent the identity element.",
+  "exploit_scenario": "1. In ecAff_add, if x0=some_value and y0=0, ecAff_IsZero returns true and the function returns (x1, y1) without performing addition. 2. ecAff_add is called in ecZZ_mulmuladd_S_asm to compute H = G + Q (the precomputed point). 3. If Q is crafted such that G+Q results in a point with y=0 (a 2-torsion point), the addition would be skipped and G would be returned as H instead of the actual G+Q. 4. This corrupts the Shamir's trick precomputation, potentially causing valid signatures for crafted keys to verify incorrectly or invalid signatures to pass. Note: For secp256r1, no points with y=0 exist, so this may not be directly exploitable on this specific curve, but it remains a dangerous latent bug if constants are ever changed.",
+  "swc_id": "",
+  "file": "FCL.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Nonce Consumed Before Expiry Validation in withdraw()",
+  "severity": "Medium",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-03-coinbase_fikwb4aa/repo/src/MagicSpend/MagicSpend.sol",
+   "line": 0,
+   "function": "withdraw"
+  },
+  "description": "In withdraw(), _validateRequest() is called first which marks the nonce as used and emits an event, BEFORE the expiry check (block.timestamp > withdrawRequest.expiry). If a withdraw request is submitted after its expiry, the nonce is permanently consumed but the withdrawal fails. An attacker or malicious actor can front-run a legitimate user's withdraw transaction with the same signed request to burn the nonce, preventing the user from ever using that withdraw request.",
+  "message": "A valid withdraw request's nonce can be permanently consumed without funds being transferred, forcing the user to obtain a new signed withdraw request. This is a griefing vector that wastes users' nonces.",
+  "recommendation": "Move the expiry check before _validateRequest() to prevent nonce consumption on expired requests: check expiry first, then validate signature, then call _validateRequest(). Example: if (block.timestamp > withdrawRequest.expiry) revert Expired(); if (!isValidWithdrawSignature(msg.sender, withdrawRequest)) revert InvalidSignature(); _validateRequest(msg.sender, withdrawRequest);",
+  "exploit_scenario": "1. Owner signs a WithdrawRequest for user A with nonce=1, expiry=T. 2. At time T+1 (after expiry), attacker calls withdraw() with user A's signed request. 3. _validateRequest() marks nonce=1 as used for user A. 4. The expiry check then reverts. 5. User A's nonce=1 is now permanently burned, requiring a new signed request from owner.",
+  "swc_id": "",
+  "file": "MagicSpend.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Multiple Bundled UserOps Can Collectively Overdraw Contract Balance",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-03-coinbase_fikwb4aa/repo/src/MagicSpend/MagicSpend.sol",
+   "line": 0,
+   "function": "validatePaymasterUserOp"
+  },
+  "description": "When multiple UserOperations from different senders are bundled together, the EntryPoint calls validatePaymasterUserOp for all of them before executing any. Each validation independently checks `address(this).balance < withdrawAmount`, but this check doesn't account for the cumulative effect of all withdrawals. For example, if the contract has 1 ETH and two UserOps each request 0.9 ETH, both validations pass (0.9 < 1.0 each), but the cumulative withdrawable becomes 1.8 ETH while the balance is only 1 ETH. When postOp is called for the second user, the ETH transfer will fail because the balance was already depleted by the first postOp, triggering postOpReverted mode and the assert() will revert.",
+  "message": "The assert(mode != PostOpMode.postOpReverted) in postOp() will trigger, causing transactions to fail unexpectedly. In worst case, this could lock user funds in _withdrawableETH state or cause bundle reverts impacting multiple users. The assert() panic could also cause issues for the EntryPoint's handling of the paymaster.",
+  "recommendation": "Track the total committed/reserved ETH in a state variable. In validatePaymasterUserOp, check that `address(this).balance >= withdrawAmount + totalReserved` and update totalReserved. In postOp, decrement totalReserved by maxGasCost. This ensures the balance check accounts for all pending commitments across bundled operations.",
+  "exploit_scenario": "1. Contract has 1 ETH balance. 2. Bundle contains two UserOps: UserA requests 0.9 ETH, UserB requests 0.9 ETH. 3. validatePaymasterUserOp(UserA): 0.9 < 1.0 passes, _withdrawableETH[A] += 0.8 ETH (assuming maxCost=0.1). 4. validatePaymasterUserOp(UserB): 0.9 < 1.0 passes (balance still shows 1.0 ETH), _withdrawableETH[B] += 0.8 ETH. 5. UserA executes, postOp transfers 0.9 ETH to A. Balance = 0.1 ETH. 6. UserB executes, postOp tries to transfer 0.9 ETH to B. Transfer fails. 7. assert() triggers on postOpReverted.",
+  "swc_id": "",
+  "file": "MagicSpend.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "assert() in postOp Creates Unrecoverable State on Transfer Failure",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-03-coinbase_fikwb4aa/repo/src/MagicSpend/MagicSpend.sol",
+   "line": 0,
+   "function": "postOp"
+  },
+  "description": "The postOp function uses assert(mode != PostOpMode.postOpReverted) which consumes all gas and panics if called in postOpReverted mode. The comment acknowledges this can happen if the contract's ETH balance is insufficient. However, the _withdrawableETH[account] has already been deleted before the transfer attempt. If postOpReverted is triggered (due to insufficient balance from bundled ops or other edge cases), the user's withdrawable funds are lost because the state was deleted but funds weren't transferred. Additionally, assert() in Solidity 0.8 creates a Panic error, which may be handled differently by the EntryPoint than a regular revert.",
+  "message": "If postOp is called with postOpReverted mode (which can happen due to the balance race condition described in the previous vulnerability), user funds tracked in _withdrawableETH are permanently lost - the mapping is deleted but ETH never transferred to the user.",
+  "recommendation": "Replace assert() with a proper revert and handle the postOpReverted case gracefully. Consider not deleting _withdrawableETH before the transfer, and only deleting on success. Or implement a recovery mechanism for when postOpReverted occurs.",
+  "exploit_scenario": "1. Due to bundled UserOps overdrawing balance, postOp is called with PostOpMode.postOpReverted. 2. The assert() panics, consuming all gas. 3. The _withdrawableETH[account] mapping that was deleted cannot be recovered. 4. User loses their entitled funds.",
+  "swc_id": "",
+  "file": "MagicSpend.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "signature_replay",
+  "title": "Cross-Chain Signature Replay for executeWithoutChainIdValidation",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-03-coinbase_fikwb4aa/repo/src/SmartWallet/CoinbaseSmartWallet.sol",
+   "line": 0,
+   "function": "executeWithoutChainIdValidation"
+  },
+  "description": "The function executeWithoutChainIdValidation is intentionally designed to allow cross-chain replay by stripping the chain ID from the userOpHash. While this is by design for owner management, the whitelist in canSkipChainIdValidation() includes upgradeToAndCall(), which means a malicious or compromised chain deployment could replay an upgrade operation across all chains where the wallet is deployed. If an attacker can get a legitimate owner to sign an upgrade on one chain (e.g., to a benign implementation), they can replay that same signed operation on all other chains to upgrade to a malicious implementation \u2014 or vice versa, if an attacker controls one chain's upgrade, it replays to all others.",
+  "message": "An upgrade operation signed on one chain can be replayed on all other chains sharing the same wallet address. If a compromised or malicious implementation is pushed on one chain and an owner signs it, the upgrade replays everywhere, potentially taking over all instances of the wallet across all chains.",
+  "recommendation": "Carefully reconsider whether upgradeToAndCall should be in canSkipChainIdValidation(). The ability to replay upgrades cross-chain is extremely dangerous. Either remove it from the whitelist, or add additional per-chain upgrade confirmations. At minimum, document this risk prominently.",
+  "exploit_scenario": "1. Deploy CoinbaseSmartWallet on Chain A and Chain B (same address via CREATE2). 2. On Chain A, get owner to sign a UserOperation calling upgradeToAndCall(maliciousImpl, ...) with REPLAYABLE_NONCE_KEY. 3. Replay the same signed UserOperation on Chain B. 4. The wallet on Chain B is now upgraded to maliciousImpl. 5. Attacker calls maliciousImpl to drain funds.",
+  "swc_id": "",
+  "file": "CoinbaseSmartWallet.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "access_control",
+  "title": "initialize() Can Be Called on Implementation Contract Before Proxy Deployment",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-03-coinbase_fikwb4aa/repo/src/SmartWallet/CoinbaseSmartWallet.sol",
+   "line": 0,
+   "function": "initialize"
+  },
+  "description": "The constructor calls _initializeOwners with address(0) to prevent re-initialization of the implementation, but the check in initialize() is `if (nextOwnerIndex() != 0)`. After the constructor sets one owner (address(0)), nextOwnerIndex() returns 1, so the initialize() check correctly prevents re-initialization on the implementation. However, if a new proxy is deployed pointing to the implementation but initialize() is front-run by an attacker before the deployer can call it, the attacker becomes the first owner. This is a classic proxy initialization front-running issue.",
+  "message": "Attacker front-runs the initialize() call on a newly deployed proxy, setting themselves as the owner. They then have full control of the wallet including executing arbitrary calls and draining funds.",
+  "recommendation": "Initialize the proxy atomically during deployment (e.g., pass initialization data to the proxy constructor), or use a factory pattern that deploys and initializes in a single transaction. Never deploy a proxy without immediately initializing it in the same transaction.",
+  "exploit_scenario": "1. Deployer deploys a new proxy pointing to CoinbaseSmartWallet implementation. 2. Deployer broadcasts initialize([deployerOwner]) transaction. 3. Attacker sees the pending transaction in the mempool and front-runs with initialize([attackerOwner]). 4. Attacker is now the owner of the wallet. 5. Attacker executes arbitrary calls to drain any ETH or tokens sent to the wallet.",
+  "swc_id": "",
+  "file": "CoinbaseSmartWallet.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "reentrancy",
+  "title": "Reentrancy in executeBatch / execute via External Calls",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-03-coinbase_fikwb4aa/repo/src/SmartWallet/CoinbaseSmartWallet.sol",
+   "line": 0,
+   "function": "executeBatch"
+  },
+  "description": "The _call() function performs an external call to an arbitrary target with arbitrary data. In executeBatch(), multiple calls are made sequentially. Since the wallet itself is an owner-controlled account, a malicious target called in one batch entry could re-enter the wallet via execute() or executeBatch() if the caller is an owner (including the wallet itself via self-call). The onlyEntryPointOrOwner modifier allows the wallet itself (address(this)) to call execute/executeBatch. If a batch includes a call to an external contract that re-enters the wallet, and the wallet is calling itself, the re-entrant call passes the owner check. This could allow double-spending of ETH if value accounting is not carefully managed, though in practice the ETH balance check at the EVM level prevents overdraft.",
+  "message": "A malicious contract called within a batch can re-enter executeBatch or execute on the wallet. While ETH cannot be double-spent (EVM enforces balance), state manipulation is possible: e.g., an attacker could re-enter to add themselves as an owner during execution of a batch that was supposed to be atomic.",
+  "recommendation": "Add a reentrancy guard (e.g., OpenZeppelin's ReentrancyGuard or a simple lock) to execute() and executeBatch() to prevent unexpected state changes during external calls.",
+  "exploit_scenario": "1. Owner creates a batch: [Call(maliciousContract, 0, ...), Call(legitTarget, value, ...)]. 2. maliciousContract's fallback re-enters wallet.execute(address(this), 0, addOwnerAddress(attacker)). 3. Since msg.sender for the re-entrant call is maliciousContract (not the wallet itself), this fails the onlyEntryPointOrOwner check... UNLESS the batch was called by the EntryPoint. 4. If called by EntryPoint, the re-entrant call from maliciousContract would fail the EntryPoint check. However, if the wallet calls itself (self-call as owner), and maliciousContract re-enters, the re-entrant call from maliciousContract fails because maliciousContract is not an owner. The reentrancy risk is lower than initially assessed but still worth adding a reentrancy guard.",
+  "swc_id": "",
+  "file": "CoinbaseSmartWallet.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Missing Validation: executeWithoutChainIdValidation Allows Self-Calls That Bypass Chain Validation for Sensitive Operations",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-03-coinbase_fikwb4aa/repo/src/SmartWallet/CoinbaseSmartWallet.sol",
+   "line": 0,
+   "function": "executeWithoutChainIdValidation"
+  },
+  "description": "executeWithoutChainIdValidation calls _call(address(this), 0, data) where data is the raw calldata including a whitelisted selector. This means it calls the wallet itself with the provided data. The whitelisted functions include addOwnerPublicKey, addOwnerAddress, removeOwnerAtIndex, and upgradeToAndCall. When the wallet calls itself with these selectors, the called functions go through onlyOwner checks. However, since msg.sender for self-calls is address(this), and address(this) is an owner of itself (or should be checked), the ownership model must be carefully verified. If address(this) is not explicitly listed as an owner but the onlyOwner modifier uses a check that allows self-calls, this could be exploited.",
+  "message": "If the self-call owner check is improperly implemented, an attacker with access to the EntryPoint could add arbitrary owners or upgrade the contract to a malicious implementation on all chains simultaneously.",
+  "recommendation": "Ensure that the onlyOwner modifier in MultiOwnable does NOT treat address(this) as an automatic owner unless explicitly added. The owner check for self-calls from executeWithoutChainIdValidation should be that the original signer (validated in validateUserOp) is an authorized owner, which it already is by the time execution reaches this point.",
+  "exploit_scenario": "1. Review MultiOwnable._checkOwner() to see if it allows address(this) as owner. 2. If yes, any EntryPoint-initiated call to executeWithoutChainIdValidation with attacker-crafted data (whitelisted selector) adds attacker as owner. 3. This is cross-chain replayable, affecting all deployments.",
+  "swc_id": "",
+  "file": "CoinbaseSmartWallet.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "User-Controlled typeIndex and challengeIndex Allow Bypass of Type and Challenge Verification",
+  "severity": "Critical",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-03-coinbase_fikwb4aa/repo/src/WebAuthnSol/WebAuthn.sol",
+   "line": 114,
+   "function": "verify"
+  },
+  "description": "The `typeIndex` and `challengeIndex` fields in `WebAuthnAuth` are entirely attacker-controlled and are used to locate the 'type' and 'challenge' fields within `clientDataJSON`. An attacker can craft a `clientDataJSON` that contains the expected type string `\"type\":\"webauthn.get\"` and a valid challenge string at attacker-specified offsets, while the actual `type` field in the JSON contains a different value (e.g., `\"type\":\"webauthn.create\"`). Since the library slices `clientDataJSON` at the attacker-supplied index rather than parsing JSON, the attacker can embed the expected strings anywhere in the JSON \u2014 for example inside a comment field or a crafted challenge value \u2014 and point `typeIndex`/`challengeIndex` to those embedded strings. This means the type check (step 11) and challenge check (step 12) can be satisfied even when the actual JSON `type` is NOT `webauthn.get` or the actual challenge does not match.",
+  "message": "An attacker who controls the `WebAuthnAuth` struct (e.g., in a smart contract wallet authentication flow) can forge assertions: they can submit a WebAuthn registration ceremony response (type=webauthn.create) and pass it off as an authentication response, or embed an arbitrary challenge into a crafted clientDataJSON while passing the challenge check. This could allow unauthorized authentication, account takeover, or replay of registration assertions as authentication assertions.",
+  "recommendation": "Instead of relying on attacker-supplied `typeIndex` and `challengeIndex` offsets, implement proper JSON parsing or constrain the checks: (1) verify that `typeIndex` corresponds exactly to the first occurrence of `\"type\":` in the JSON, (2) verify that nothing before `typeIndex` contains `\"type\":`, or (3) use a JSON parser. At minimum, add a check that the character immediately before `typeIndex` is `{` or `,` (i.e., it's a top-level key), and that `challengeIndex` similarly appears at the top level. A safer approach: require `typeIndex == 1` (type must be the first key) and validate the JSON structure more strictly.",
+  "exploit_scenario": "1. Target challenge = bytes('REAL_CHALLENGE')\n2. Craft clientDataJSON = '{\"type\":\"webauthn.create\",\"challenge\":\"FAKE\",\"extra\":\"\\\"type\\\":\\\"webauthn.get\\\"\",\"embedded_challenge\":\"\\\"challenge\\\":\\\"<base64url(REAL_CHALLENGE)>\\\"'}'\n3. Set typeIndex to point to the position of '\"type\":\"webauthn.get\"' in the 'extra' field\n4. Set challengeIndex to point to the position of '\"challenge\":\"<base64url(REAL_CHALLENGE)>\"' in the 'embedded_challenge' field\n5. Sign this clientDataJSON with a valid P256 key\n6. Call verify() \u2014 type check passes (finds embedded string), challenge check passes (finds embedded challenge), signature check passes (valid sig over crafted JSON)\n7. Result: a webauthn.create assertion is accepted as webauthn.get",
+  "swc_id": "",
+  "file": "WebAuthn.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Last Owner Can Be Removed, Permanently Locking Contract",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-03-coinbase_fikwb4aa/repo/src/SmartWallet/MultiOwnable.sol",
+   "line": 84,
+   "function": "removeOwnerAtIndex"
+  },
+  "description": "The removeOwnerAtIndex function contains no check to prevent removal of the last remaining owner. Since onlyOwner restricts all privileged operations, removing the last owner makes all owner-gated functions permanently inaccessible. The contract has no recovery mechanism \u2014 once all owners are removed, no one can add new owners, as addOwnerAddress and addOwnerPublicKey both require onlyOwner.",
+  "message": "An owner (possibly via user error, compromised key, or malicious co-owner) can remove the final owner entry, permanently bricking all access control functionality. For a smart wallet contract (Coinbase smart-wallet), this means all assets held in the wallet become permanently inaccessible.",
+  "recommendation": "Add a check to ensure at least one owner remains after removal. Track active owner count in storage:\n\n\n// Add to MultiOwnableStorage:\nuint256 ownerCount;\n\n// In _addOwnerAtIndex:\n_getMultiOwnableStorage().ownerCount++;\n\n// In removeOwnerAtIndex:\nMultiOwnableStorage storage $ = _getMultiOwnableStorage();\nif ($.ownerCount == 1) revert CannotRemoveLastOwner();\n$.ownerCount--;\n",
+  "exploit_scenario": "1. Contract is deployed with a single owner: Alice (index 0).\n2. Alice calls removeOwnerAtIndex(0).\n3. isOwner[abi.encode(Alice)] is deleted, ownerAtIndex[0] is deleted.\n4. nextOwnerIndex remains 1, but no owners exist.\n5. Any call to addOwnerAddress() reverts with Unauthorized() since msg.sender is not an owner and msg.sender != address(this).\n6. Contract is permanently locked with no path to recovery.",
+  "swc_id": "",
+  "file": "MultiOwnable.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Invalid Passkey Owner (Point at Infinity / Zero Coordinates) Can Be Registered",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2024-03-coinbase_fikwb4aa/repo/src/SmartWallet/MultiOwnable.sol",
+   "line": 161,
+   "function": "_initializeOwners"
+  },
+  "description": "The _initializeOwners and _addOwner functions accept 64-byte passkey owners (x, y coordinates) without validating that the point is a valid, non-degenerate point on the secp256r1 curve. Specifically, (x=0, y=0) is the point at infinity which is not a valid public key. Any passkey signature verification that uses these coordinates would either always pass or always fail, depending on the verifier implementation. This could allow registering an 'owner' that can never sign (denial of service) or potentially one with forged ownership depending on the off-chain verifier.",
+  "message": "An attacker who is already an owner could add (0,0) as a passkey owner to grief the system, or register an invalid public key that corrupts signature verification logic in the calling contract. In the worst case, if the verifier treats (0,0) specially, it may allow unauthorized access.",
+  "recommendation": "Add validation that passkey coordinates are non-zero and ideally within the valid curve field range:\n\n\nif (owners[i].length == 64) {\n    (bytes32 x, bytes32 y) = abi.decode(owners[i], (bytes32, bytes32));\n    if (uint256(x) == 0 && uint256(y) == 0) revert InvalidPasskeyOwner(owners[i]);\n    // Optionally: validate x,y < secp256r1 field prime\n}\n",
+  "exploit_scenario": "1. Existing owner calls addOwnerPublicKey(bytes32(0), bytes32(0)).\n2. abi.encode(bytes32(0), bytes32(0)) is 64 bytes, passes length check.\n3. isOwner[abi.encode(0,0)] = true; ownerAtIndex[n] = abi.encode(0,0).\n4. The zero public key is now a registered owner with no corresponding private key (or one that may be trivially forgeable depending on the verifier).",
+  "swc_id": "",
+  "file": "MultiOwnable.sol",
+  "backend": "claude"
+ }
+]

@@ -37,6 +37,7 @@ from miesc.core.tool_protocol import (
     ToolMetadata,
     ToolStatus,
 )
+from miesc.llm.json_extraction import extract_llm_array
 
 # Try to import EmbeddingRAG (optional dependency)
 try:
@@ -146,6 +147,7 @@ class PropertyGPTAdapter(ToolAdapter):
             ],
             cost=0.0,  # Using local Ollama by default
             requires_api_key=False,  # Optional for cloud LLMs
+            requires_llm=True,
             is_optional=True,
         )
 
@@ -509,14 +511,12 @@ Output: JSON array. Only generate properties relevant to THIS contract's logic.
                     data = json.loads(resp.read().decode())
                     response_text = data.get("response", "").strip()
 
-                    # Extract JSON array (may be embedded in markdown)
-                    json_match = re.search(r"\[.*\]", response_text, re.DOTALL)
-                    if json_match:
-                        properties = json.loads(json_match.group(0))
+                    # Extract JSON array (may be embedded in markdown/prose)
+                    properties = extract_llm_array(response_text, log_prefix="PropertyGPT")
+                    if properties:
                         return cast(List[Dict[str, Any]], properties)
-                    else:
-                        logger.warning("Could not parse Ollama response as JSON")
-                        return self._generate_fallback_properties()
+                    logger.warning("Could not parse Ollama response as JSON")
+                    return self._generate_fallback_properties()
                 else:
                     logger.error(f"Ollama returned status {resp.status}")
                     return self._generate_fallback_properties()

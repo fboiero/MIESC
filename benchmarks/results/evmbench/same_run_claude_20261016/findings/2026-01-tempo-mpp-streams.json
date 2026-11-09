@@ -1,0 +1,135 @@
+[
+ {
+  "type": "access_control",
+  "title": "Unauthorized initiateClose() - Anyone Can Trigger Grace Period",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2026-01-tempo-mpp-streams_i6ovlpry/repo/contracts/TempoStreamChannel.sol",
+   "line": 0,
+   "function": "initiateClose"
+  },
+  "description": "The initiateClose() function has no access control whatsoever. Any external caller can invoke it for any channel, immediately starting the grace period countdown. The function only checks that the channel exists, is not finalized, and hasn't already started closing. There is no check that msg.sender is the payer or payee.",
+  "message": "An attacker (or even a griefing bot) can force-start the closure process on any channel at any time. After the 1-hour grace period, the payer can call finalize() and retrieve their funds, effectively terminating a legitimate streaming channel against the payee's wishes. A malicious payer could also use this to force-close a channel after receiving services but before the payee has had a chance to settle final vouchers (although 1 hour might be sufficient, it disrupts the protocol's intended flow). A third-party griefing attack can disrupt any channel by starting the closure timer unexpectedly.",
+  "recommendation": "Add access control to initiateClose() restricting callers to the channel's payer and/or payee: `if (msg.sender != channel.payer && msg.sender != channel.payee) revert UnauthorizedCaller();`",
+  "exploit_scenario": "1. Alice (payer) and Bob (payee) have an active streaming channel. 2. Eve (any external address) calls initiateClose(channelId). 3. Grace period starts. 4. After 1 hour, Alice calls finalize() and gets her remaining deposit back. 5. Bob is unable to settle any vouchers signed after the grace period ends (channel is finalized). Alternatively: 1. Bob (payee) provides a service and signs vouchers incrementally. 2. Alice (payer) uses a bot to call initiateClose() at any time. 3. After grace period, Alice reclaims funds even though she owes Bob for recent services.",
+  "swc_id": "",
+  "file": "TempoStreamChannel.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "signature_validation",
+  "title": "ecrecover Returns address(0) Not Checked - Forged Signatures",
+  "severity": "Critical",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2026-01-tempo-mpp-streams_i6ovlpry/repo/contracts/TempoStreamChannel.sol",
+   "line": 0,
+   "function": "settle, close"
+  },
+  "description": "The _recoverSigner() function returns address(0) when the signature length is not 65 bytes. Additionally, ecrecover itself can return address(0) for certain malformed inputs (e.g., v not in {27,28}, or s=0, r=0). In settle(), the recovered signer is compared to channel.authorizedSigner. If channel.authorizedSigner was set to address(0) (either intentionally or by passing address(0) in openChannel()), then a zero-length or malformed signature would pass the check `signer != channel.authorizedSigner` since both would be address(0). There is no validation in openChannel() that authorizedSigner != address(0).",
+  "message": "If a channel is opened with authorizedSigner = address(0) (no check prevents this), anyone can settle arbitrary vouchers against that channel by passing a malformed/invalid signature, draining the channel's entire deposit to the payee. In the close() function, the same issue applies to the voucher signature check.",
+  "recommendation": "1. Add a zero-address check for authorizedSigner in openChannel(): `if (authorizedSigner == address(0)) revert ZeroAddress();` 2. Add a zero-address check after recovery: `if (signer == address(0)) revert InvalidSignature();` in both settle() and close().",
+  "exploit_scenario": "1. Attacker calls openChannel() with authorizedSigner = address(0), payee = attacker_address, any token and deposit amount (using a victim's pre-approved tokens, or the attacker's own to demonstrate). 2. Attacker calls settle() with a Voucher containing cumulativeAmount = deposit and any signature of length != 65 (e.g., empty bytes). 3. _recoverSigner returns address(0). 4. Check: signer (address(0)) != channel.authorizedSigner (address(0)) evaluates to FALSE, so no revert. 5. Entire deposit is transferred to the payee (attacker).",
+  "swc_id": "",
+  "file": "TempoStreamChannel.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "close() Does Not Validate Nonce or Expiry - Replay and Stale Voucher Attack",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2026-01-tempo-mpp-streams_i6ovlpry/repo/contracts/TempoStreamChannel.sol",
+   "line": 0,
+   "function": "close"
+  },
+  "description": "Unlike settle(), the close() function does not check: (1) voucher.expiry against block.timestamp, (2) voucher.nonce against settledNonces, and (3) does not update settledNonces after execution. This means: (a) Expired vouchers can be used for cooperative close. (b) Previously-settled nonces can be replayed in close(). (c) The nonce tracking is bypassed entirely for cooperative closes.",
+  "message": "A payee could use an old/expired voucher in close() to claim funds they shouldn't be entitled to. More critically, if a voucher was already settled (nonce already used), the payee could call close() with the same voucher again. However, since channel.settled is updated during settle(), the delta calculation in close() (`voucher.cumulativeAmount - channel.settled`) would be 0 or negative in that case (though it could underflow if cumulativeAmount < settled). The lack of expiry check means indefinitely valid vouchers for cooperative close.",
+  "recommendation": "Add the same checks as settle() to close(): `if (block.timestamp > voucher.expiry) revert VoucherExpired(); if (voucher.nonce <= settledNonces[voucher.channelId]) revert NonceTooLow(); settledNonces[voucher.channelId] = voucher.nonce;`",
+  "exploit_scenario": "1. Payee and payer complete some settlements. settledNonces[channelId] = 5, channel.settled = 100. 2. An old voucher from nonce=3, cumulativeAmount=50, expiry=past is available. 3. Payee calls close() with this old voucher and gets payer's payerSignature. 4. No expiry check, no nonce check - the function proceeds. 5. delta = 50 - 100 = underflow (reverts in Solidity 0.8), BUT if cumulativeAmount > settled, funds could be double-paid. 6. Alternatively: fresh voucher with cumulativeAmount=150 but expired - close() accepts it.",
+  "swc_id": "",
+  "file": "TempoStreamChannel.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "signature_validation",
+  "title": "close() Payer Signature Uses Non-EIP712 Signing - Signature Malleability Risk",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2026-01-tempo-mpp-streams_i6ovlpry/repo/contracts/TempoStreamChannel.sol",
+   "line": 0,
+   "function": "close"
+  },
+  "description": "The close() function uses two different signature schemes: the voucher uses EIP-712 structured hashing, but the payerSignature uses a raw keccak256 with manual `\\x19Ethereum Signed Message:\\n32` prefix (eth_sign style). The closeHash is computed as `keccak256(abi.encodePacked(\"CLOSE\", channelId, cumulativeAmount))`. This is inconsistent and potentially dangerous because: (1) The payer signature does not include the nonce or expiry, so a valid payerSignature for amount X at any point in time can be replayed. (2) The nonce in the Voucher struct does not protect the cooperative close - only the voucher signature checks the nonce (which isn't validated in close() anyway). (3) abi.encodePacked with dynamic types can cause hash collisions (though bytes32 and uint256 are fixed-size here, so this specific instance is safe).",
+  "message": "A captured payerSignature from one cooperative close attempt can be replayed with any voucher carrying the same channelId and cumulativeAmount. Since nonce is not included in closeHash, old payer signatures remain valid indefinitely for the same amount. This could allow a payee to replay a payer's authorization.",
+  "recommendation": "Use EIP-712 for the payer signature as well, including nonce and expiry: define a CloseAuthorization typehash with channelId, cumulativeAmount, nonce, expiry fields.",
+  "exploit_scenario": "1. Payer signs a cooperative close for channelId=X, cumulativeAmount=100 (no nonce in payer signature). 2. The close() is called, channel finalized. 3. Later, for a NEW channel with the same channelId (impossible due to channel ID generation - but the signature itself has no expiry or nonce). 4. More practically: the payer signs close with amount=100, but then decides to increase to 150 via settle(). The old signature for amount=100 is still usable if someone calls close() with cumulativeAmount=100.",
+  "swc_id": "",
+  "file": "TempoStreamChannel.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "access_control",
+  "title": "settle() Missing Check That Caller Is Payee",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2026-01-tempo-mpp-streams_i6ovlpry/repo/contracts/TempoStreamChannel.sol",
+   "line": 0,
+   "function": "settle"
+  },
+  "description": "The settle() function has no check that msg.sender is the channel's payee. Any external caller who possesses a valid voucher signature can call settle() and trigger a transfer to the payee. While the funds go to the correct payee address, this allows third-party MEV bots or attackers to force settlement at inopportune times, potentially settling partial vouchers to prevent the payee from accumulating a larger settlement in a single transaction, or front-running payee settlements.",
+  "message": "While funds always go to the payee, unauthorized settlement could be used for griefing: front-run a large voucher settlement with a small one to force the payee to do multiple transactions, or settle at a time that triggers unintended tax/accounting events. More critically, in combination with other bugs, this expands the attack surface.",
+  "recommendation": "Add access control to settle(): `if (msg.sender != channel.payee) revert UnauthorizedCaller();` - or explicitly document that this is intentional (permissionless settlement) and ensure it doesn't create other vulnerabilities.",
+  "exploit_scenario": "1. Payee holds a signed voucher for cumulativeAmount=1000 and plans to settle at once. 2. Attacker intercepts the voucher (or front-runs the mempool). 3. Attacker calls settle() with a smaller intermediate voucher (cumulativeAmount=100) before the payee's transaction. 4. Payee's transaction still works, but the optimal single-settlement strategy is disrupted.",
+  "swc_id": "",
+  "file": "TempoStreamChannel.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "access_control",
+  "title": "addDeposit() Allows Anyone to Deposit Into Any Channel (Including Finalized Check Bypass via Front-Run)",
+  "severity": "Medium",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2026-01-tempo-mpp-streams_i6ovlpry/repo/contracts/TempoStreamChannel.sol",
+   "line": 0,
+   "function": "addDeposit"
+  },
+  "description": "addDeposit() does not restrict who can add funds to a channel. While the finalized check prevents adding to closed channels, any address can add tokens to any active channel. This means: (1) An attacker can front-run a finalize() call by adding a tiny deposit, increasing channel.deposit, which increases payerRefund. While this seems beneficial, it burns the attacker's own tokens. (2) More importantly, combined with the griefing attack on initiateClose(), a third party could add tokens to manipulate channel accounting.",
+  "message": "Low direct financial impact (depositor loses their own tokens), but creates griefing vectors. An attacker could inflate a channel's deposit causing unexpected behavior in accounting.",
+  "recommendation": "Restrict addDeposit() to the channel payer only: `if (msg.sender != channel.payer) revert UnauthorizedCaller();`",
+  "exploit_scenario": "1. Channel has deposit=1000, settled=900. 2. Eve calls addDeposit() adding 1000 tokens. 3. Now deposit=2000, settled=900. 4. Payer gets refund of 1100 instead of 100 - but Eve spent 1000 tokens for this. 5. Net effect: Eve gifted 1000 tokens to the payer. No direct exploit but unexpected behavior.",
+  "swc_id": "",
+  "file": "TempoStreamChannel.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Voucher cumulativeAmount Can Exceed channel.deposit in settle()",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2026-01-tempo-mpp-streams_i6ovlpry/repo/contracts/TempoStreamChannel.sol",
+   "line": 0,
+   "function": "settle"
+  },
+  "description": "In settle(), the overflow check is: `if (delta > channel.deposit - channel.settled) revert InsufficientDeposit()`. This checks that the incremental payment (delta) doesn't exceed remaining deposit. However, it does NOT check that `voucher.cumulativeAmount <= channel.deposit`. If channel.settled is already 0, then `channel.deposit - channel.settled = channel.deposit`, and delta = cumulativeAmount - 0 = cumulativeAmount. So cumulativeAmount can equal channel.deposit (all funds to payee). This seems correct. BUT: consider the scenario where settled=500, deposit=1000, and a voucher with cumulativeAmount=1000 is submitted. delta=500, deposit-settled=500. Check passes. This is also correct. The math seems to work. However, after addDeposit() increases deposit, an old voucher with cumulativeAmount=old_deposit could be replayed if it hasn't been used yet (nonce must be higher). So the logic appears correct for the settled case, but there's a subtle issue: `channel.deposit - channel.settled` can be manipulated by addDeposit() to allow settlement of vouchers that previously would have failed.",
+  "message": "If a payee has a voucher that was rejected due to InsufficientDeposit, an attacker (or the payee themselves) can call addDeposit() to increase channel.deposit, then retry the voucher. This isn't necessarily a bug but could be unexpected behavior.",
+  "recommendation": "This is actually intended behavior (addDeposit is meant to allow more settlement). However, document it clearly. The real fix needed is ensuring vouchers are only valid up to the deposit amount at signing time - this requires including the deposit amount in the voucher struct.",
+  "exploit_scenario": "1. Channel deposit=100, settled=0. Payee has voucher cumulativeAmount=150. 2. settle() reverts: delta=150 > deposit-settled=100. 3. Payee calls addDeposit(50). Now deposit=150. 4. settle() succeeds: delta=150 <= deposit-settled=150. 5. Payee drains entire deposit with a voucher that was previously invalid.",
+  "swc_id": "",
+  "file": "TempoStreamChannel.sol",
+  "backend": "claude"
+ }
+]

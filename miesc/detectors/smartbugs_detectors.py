@@ -19,6 +19,13 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+from miesc.detectors.access_guards import (
+    OWNER_LIKE_RE,
+    has_caller_guard,
+    is_self_service_withdrawal,
+    tx_origin_authorizes,
+)
+
 
 class Severity(Enum):
     CRITICAL = "critical"
@@ -40,6 +47,105 @@ class SmartBugsFinding:
     code_snippet: Optional[str] = None
     swc_id: str = ""
     confidence: str = "high"
+
+
+# =============================================================================
+# SHARED SOURCE HELPERS
+# =============================================================================
+
+
+def _blank_comments(source_code: str) -> str:
+    """Replace comment text with spaces so offsets and line numbers are preserved."""
+
+    def _blank(match: "re.Match[str]") -> str:
+        return re.sub(r"[^\n]", " ", match.group(0))
+
+    without_blocks = re.sub(r"/\*.*?\*/", _blank, source_code, flags=re.S)
+    return re.sub(r"//[^\n]*", _blank, without_blocks)
+
+
+@dataclass
+class _FunctionBlock:
+    """A Solidity function header plus its body (empty for declarations)."""
+
+    name: str
+    line: int
+    params: List[Tuple[str, str]]  # (type, name); name is "" for unnamed params
+    header_tail: str  # text between the parameter list and the body / ';'
+    body: str
+    body_offset: int  # absolute offset of ``body`` inside the source
+    has_body: bool
+
+    def is_externally_callable(self) -> bool:
+        return not re.search(r"\b(?:internal|private)\b", self.header_tail)
+
+    def param_names(self) -> List[str]:
+        return [name for _, name in self.params if name]
+
+
+_PARAM_KEYWORDS = {"memory", "storage", "calldata", "payable", "indexed"}
+
+
+def _parse_params(param_list: str) -> List[Tuple[str, str]]:
+    params: List[Tuple[str, str]] = []
+    for raw in param_list.split(","):
+        words = [w for w in raw.split() if w not in _PARAM_KEYWORDS]
+        if not words:
+            continue
+        if len(words) == 1:
+            params.append((words[0], ""))
+        else:
+            params.append((words[0], words[-1]))
+    return params
+
+
+def _extract_function_blocks(source_code: str) -> List[_FunctionBlock]:
+    """Extract functions from comment-free source.
+
+    Unlike a naive ``find("{")``, a declaration such as
+    ``function transfer(address, uint) returns (bool);`` yields an empty body
+    instead of swallowing the next function's braces.
+    """
+    blocks: List[_FunctionBlock] = []
+    for match in re.finditer(r"\bfunction\s+(\w+)\s*\(([^)]*)\)", source_code):
+        pos = match.end()
+        depth = 0
+        while pos < len(source_code):
+            char = source_code[pos]
+            if char == "(":
+                depth += 1
+            elif char == ")":
+                depth -= 1
+            elif depth == 0 and char in "{;":
+                break
+            pos += 1
+        if pos >= len(source_code):
+            continue
+
+        header_tail = source_code[match.end() : pos]
+        line = source_code[: match.start()].count("\n") + 1
+        params = _parse_params(match.group(2))
+
+        if source_code[pos] == ";":
+            blocks.append(_FunctionBlock(match.group(1), line, params, header_tail, "", pos, False))
+            continue
+
+        brace_count = 0
+        end = pos
+        for cursor in range(pos, len(source_code)):
+            char = source_code[cursor]
+            if char == "{":
+                brace_count += 1
+            elif char == "}":
+                brace_count -= 1
+                if brace_count == 0:
+                    end = cursor
+                    break
+        body = source_code[pos + 1 : end]
+        blocks.append(
+            _FunctionBlock(match.group(1), line, params, header_tail, body, pos + 1, True)
+        )
+    return blocks
 
 
 # =============================================================================
@@ -102,6 +208,12 @@ class ArithmeticDetector:
         in_library = False
         library_depth = 0
 
+        # Contract-level state variables and function parameters, so a write to
+        # storage driven by an external input (`count -= input`) counts even when
+        # the variable name carries no financial term.
+        state_vars = self._state_variable_names(source_code)
+        params = self._parameter_names(source_code)
+
         # Look for arithmetic operations
         for i, line in enumerate(lines, 1):
             # Skip comments
@@ -125,7 +237,7 @@ class ArithmeticDetector:
             for pattern, desc in self.ARITHMETIC_PATTERNS:
                 if re.search(pattern, line):
                     # Check it's not a constant or safe context
-                    confidence = self._get_confidence(line, source_code)
+                    confidence = self._get_confidence(line, source_code, state_vars, params)
                     if confidence:
                         findings.append(
                             SmartBugsFinding(
@@ -143,10 +255,49 @@ class ArithmeticDetector:
 
         return findings
 
-    def _get_confidence(self, line: str, source: str) -> Optional[str]:
+    _STATE_VAR_DECL = re.compile(
+        r"^\s*(?:mapping\s*\([^;]*?\)|u?int\d*|address|bytes\d*|bool)"
+        r"(?:\s*\[\s*\])*\s+(?:public|private|internal|constant\s+)?\s*(\w+)\s*(?:=|;)",
+        re.M,
+    )
+    _FUNCTION_SIG = re.compile(r"\bfunction\s+\w*\s*\(([^)]*)\)")
+
+    @classmethod
+    def _state_variable_names(cls, source: str) -> set:
+        """Names declared at contract scope (best-effort, regex-based)."""
+        names = set()
+        depth = 0
+        for raw in source.split("\n"):
+            line = raw.split("//")[0]
+            if depth == 1:  # inside a contract body, outside functions
+                m = cls._STATE_VAR_DECL.match(line)
+                if m and not line.strip().startswith("function"):
+                    names.add(m.group(1))
+            depth += line.count("{") - line.count("}")
+        return names
+
+    @classmethod
+    def _parameter_names(cls, source: str) -> set:
+        """Identifiers that appear as function parameters anywhere in the file."""
+        names = set()
+        for sig in cls._FUNCTION_SIG.findall(source):
+            for part in sig.split(","):
+                tokens = part.strip().split()
+                if tokens:
+                    names.add(tokens[-1])
+        names.discard("")
+        return names
+
+    def _get_confidence(
+        self,
+        line: str,
+        source: str,
+        state_vars: Optional[set] = None,
+        params: Optional[set] = None,
+    ) -> Optional[str]:
         """
         Determine confidence level for arithmetic finding.
-        Returns: 'high', 'medium', 'low', or None (skip)
+        Returns: 'high', 'medium', or None (skip)
         """
         line_lower = line.lower().strip()
 
@@ -197,10 +348,10 @@ class ArithmeticDetector:
         if "constant" in line_lower or "immutable" in line_lower:
             return None
 
-        # Skip if not an actual assignment. The `\w+(?:\([^)]*\))?` allows a cast or
-        # call on the right-hand side (e.g. `= uint256(cnt) * _value`, the batchOverflow
-        # shape) which a bare `\w+` would miss.
-        if not re.search(r"[+\-*]=|=\s*\w+(?:\s*\([^)]*\))?\s*[+\-*]", line):
+        # Skip if not an actual assignment. The right-hand operand may be a cast or
+        # call (`= uint256(cnt) * _value`, the batchOverflow shape) or an indexed
+        # state read (`= balances[msg.sender] + amount`); a bare `\w+` missed both.
+        if not re.search(r"[+\-*]=|=\s*\w+(?:\s*(?:\[[^\]]*\]|\([^)]*\)))*\s*[+\-*]", line):
             return None
 
         # === CONFIDENCE LEVELS ===
@@ -233,8 +384,18 @@ class ArithmeticDetector:
         if is_high_confidence or is_state_var:
             return "medium"
 
-        # LOW: Any other arithmetic assignment
-        return "low"
+        # MEDIUM: a contract-level variable written with an external input
+        # (`count -= input;` — SmartBugs integer_overflow_* shape).
+        m = re.match(r"\s*(\w+)\s*(?:\[[^\]]*\]\s*)?(?:[+\-*]=|=)", line)
+        if m and state_vars and m.group(1) in state_vars:
+            rhs = line.split("=", 1)[1] if "=" in line else ""
+            rhs_idents = set(re.findall(r"[A-Za-z_]\w*", rhs))
+            if "msg" in rhs_idents or (params and rhs_idents & params):
+                return "medium"
+
+        # Anything else is "pre-0.8 code does arithmetic": on SmartBugs-curated that
+        # fired on all 128 non-arithmetic contracts, so it is not reported as a finding.
+        return None
 
 
 # =============================================================================
@@ -497,20 +658,6 @@ class FrontRunningDetector:
         (r"if\s*\([^)]*==\s*\w+\s*\)[^{]*winner", "Winner determination - front-running target"),
         # Price oracle without time delay (high risk)
         (r"getPrice\s*\(\s*\)\s*;", "Price oracle call - front-running/sandwich risk"),
-        # ERC20 approve front-running (classic vulnerability)
-        (
-            r"function\s+approve\s*\([^)]*spender[^)]*value",
-            "ERC20 approve - front-running vulnerable",
-        ),
-        (
-            r"_allowed\s*\[[^\]]+\]\s*\[[^\]]+\]\s*=\s*\w+",
-            "Allowance assignment - approve front-running",
-        ),
-        # Hash-based puzzle/reveal (miner can front-run solution)
-        (
-            r"sha3\s*\([^)]+\)\s*\)|keccak256\s*\([^)]+\)",
-            "Hash comparison - solution can be front-run",
-        ),
         # Transfer based on state variable (TOD)
         (r"\.transfer\s*\(\s*reward\s*\)", "Transfer of reward variable - TOD vulnerable"),
         (r"msg\.sender\.transfer\s*\(\s*\w*reward", "Transfer to sender based on reward - TOD"),
@@ -518,49 +665,72 @@ class FrontRunningDetector:
         (r"players\s*\[\s*\w+\s*\]\s*=.*msg\.sender", "Player registration - can be front-run"),
     ]
 
+    # Ether leaving the contract inside a function body.
+    VALUE_TRANSFER = re.compile(
+        r"\.(?:transfer|send)\s*\(|\.call\s*\.value\s*\(|\.call\s*\{\s*value"
+    )
+    # A nested allowance write such as ``allowed[msg.sender][spender] = value;``
+    ALLOWANCE_OVERWRITE = re.compile(
+        r"\w*allow\w*\s*\[\s*msg\.sender\s*\]\s*\[\s*\w+\s*\]\s*=\s*\w+\s*;", re.I
+    )
+    # The classic mitigation: require the current allowance (or the new value) to be zero.
+    ALLOWANCE_ZERO_GUARD = re.compile(
+        r"\w*allow\w*\s*\[\s*msg\.sender\s*\]\s*\[\s*\w+\s*\]\s*[!=]=\s*0", re.I
+    )
+    REWARD_STATE_VAR = re.compile(
+        r"\buint\d*\s+(?:public\s+|internal\s+|private\s+)?((?:reward|prize|bounty|payout)\w*)\s*[;=]",
+        re.I,
+    )
+
     def detect(self, source_code: str, file_path: Optional[Path] = None) -> List[SmartBugsFinding]:
         findings: List[SmartBugsFinding] = []
         lines = source_code.split("\n")
         reported_lines = set()
+        code = _blank_comments(source_code)
+        code_lines = code.split("\n")
+        blocks = _extract_function_blocks(code)
 
-        # Check for hash-then-transfer pattern (commit-reveal needed)
-        has_hash_check = re.search(r"(sha3|keccak256)\s*\([^)]+\)", source_code)
-        has_transfer = re.search(r"\.transfer\s*\(", source_code)
-        if has_hash_check and has_transfer:
-            # Find the hash line
-            for i, line in enumerate(lines, 1):
-                if re.search(r"(sha3|keccak256)\s*\([^)]+\)", line):
-                    findings.append(
-                        SmartBugsFinding(
-                            title="Front-Running - Hash Puzzle",
-                            description=f"Hash check followed by transfer. Solution visible in mempool can be front-run. Line {i}.",
-                            severity=Severity.HIGH,
-                            category=self.category,
-                            line=i,
-                            code_snippet=line.strip(),
-                            swc_id=self.swc_id,
-                        )
-                    )
-                    reported_lines.add(i)
-                    break
+        # Hash puzzle: a function compares the hash of one of its own
+        # parameters (the "solution" travels in calldata) and then pays out.
+        # The reveal transaction can be copied from the mempool.
+        hash_line = self._find_hash_puzzle(code, blocks)
+        if hash_line is not None:
+            findings.append(
+                SmartBugsFinding(
+                    title="Front-Running - Hash Puzzle",
+                    description=(
+                        "Function compares the hash of a calldata argument and then transfers "
+                        f"value. Solution visible in mempool can be front-run. Line {hash_line}."
+                    ),
+                    severity=Severity.HIGH,
+                    category=self.category,
+                    line=hash_line,
+                    code_snippet=lines[hash_line - 1].strip(),
+                    swc_id=self.swc_id,
+                )
+            )
+            reported_lines.add(hash_line)
 
-        # Check for ERC20 approve pattern
-        if "function approve" in source_code and "_allowed" in source_code:
-            for i, line in enumerate(lines, 1):
-                if "function approve" in line:
-                    findings.append(
-                        SmartBugsFinding(
-                            title="Front-Running - ERC20 Approve",
-                            description=f"ERC20 approve function without increaseAllowance pattern. Line {i}.",
-                            severity=Severity.MEDIUM,
-                            category=self.category,
-                            line=i,
-                            code_snippet=line.strip(),
-                            swc_id=self.swc_id,
-                        )
-                    )
-                    reported_lines.add(i)
-                    break
+        # ERC20 approve race: an implemented approve() overwrites the allowance
+        # directly, with neither a zero-allowance guard nor increase/decrease
+        # helpers. Interface declarations and guarded approves are not reported.
+        approve_line = self._find_unguarded_approve(code, blocks)
+        if approve_line is not None:
+            findings.append(
+                SmartBugsFinding(
+                    title="Front-Running - ERC20 Approve",
+                    description=(
+                        "ERC20 approve overwrites the allowance without a zero-allowance guard or "
+                        f"increaseAllowance/decreaseAllowance pattern. Line {approve_line}."
+                    ),
+                    severity=Severity.MEDIUM,
+                    category=self.category,
+                    line=approve_line,
+                    code_snippet=lines[approve_line - 1].strip(),
+                    swc_id=self.swc_id,
+                )
+            )
+            reported_lines.add(approve_line)
 
         # Check for incomplete commit-reveal schemes. A reveal function that
         # validates a secret/hash without an enforced delay or stake can still
@@ -587,26 +757,33 @@ class FrontRunningDetector:
                     reported_lines.add(i)
                     break
 
-        # Check for TOD pattern (state-dependent transfer)
-        reward_vars = re.findall(r"\b(reward|prize|bounty|payout)\s*[=;]", source_code, re.I)
-        if reward_vars and re.search(r"\.transfer\s*\(", source_code):
-            for i, line in enumerate(lines, 1):
-                if i not in reported_lines and re.search(r"\.transfer\s*\(", line):
+        # TOD: a reward held in a state variable is paid to whoever calls.
+        # Whoever lands first in the block takes it, so ordering decides.
+        reward_state_vars = {name.lower() for name in self.REWARD_STATE_VAR.findall(code)}
+        if reward_state_vars:
+            for i, line in enumerate(code_lines, 1):
+                if i in reported_lines:
+                    continue
+                payout = re.search(r"msg\.sender\s*\.\s*(?:transfer|send)\s*\(\s*(\w+)\s*\)", line)
+                if payout and payout.group(1).lower() in reward_state_vars:
                     findings.append(
                         SmartBugsFinding(
                             title="Front-Running - Transaction Order Dependence",
-                            description=f"Transfer based on state variable. Transaction order can affect outcome. Line {i}.",
+                            description=(
+                                f"Transfer of state-held reward '{payout.group(1)}' to msg.sender. "
+                                f"Transaction order decides who receives it. Line {i}."
+                            ),
                             severity=Severity.MEDIUM,
                             category=self.category,
                             line=i,
-                            code_snippet=line.strip(),
+                            code_snippet=lines[i - 1].strip(),
                             swc_id=self.swc_id,
                         )
                     )
                     reported_lines.add(i)
 
-        # Standard pattern matching
-        for i, line in enumerate(lines, 1):
+        # Standard pattern matching (comments blanked out)
+        for i, line in enumerate(code_lines, 1):
             if i in reported_lines:
                 continue
             for pattern, desc in self.FRONT_RUNNING_PATTERNS:
@@ -618,7 +795,7 @@ class FrontRunningDetector:
                             severity=Severity.MEDIUM,
                             category=self.category,
                             line=i,
-                            code_snippet=line.strip(),
+                            code_snippet=lines[i - 1].strip(),
                             swc_id=self.swc_id,
                         )
                     )
@@ -626,6 +803,52 @@ class FrontRunningDetector:
                     break
 
         return findings
+
+    def _find_hash_puzzle(self, code: str, blocks: List[_FunctionBlock]) -> Optional[int]:
+        """Line of the first ``hash(param) ==`` check inside a paying function, if any."""
+        for block in blocks:
+            if not block.has_body or not self.VALUE_TRANSFER.search(block.body):
+                continue
+            names = block.param_names()
+            if not names:
+                continue
+            param_pattern = re.compile(r"\b(?:" + "|".join(map(re.escape, names)) + r")\b")
+            offset = 0
+            for statement in block.body.split(";"):
+                if re.search(r"==|!=", statement):
+                    for call in re.finditer(r"\b(?:sha3|keccak256)\s*\(", statement):
+                        args = self._call_arguments(statement, call.end() - 1)
+                        if param_pattern.search(args):
+                            absolute = block.body_offset + offset + call.start()
+                            return code[:absolute].count("\n") + 1
+                offset += len(statement) + 1
+        return None
+
+    def _find_unguarded_approve(self, code: str, blocks: List[_FunctionBlock]) -> Optional[int]:
+        """Line of an implemented approve() that overwrites the allowance unguarded."""
+        if re.search(r"\bfunction\s+(?:increase|decrease)(?:Approval|Allowance)", code):
+            return None
+        for block in blocks:
+            if block.name != "approve" or not block.has_body:
+                continue
+            if self.ALLOWANCE_OVERWRITE.search(block.body) and not self.ALLOWANCE_ZERO_GUARD.search(
+                block.body
+            ):
+                return block.line
+        return None
+
+    @staticmethod
+    def _call_arguments(text: str, open_paren: int) -> str:
+        """Return the text between a '(' at ``open_paren`` and its matching ')'."""
+        depth = 0
+        for pos in range(open_paren, len(text)):
+            if text[pos] == "(":
+                depth += 1
+            elif text[pos] == ")":
+                depth -= 1
+                if depth == 0:
+                    return text[open_paren + 1 : pos]
+        return text[open_paren + 1 :]
 
     def _has_incomplete_commit_reveal(self, source_code: str) -> bool:
         """Detect commit-reveal flows without obvious anti-front-running controls."""
@@ -669,28 +892,22 @@ class ShortAddressDetector:
     provides a short address (missing trailing bytes), the EVM pads from the
     right, causing subsequent uint parameters to be shifted and multiplied.
 
-    Vulnerable pattern: function(address, uint) without msg.data.length check
+    Vulnerable pattern (the DASP/SmartBugs scenario): an externally callable
+    ``transfer(address _to, uint256 _amount)``-style function, compiled with
+    solc < 0.5 (whose ABI decoder accepts short calldata), whose body credits
+    ``_to`` with ``_amount``, and no ``msg.data.length`` check. Declarations
+    without a body, internal/private helpers, owner-only functions and
+    functions that do not move value with both parameters are not reported.
     """
 
     name = "short-address-detector"
     category = "short_addresses"
     swc_id = "SWC-129"
 
-    # Patterns for functions vulnerable to short address attack
-    # Any function taking (address, uint) parameters
-    VULNERABLE_FUNCTION_PATTERNS = [
-        # Standard token transfer patterns
-        r"function\s+transfer\s*\(\s*address\s+\w+\s*,\s*uint",
-        r"function\s+transferFrom\s*\(\s*address",
-        r"function\s+approve\s*\(\s*address\s+\w+\s*,\s*uint",
-        # Generic patterns: any function with (address, uint) signature
-        r"function\s+\w+\s*\(\s*address\s+\w+\s*,\s*uint\d*\s+\w+\s*\)",
-        r"function\s+\w+\s*\(\s*address\s+\w+\s*,\s*uint\d*\s+\w+\s*,",
-        # Common naming patterns for token operations
-        r"function\s+send\w*\s*\(\s*address",
-        r"function\s+mint\s*\(\s*address\s+\w+\s*,\s*uint",
-        r"function\s+burn\s*\(\s*address\s+\w+\s*,\s*uint",
-    ]
+    # solc >= 0.5.0 reverts on short calldata, so the attack is impossible.
+    PRAGMA_MINOR = re.compile(r"pragma\s+solidity\s*[\^>=]*\s*0\.(\d+)")
+    OWNER_GATE_MODIFIER = re.compile(r"\bonly\w*\b", re.I)
+    OWNER_GATE_CHECK = re.compile(r"\b(?:msg\.sender|tx\.origin)\s*[!=]=\s*\w*owner\w*", re.I)
 
     def detect(self, source_code: str, file_path: Optional[Path] = None) -> List[SmartBugsFinding]:
         findings: List[SmartBugsFinding] = []
@@ -700,38 +917,74 @@ class ShortAddressDetector:
         has_length_check = re.search(
             r"msg\.data\.length|require\s*\([^)]*\.length|assert\s*\([^)]*\.length", source_code
         )
-
-        # If contract has length check, it's protected
         if has_length_check:
             return findings
 
-        # Look for vulnerable function patterns
-        for i, line in enumerate(lines, 1):
-            # Skip comments
-            if line.strip().startswith("//") or line.strip().startswith("*"):
+        pragma = self.PRAGMA_MINOR.search(source_code)
+        if pragma and int(pragma.group(1)) >= 5:
+            return findings
+
+        code = _blank_comments(source_code)
+        for block in _extract_function_blocks(code):
+            if not block.has_body or not block.is_externally_callable():
+                continue
+            if self.OWNER_GATE_MODIFIER.search(block.header_tail) or self.OWNER_GATE_CHECK.search(
+                block.body
+            ):
+                continue
+            target = self._address_amount_params(block)
+            if target is None:
+                continue
+            address_param, amount_param = target
+            if not self._credits_address_with_amount(block.body, address_param, amount_param):
                 continue
 
-            for pattern in self.VULNERABLE_FUNCTION_PATTERNS:
-                if re.search(pattern, line, re.IGNORECASE):
-                    # Extract function name for better reporting
-                    func_match = re.search(r"function\s+(\w+)", line)
-                    func_name = func_match.group(1) if func_match else "unknown"
-
-                    findings.append(
-                        SmartBugsFinding(
-                            title="Short Address Attack Vulnerability",
-                            description=f"Function '{func_name}' takes (address, uint) parameters without "
-                            f"msg.data.length validation. Vulnerable to short address attack. Line {i}.",
-                            severity=Severity.MEDIUM,
-                            category=self.category,
-                            line=i,
-                            code_snippet=line.strip(),
-                            swc_id=self.swc_id,
-                        )
-                    )
-                    break  # One finding per line
+            findings.append(
+                SmartBugsFinding(
+                    title="Short Address Attack Vulnerability",
+                    description=(
+                        f"Function '{block.name}' credits '{address_param}' with '{amount_param}' "
+                        "from (address, uint) calldata without msg.data.length validation. "
+                        f"Vulnerable to short address attack. Line {block.line}."
+                    ),
+                    severity=Severity.MEDIUM,
+                    category=self.category,
+                    line=block.line,
+                    code_snippet=lines[block.line - 1].strip(),
+                    swc_id=self.swc_id,
+                )
+            )
 
         return findings
+
+    @staticmethod
+    def _address_amount_params(block: _FunctionBlock) -> Optional[Tuple[str, str]]:
+        """(address, amount) names when the parameter list ends in ``address, uintN``."""
+        if len(block.params) < 2:
+            return None
+        (address_type, address_name), (amount_type, amount_name) = block.params[-2:]
+        if address_type != "address" or not re.fullmatch(r"uint\d*", amount_type):
+            return None
+        if not address_name or not amount_name:
+            return None
+        return address_name, amount_name
+
+    @staticmethod
+    def _credits_address_with_amount(body: str, address_param: str, amount_param: str) -> bool:
+        """True when the body credits the address parameter with the amount parameter.
+
+        Token ledgers (``balances[_to] += _value``, ``balances[_to] =
+        balances[_to].add(_value)``, ``allowed[msg.sender][_spender] = _value``)
+        and direct ether sends (``_to.transfer(_value)``) both count.
+        """
+        addr = re.escape(address_param)
+        amount = rf"\b{re.escape(amount_param)}\b"
+        ledger_write = rf"\[\s*{addr}\s*\]\s*(?:\+=\s*[^;]*{amount}|=\s*[^;]*{amount})"
+        ether_send = (
+            rf"\b{addr}\s*\.\s*(?:transfer|send)\s*\(\s*{amount}\s*\)"
+            rf"|\b{addr}\s*\.\s*call\s*\.\s*value\s*\(\s*{amount}\s*\)"
+        )
+        return bool(re.search(ledger_write, body) or re.search(ether_send, body))
 
 
 # =============================================================================
@@ -1177,6 +1430,11 @@ class AccessControlDetector:
 
             for pattern, func_name, desc in self.CRITICAL_FUNCTIONS:
                 if re.search(pattern, function["text"], re.I):
+                    if func_name == "withdraw" and is_self_service_withdrawal(
+                        str(function["text"])
+                    ):
+                        # Users taking back their own deposit: not an access-control bug.
+                        break
                     line_num = function["line"]
                     findings.append(
                         self._build_finding(
@@ -1204,6 +1462,8 @@ class AccessControlDetector:
         # Check for tx.origin authentication (always bad)
         tx_origin_matches = re.finditer(r"require\s*\([^)]*tx\.origin", uncommented_source)
         for match in tx_origin_matches:
+            if not tx_origin_authorizes(uncommented_source, match.end() - len("tx.origin")):
+                continue
             line_num = uncommented_source[: match.start()].count("\n") + 1
             findings.append(
                 SmartBugsFinding(
@@ -1304,7 +1564,11 @@ class AccessControlDetector:
     def _is_protected(self, function: Dict[str, Any]) -> bool:
         """Check access-control only inside the function signature/body."""
         context = str(function["text"])
-        return any(re.search(pattern, context, re.I) for pattern in self.ACCESS_CONTROL_PATTERNS)
+        if any(re.search(pattern, context, re.I) for pattern in self.ACCESS_CONTROL_PATTERNS):
+            return True
+        # Any `only*` modifier, or a condition on msg.sender (`if (msg.sender != organizer)
+        # throw`, `require(isOwner[msg.sender])`), not just the four spellings above.
+        return has_caller_guard(str(function["header"]), context)
 
     def _has_arbitrary_array_write(self, function: Dict[str, Any], source_code: str) -> bool:
         """Detect public writes to storage arrays through caller-controlled indexes."""
@@ -1319,10 +1583,6 @@ class AccessControlDetector:
         }
         if not array_names:
             return False
-        for array_name in array_names:
-            if re.search(rf"\b{re.escape(array_name)}\.length\s*(?:--|=)", text):
-                return True
-
         params_match = re.search(r"\((?P<params>[^)]*)\)", header)
         params = params_match.group("params") if params_match else ""
         param_names = {
@@ -1332,6 +1592,15 @@ class AccessControlDetector:
                 params,
             )
         }
+        for array_name in array_names:
+            # Shrinking the array (`length--`, `length -= n`) is the SWC-124 underflow
+            # shape whoever controls it; setting the length is only arbitrary when the
+            # caller supplies the value. `length = CONSTANT` / `length += n` are not.
+            if re.search(rf"\b{re.escape(array_name)}\.length\s*(?:--|-=)", text):
+                return True
+            length_set = re.search(rf"\b{re.escape(array_name)}\.length\s*=\s*(\w+)", text)
+            if length_set and length_set.group(1) in param_names:
+                return True
         if not param_names:
             return False
         for array_name in array_names:
@@ -1366,14 +1635,20 @@ class AccessControlDetector:
                         break
             contract_text = source_code[brace_pos:end]
             contract_offset = brace_pos
-            for function in self._extract_functions(contract_text):
+            functions = self._extract_functions(contract_text)
+            # A function named like the contract (or `constructor`) IS the constructor;
+            # then another public setter of ownership is a different bug, not a typo.
+            if any(str(f["name"]) in ("constructor", contract_name) for f in functions):
+                continue
+            for function in functions:
                 function_name = str(function["name"])
                 if function_name in ("", "constructor", contract_name):
                     continue
+                if not self._is_public_entrypoint(function) or self._is_protected(function):
+                    continue
                 function_text = str(function["text"])
-                if not re.search(
-                    r"\b\w*(?:owner|creator|root)\w*\s*=\s*msg\.sender\b", function_text, re.I
-                ):
+                assigned = re.search(r"\b(\w+)\s*=\s*msg\.sender\b", function_text)
+                if not assigned or not OWNER_LIKE_RE.match(assigned.group(1)):
                     continue
                 line_num = source_code[:contract_offset].count("\n") + int(function["line"])
                 findings.append(
@@ -1480,7 +1755,7 @@ class UncheckedLowLevelCallsDetector:
 
 class TimeManipulationDetector:
     """
-    Detects timestamp/block number dependency vulnerabilities.
+    Detects timestamp dependency vulnerabilities.
 
     SWC-116: Block values as a proxy for time
     """
@@ -1489,9 +1764,11 @@ class TimeManipulationDetector:
     category = "time_manipulation"
     swc_id = "SWC-116"
 
+    # `block.number` is not here: a miner cannot skew it, and its use as entropy is
+    # BadRandomnessDetector's. Measured on SmartBugs-curated (2026-10-24): it was the
+    # only time finding on 8 non-time contracts and on none of the labelled ones.
     TIME_PATTERNS = [
         (r"block\.timestamp", "block.timestamp", "Block timestamp can be manipulated by miners"),
-        (r"block\.number", "block.number", "Block number is predictable"),
         (
             r"now\b",
             "now (alias for block.timestamp)",

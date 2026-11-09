@@ -150,8 +150,8 @@ profiles:
 
   # DeFi-focused profile
   defi:
-    description: "Specialized for DeFi protocols with MEV and oracle checks"
-    layers: [1, 2, 3, 5, 8]
+    description: "Specialized for DeFi protocols with MEV, oracle and DeFi-pattern checks"
+    layers: [1, 2, 3, 5, 7, 8]
     tools:
       - slither
       - aderyn
@@ -160,7 +160,7 @@ profiles:
       - mythril
       - smartllm
       - mev_detector
-      - price_oracle_checker
+      - defi
     timeout: 600  # 10 minutes
     parallel: true
     skip_ml: false

@@ -45,6 +45,12 @@ from miesc.core.tool_protocol import (
     ToolMetadata,
     ToolStatus,
 )
+from miesc.detectors.access_guards import (
+    has_caller_guard,
+    is_self_service_withdrawal,
+    moves_value,
+    tx_origin_authorizes,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -531,18 +537,16 @@ class PeculiarAdapter(ToolAdapter):
         and the raw body text.
         """
         functions: List[Dict[str, Any]] = []
-        # Non-greedy match that handles nested braces up to one level
-        pattern = re.compile(
-            r"function\s+(\w+)\s*\(([^)]*)\)\s*"
-            r"((?:public|private|internal|external|view|pure|payable|"
-            r"virtual|override|\w+\s*(?:\([^)]*\))?[\s]*)*)"
-            r"\s*(?:returns\s*\([^)]*\))?\s*\{",
-            re.DOTALL,
-        )
+        # Qualifiers are whatever sits between the parameters and the body. A pattern
+        # that spelled them out word by word (`(?:public|...|\w+\s*(?:\([^)]*\))?\s*)*`)
+        # backtracked exponentially on a modifier with nested parentheses or a
+        # declaration ending in `;` (OZ's AccountERC7579 ran for over 15 minutes);
+        # a negated class cannot, and stops at the first `;` or brace.
+        pattern = re.compile(r"function\s+(\w+)\s*\(([^)]*)\)([^{};]*)\{")
         for match in pattern.finditer(source_code):
             name = match.group(1)
             params = match.group(2).strip()
-            qualifiers_raw = match.group(3).strip()
+            qualifiers_raw = re.split(r"\breturns\b", match.group(3))[0].strip()
             start_line = source_code[: match.start()].count("\n") + 1
             body_start = match.end()
 
@@ -1193,27 +1197,43 @@ class PeculiarAdapter(ToolAdapter):
             # Check for require(msg.sender == ...) in body as inline guard
             if "require(msg.sender" in body or "require(msg.sender ==" in body:
                 has_access_control = True
+            # Any `only*` modifier (onlywizard, onlyBy) or a condition on msg.sender /
+            # a role mapping, not just the spellings listed above.
+            if has_caller_guard(" ".join(func.get("modifiers", [])), body):
+                has_access_control = True
 
             if has_access_control:
                 continue
 
             for keyword in privileged_keywords:
-                if keyword.lower() in body.lower() or keyword.lower() in func["name"].lower():
-                    findings.append(
-                        {
-                            "type": "access_control",
-                            "confidence": 0.85,
-                            "function": func["name"],
-                            "line": func["start_line"],
-                            "detail": (
-                                f"Function {func['name']}() contains "
-                                f"privileged operation '{keyword}' without "
-                                f"access control modifier"
-                            ),
-                            "source": "pattern_analysis",
-                        }
-                    )
-                    break  # One finding per function
+                # The operation has to be *performed* here (called, or this is the
+                # function itself), not merely mentioned: `if (paused)` is not `pause()`.
+                performed = re.search(rf"\b{keyword}\w*\s*\(", body, re.I) or (
+                    keyword.lower() in func["name"].lower()
+                )
+                if not performed:
+                    continue
+                if keyword == "withdraw":
+                    # An unprotected withdrawal moves value out of the contract here; a
+                    # function that merely mentions "withdraw" (a bonus bookkeeping
+                    # helper) or lets users take their own balance is not one.
+                    if not moves_value(body) or is_self_service_withdrawal(body):
+                        continue
+                findings.append(
+                    {
+                        "type": "access_control",
+                        "confidence": 0.85,
+                        "function": func["name"],
+                        "line": func["start_line"],
+                        "detail": (
+                            f"Function {func['name']}() contains "
+                            f"privileged operation '{keyword}' without "
+                            f"access control modifier"
+                        ),
+                        "source": "pattern_analysis",
+                    }
+                )
+                break  # One finding per function
 
         return findings
 
@@ -1296,6 +1316,8 @@ class PeculiarAdapter(ToolAdapter):
         for func in graph.get("functions", []):
             body = func.get("body", "")
             for match in re.finditer(r"tx\.origin", body):
+                if not tx_origin_authorizes(body, match.start()):
+                    continue
                 line_offset = body[: match.start()].count("\n")
                 context = body[max(0, match.start() - 40) : match.end() + 40]
                 # Higher confidence if used in require/if

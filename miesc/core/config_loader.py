@@ -105,6 +105,11 @@ class MIESCConfig:
         self._load_config()
 
     @property
+    def config_path(self) -> Path:
+        """Archivo de configuración en uso (puede no existir: se usan defaults)."""
+        return self._find_config_file()
+
+    @property
     def version(self) -> str:
         """Versión de la configuración."""
         return cast(str, self._config.get("version", "5.1.2"))

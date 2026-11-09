@@ -79,6 +79,9 @@ class ToolMetadata:
     cost: float = 0.0  # 0.0 = free, >0 = paid/API cost
     requires_api_key: bool = False
     is_optional: bool = True  # Default: all tools are optional (no vendor lock-in)
+    # True when analysis needs an LLM backend (Ollama or a hosted API). Lets
+    # LLM-free evaluation profiles (``miesc evaluate --no-llm``) skip the tool.
+    requires_llm: bool = False
 
 
 class ToolAdapter(ABC):
@@ -258,6 +261,20 @@ print(f"Status: {{status}}")
     # =========================================================================
     # Helper Methods - Reduce boilerplate in adapters
     # =========================================================================
+
+    def version_command(self) -> Optional[List[str]]:
+        """
+        Command that prints the version of the external binary this adapter runs.
+
+        OPTIONAL: Run provenance (``miesc.core.provenance``) executes it once per
+        run and records the first version-looking line of its output next to the
+        findings, so a result can be cited with the exact tool release. Return
+        ``None`` (the default) when the adapter is built in or the tool has no
+        version flag; the provenance block then records the tool as built-in
+        or ``"unknown"``. Adapters that resolve their executable themselves
+        should return that resolved path, not the bare command name.
+        """
+        return None
 
     def check_binary_available(
         self,
@@ -666,6 +683,19 @@ class ToolRegistry:
 
 # Singleton del registro
 _registry = ToolRegistry()
+
+
+def applies_to(adapter: Any, contract_path: str) -> bool:
+    """Whether ``adapter`` should run on ``contract_path``.
+
+    Only a single source file is checked against ``can_analyze`` (``.vy`` to the Vyper
+    analyzer, ``.sol`` to the Solidity tools); a directory (a project audit) goes to
+    every tool, as it did before the check existed.
+    """
+    can_analyze = getattr(adapter, "can_analyze", None)
+    if not callable(can_analyze) or not Path(contract_path).is_file():
+        return True
+    return bool(can_analyze(contract_path))
 
 
 def get_tool_registry() -> ToolRegistry:

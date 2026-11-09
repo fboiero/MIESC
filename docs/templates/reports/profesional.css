@@ -46,10 +46,14 @@
     --color-low: #28a745;
     --color-info: #17a2b8;
     --color-primary: #2563eb;
+    --color-accent: #1d4ed8;
     --color-dark: #1e293b;
     --color-gray: #64748b;
+    --color-muted: #94a3b8;
     --color-light: #f8fafc;
+    --color-zebra: #f6f8fb;
     --color-border: #e2e8f0;
+    --color-border-strong: #cbd5e1;
 }
 
 * {
@@ -59,9 +63,11 @@
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     font-size: 10pt;
-    line-height: 1.6;
+    line-height: 1.55;
     color: var(--color-dark);
     background: white;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
 }
 
 /* Cover Page */
@@ -79,6 +85,7 @@ body {
 .cover-page h1 {
     font-size: 32pt;
     font-weight: 700;
+    letter-spacing: 0.04em;
     margin-bottom: 0.5em;
     color: white;
 }
@@ -115,45 +122,62 @@ body {
 
 /* Typography */
 h1 {
-    font-size: 20pt;
+    font-size: 19pt;
     font-weight: 700;
+    letter-spacing: -0.015em;
     color: var(--color-dark);
     margin-top: 1.5em;
-    margin-bottom: 0.5em;
-    padding-bottom: 0.3em;
-    border-bottom: 3px solid var(--color-primary);
+    margin-bottom: 0.6em;
+    padding-bottom: 0.28em;
+    border-bottom: 2px solid var(--color-accent);
     page-break-after: avoid;
 }
 
 h2 {
-    font-size: 14pt;
+    font-size: 13.5pt;
     font-weight: 600;
+    letter-spacing: -0.01em;
     color: var(--color-dark);
-    margin-top: 1.2em;
-    margin-bottom: 0.4em;
+    margin-top: 1.3em;
+    margin-bottom: 0.45em;
+    padding-left: 0.5em;
+    border-left: 3px solid var(--color-accent);
     page-break-after: avoid;
 }
 
 h3 {
-    font-size: 11pt;
-    font-weight: 600;
+    font-size: 9.5pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
     color: var(--color-gray);
-    margin-top: 1em;
+    margin-top: 1.1em;
+    margin-bottom: 0.35em;
+    page-break-after: avoid;
+}
+
+h4 {
+    font-size: 10.5pt;
+    font-weight: 600;
+    color: var(--color-dark);
+    margin-top: 0.9em;
     margin-bottom: 0.3em;
     page-break-after: avoid;
 }
 
 p {
-    margin: 0.5em 0;
+    margin: 0.55em 0;
     text-align: justify;
+    hyphens: auto;
 }
 
 /* Tables */
 table {
     width: 100%;
     border-collapse: collapse;
-    margin: 1em 0;
+    margin: 1.1em 0;
     font-size: 9pt;
+    border: 1px solid var(--color-border);
     page-break-inside: avoid;
 }
 
@@ -163,26 +187,31 @@ thead {
 }
 
 th {
-    padding: 10px 12px;
+    padding: 9px 12px;
     text-align: left;
     font-weight: 600;
     text-transform: uppercase;
-    font-size: 8pt;
-    letter-spacing: 0.5px;
+    font-size: 7.5pt;
+    letter-spacing: 0.6px;
+    border-bottom: 2px solid var(--color-accent);
 }
 
 td {
-    padding: 8px 12px;
+    padding: 7px 12px;
     border-bottom: 1px solid var(--color-border);
     vertical-align: top;
 }
 
 tbody tr:nth-child(even) {
-    background: var(--color-light);
+    background: var(--color-zebra);
+}
+
+tbody tr:last-child td {
+    border-bottom: none;
 }
 
 tbody tr:hover {
-    background: #f1f5f9;
+    background: #eef2f7;
 }
 
 /* Severity Badges */
@@ -323,6 +352,29 @@ pre code {
     padding: 1em;
     border-radius: 8px;
     page-break-inside: avoid;
+}
+
+/* Inline SVG charts (severity distribution, risk matrix, effort/impact) */
+.chart {
+    margin: 1.1em 0 1.3em 0;
+    padding: 0.4em 0;
+    text-align: center;
+    page-break-inside: avoid;
+    break-inside: avoid;
+}
+
+.chart svg {
+    max-width: 100%;
+    height: auto;
+}
+
+.chart-caption {
+    display: block;
+    margin-top: 0.35em;
+    font-size: 8pt;
+    color: var(--color-gray);
+    text-align: center;
+    font-style: italic;
 }
 
 /* Metrics Cards */

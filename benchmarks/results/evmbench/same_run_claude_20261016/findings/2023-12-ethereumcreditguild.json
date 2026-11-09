@@ -1,0 +1,420 @@
+[
+ {
+  "type": "logic_error",
+  "title": "forgive() can be called on loans actively being auctioned, permanently bricking the auction",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-12-ethereumcreditguild_ovbz0wgc/repo/src/loan/LendingTerm.sol",
+   "line": 0,
+   "function": "forgive"
+  },
+  "description": "The forgive() function only checks that the loan exists and is not closed, but does NOT check whether the loan has been called (loan.callTime != 0). This means a GOVERNOR can call forgive() on a loan that is currently being auctioned in the AuctionHouse. forgive() sets loans[loanId].closeTime = block.timestamp and decrements issuance. When the AuctionHouse subsequently tries to call onBid() to report the auction result, onBid() will revert because it checks require(loans[loanId].closeTime == 0, 'LendingTerm: loan closed'). The auction in AuctionHouse cannot be completed, and the collateral stored in LendingTerm is also locked (cannot be distributed to bidder/borrower). Additionally, issuance is decremented twice - once in forgive() and once attempted in onBid() (which reverts, but other accounting in AuctionHouse may be corrupted).",
+  "message": "Auction becomes permanently stuck in AuctionHouse. Collateral locked in LendingTerm. AuctionHouse's nAuctionsInProgress counter never decrements for that auction. This would also block setAuctionHouse() from being called since nAuctionsInProgress() > 0 indefinitely. While the collateral is recoverable via emergencyAction, the AuctionHouse state corruption is permanent.",
+  "recommendation": "Add a check in forgive() to prevent forgiving loans that are currently being auctioned:\n\nrequire(loan.callTime == 0, 'LendingTerm: loan called, use onBid');\n\nAlternatively, if forgive() during an auction is intentional, add a mechanism for AuctionHouse to handle this case (e.g., a cancel function that checks if the loan is already closed).",
+  "exploit_scenario": "1. Borrower opens a loan with collateral\n2. Loan is called (_call()), starting an auction in AuctionHouse\n3. GOVERNOR calls forgive(loanId) - this succeeds because callTime check is missing\n4. loans[loanId].closeTime is set, issuance decremented\n5. Bidder attempts to bid in AuctionHouse auction\n6. AuctionHouse calls onBid() on LendingTerm\n7. onBid() reverts: require(loans[loanId].closeTime == 0)\n8. Auction is permanently stuck; bidder cannot complete; collateral locked\n9. setAuctionHouse() cannot be called as nAuctionsInProgress() > 0 forever",
+  "swc_id": "",
+  "file": "LendingTerm.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Issuance accounting mismatch in _partialRepay due to creditMultiplier scaling",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-12-ethereumcreditguild_ovbz0wgc/repo/src/loan/LendingTerm.sol",
+   "line": 0,
+   "function": "_partialRepay"
+  },
+  "description": "In _partialRepay(), issuanceDecrease = (borrowAmount * percentRepaid) / 1e18 where percentRepaid = (debtToRepay * 1e18) / loanDebt. The loanDebt is scaled by borrowCreditMultiplier/currentCreditMultiplier (see getLoanDebt), but borrowAmount is the raw unscaled original borrow amount stored in the loan. This means percentRepaid is calculated against the scaled debt, but applied to the unscaled borrowAmount. When creditMultiplier has decreased (losses occurred), loanDebt > borrowAmount in credit terms, so percentRepaid will be smaller than expected when applied to borrowAmount. The issuanceDecrease will be too small relative to what was actually repaid, causing issuance to be overstated permanently. Over time with repeated partial repays, issuance drifts higher than actual outstanding debt.",
+  "message": "Protocol's issuance counter becomes inflated relative to actual outstanding loans. This causes the debt ceiling calculations (which use issuance) to be artificially limited, preventing new borrows even when capacity exists. The drift accumulates with each partial repayment when creditMultiplier != borrowCreditMultiplier.",
+  "recommendation": "Recalculate issuanceDecrease based on the principalRepaid converted back to original borrowAmount units:\n\n// issuanceDecrease should reflect the actual reduction in borrowAmount\nuint256 issuanceDecrease = (borrowAmount * percentRepaid) / 1e18;\n// This should equal principalRepaid * currentCreditMultiplier / borrowCreditMultiplier\n// Consider using: issuanceDecrease = (principalRepaid * creditMultiplier) / loan.borrowCreditMultiplier;\n",
+  "exploit_scenario": "1. CreditMultiplier starts at 1e18, borrower takes 100 CREDIT loan (borrowAmount=100, borrowCreditMultiplier=1e18)\n2. Protocol suffers losses, creditMultiplier drops to 0.5e18\n3. getLoanDebt() returns 100 * 1e18 / 0.5e18 = 200 (scaled up)\n4. Borrower partially repays 40 CREDIT (20% of 200 debt)\n5. percentRepaid = 40e18 / 200 = 0.2e18\n6. issuanceDecrease = 100 * 0.2e18 / 1e18 = 20\n7. But actual principal repaid in original terms: principal=100*1e18/0.5e18=200, principalRepaid=200*0.2=40\n8. issuance should decrease by 40 (the actual borrowAmount reduction), but only decreases by 20\n9. issuance is overstated by 20 after this repayment",
+  "swc_id": "",
+  "file": "LendingTerm.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "reentrancy",
+  "title": "Reentrancy risk in onBid() when collateral token implements callbacks",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-12-ethereumcreditguild_ovbz0wgc/repo/src/loan/LendingTerm.sol",
+   "line": 0,
+   "function": "onBid"
+  },
+  "description": "In onBid(), the loan closeTime is set early (preventing re-entry via onBid itself), but the function makes multiple external calls: (1) CreditToken.transferFrom(bidder), (2) CreditToken.burn(), (3) CreditToken.transfer() to profitManager, (4) ProfitManager.notifyPnL(), (5) collateral safeTransfer to borrower, (6) collateral safeTransfer to bidder. If the collateral token is an ERC777 token or any token with transfer callbacks (tokensReceived hooks), the borrower or bidder receives a callback AFTER the loan is closed but WHILE the contract still holds state. More critically, if ProfitManager.notifyPnL() triggers any callbacks or state changes in other contracts that re-enter LendingTerm (e.g., through gauge weight updates), the issuance has already been decremented but collateral hasn't been sent yet. The borrower could potentially call repay() or other functions in an inconsistent state.",
+  "message": "With ERC777 collateral tokens: the borrower's tokensReceived callback executes while the LendingTerm believes the loan is closed. Depending on the broader system, this could enable manipulation of gauge weights, re-borrowing, or other state exploits during the callback.",
+  "recommendation": "Apply checks-effects-interactions pattern more strictly. Move all state updates (issuance decrement, closeTime) before any external calls, and use ReentrancyGuard:\n\nimport '@openzeppelin/contracts/security/ReentrancyGuard.sol';\n// Add nonReentrant modifier to onBid(), borrow(), repay(), partialRepay()\n",
+  "exploit_scenario": "1. Deploy LendingTerm with ERC777 token as collateral\n2. Open and call a loan\n3. During onBid(), when collateral is transferred to borrower, ERC777 tokensReceived hook fires\n4. In the hook, borrower can interact with other protocol contracts that read LendingTerm state\n5. issuance is already decremented, making it appear there's more borrowing capacity\n6. Borrower opens a new loan in the hook using the freed-up debt ceiling",
+  "swc_id": "",
+  "file": "LendingTerm.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Loan ID collision allows opening the same loanId in the same block for different borrowers... actually same borrower collision",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-12-ethereumcreditguild_ovbz0wgc/repo/src/loan/LendingTerm.sol",
+   "line": 0,
+   "function": "_borrow"
+  },
+  "description": "The loanId is computed as keccak256(abi.encode(borrower, address(this), block.timestamp)). If the same borrower calls borrow() twice in the same block (through different transactions or via a contract), the second call will revert with 'loan exists'. However, this is design intent. More critically: in _repay(), after a loan is closed (closeTime set), the same loanId can NEVER be reused (borrowTime != 0 still, so the check 'loans[loanId].borrowTime == 0' in _borrow would fail). This means a borrower can only ever have ONE loan per block timestamp on a given term, and if they repay and try to re-borrow in a later block with the same timestamp (impossible), it would fail. This is actually a liveness issue: if a borrower's loan at timestamp T is closed, they cannot open a new loan at timestamp T again. While this can't happen (timestamps advance), it does mean if two people try to create loans simultaneously via a contract that forwards calls, there could be issues. This is LOW severity in practice.",
+  "message": "Low practical impact, but a borrower who closes a loan cannot reopen at the exact same second (prevented by block timestamp advancement). More importantly, if a contract tries to batch-borrow for the same address in the same block, only the first succeeds.",
+  "recommendation": "Include a nonce in the loanId calculation to prevent any potential collision: loanId = keccak256(abi.encode(borrower, address(this), block.timestamp, nonce++));",
+  "exploit_scenario": "N/A - Very low practical impact",
+  "swc_id": "",
+  "file": "LendingTerm.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Self-transfer inflates totalRebasingShares and mints unbounded tokens",
+  "severity": "Critical",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-12-ethereumcreditguild_ovbz0wgc/repo/src/tokens/ERC20RebaseDistributor.sol",
+   "line": 0,
+   "function": "transfer"
+  },
+  "description": "When msg.sender == to and the account is rebasing, both rebasingStateFrom and rebasingStateTo are loaded from storage before any state changes occur, capturing the same stale share count. After ERC20.transfer() executes (a no-op for self-transfer), the 'from' branch correctly reduces shares to fromSharesAfter, writing the updated state to rebasingState[msg.sender]. Then the 'to' branch reads rebasingStateTo.nShares (the stale original value), computes toSharesAfter from the current balance + amount, calculates sharesReceived = toSharesAfter - rebasingStateTo.nShares as a large positive number, and adds these phantom shares to totalRebasingShares. Additionally, it calls ERC20._mint(to, mintAmount) to realize rebase rewards that were already realized in the from-branch, causing double-minting. The sharesDelta ends up net positive (phantom shares gained minus nothing meaningfully lost), so totalRebasingShares is permanently inflated. This can be repeated to inflate totalRebasingShares arbitrarily, allowing the attacker to steal all pending rebase rewards from other users.",
+  "message": "An attacker can repeatedly call transfer(self, amount) to inflate totalRebasingShares, diluting all other rebasing users' share of future distributions. Additionally, double-minting of realized rebase rewards drains unmintedRebaseRewards accounting, causing decreaseUnmintedRebaseRewards to underflow for legitimate users. The attacker can extract more tokens than they deposited by accumulating artificially inflated share counts.",
+  "recommendation": "Add a guard against self-transfers at the start of transfer() and transferFrom(): require(to != msg.sender, 'ERC20RebaseDistributor: self-transfer not allowed') or handle the self-transfer case specially by detecting msg.sender == to and skipping one of the two branches. The cleanest fix: if (msg.sender == to) return true (or just realize rebase rewards without changing shares). Also consider using a mutex or re-reading state after each write.",
+  "exploit_scenario": "1. Alice calls enterRebase() with 1000 tokens. totalRebasingShares = S.\n2. Some tokens are distributed via distribute(), so rebasingSharePrice increases.\n3. Alice calls transfer(alice, 1000) (self-transfer).\n4. rebasingStateFrom = rebasingStateTo = {isRebasing:1, nShares:S_alice} (same stale value).\n5. from-branch: mints rebase rewards R to Alice, computes fromSharesAfter from (1000+R-1000)=R balance, writes rebasingState[alice] = {nShares: fromSharesAfter}.\n6. to-branch: reads rebasingStateTo.nShares = S_alice (stale!), computes rawToBalanceAfter = ERC20.balanceOf(alice) = 1000+R, computes toBalanceAfter = shares2balance(S_alice, price, 1000, 1000+R) = 1000+R+rebase_gain, mints mintAmount again (double mint), computes toSharesAfter >> fromSharesAfter, sharesDelta += (toSharesAfter - S_alice) which is large positive.\n7. totalRebasingShares is now massively inflated. Alice's nShares is set to toSharesAfter.\n8. Repeat to drain all pending distributions.",
+  "swc_id": "",
+  "file": "ERC20RebaseDistributor.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Self-transferFrom inflates totalRebasingShares similarly",
+  "severity": "Critical",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-12-ethereumcreditguild_ovbz0wgc/repo/src/tokens/ERC20RebaseDistributor.sol",
+   "line": 0,
+   "function": "transferFrom"
+  },
+  "description": "The same self-transfer logic bug exists in transferFrom(). When from == to and both are rebasing, rebasingStateFrom and rebasingStateTo are both loaded from the same storage slot before any changes. After ERC20.transferFrom() (no-op for same address), the from-branch updates rebasingState[from] with new shares, but the to-branch still uses the stale rebasingStateTo.nShares. This produces phantom sharesReceived and double-mints rebase rewards, inflating totalRebasingShares. An approved spender (or the account itself with max approval) can exploit this.",
+  "message": "Same as the transfer() self-transfer bug: unbounded inflation of totalRebasingShares and double-minting of rebase rewards, allowing extraction of other users' funds.",
+  "recommendation": "Add require(from != to, 'ERC20RebaseDistributor: self-transfer not allowed') at the start of transferFrom(), or handle the from==to case by only processing one side of the rebasing logic.",
+  "exploit_scenario": "1. Attacker approves themselves (or a controlled address) for transferFrom.\n2. Call transferFrom(attacker, attacker, amount) repeatedly.\n3. Each call inflates totalRebasingShares and double-mints pending rebase rewards.\n4. Attacker calls exitRebase() to cash out the inflated share balance.",
+  "swc_id": "",
+  "file": "ERC20RebaseDistributor.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "decreaseUnmintedRebaseRewards can underflow causing permanent accounting corruption",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-12-ethereumcreditguild_ovbz0wgc/repo/src/tokens/ERC20RebaseDistributor.sol",
+   "line": 0,
+   "function": "decreaseUnmintedRebaseRewards"
+  },
+  "description": "In decreaseUnmintedRebaseRewards(), the line `targetValue: val.targetValue - SafeCastLib.safeCastTo224(amount)` can underflow if amount > val.targetValue. While Solidity 0.8.x reverts on overflow/underflow, this means the function reverts, locking users out of exiting rebase, transferring tokens, or minting. This can occur due to rounding: multiple users' rebase rewards are computed from shares * sharePrice / START_REBASING_SHARE_PRICE, and the sum of individual rounded-down rewards can occasionally exceed the tracked unmintedRebaseRewards target value due to rounding in different directions. Additionally, the self-transfer bug described above can trigger this by minting more than was tracked.",
+  "message": "If decreaseUnmintedRebaseRewards reverts, all operations that realize rebase rewards (exitRebase, transfer to/from rebasing address, mint/burn for rebasing address) will permanently revert, locking users' funds.",
+  "recommendation": "In decreaseUnmintedRebaseRewards, clamp the subtraction to avoid underflow: use `amount = amount > val.targetValue ? val.targetValue : amount` and similarly for the lastValue computation. Change to: `targetValue: amount >= val.targetValue ? 0 : val.targetValue - SafeCastLib.safeCastTo224(amount)`",
+  "exploit_scenario": "1. Distribute 100 tokens to 3 rebasing users with shares that don't divide evenly.\n2. Each user's mintAmount is rounded up slightly due to share price arithmetic.\n3. Sum of mintAmounts slightly exceeds 100 (the tracked targetValue).\n4. The last user to exit rebase triggers an underflow revert in decreaseUnmintedRebaseRewards.\n5. That user's funds are permanently locked.",
+  "swc_id": "",
+  "file": "ERC20RebaseDistributor.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "distribute() newTargetSharePrice calculation uses stale targetValue causing incorrect reward accounting",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-12-ethereumcreditguild_ovbz0wgc/repo/src/tokens/ERC20RebaseDistributor.sol",
+   "line": 0,
+   "function": "distribute"
+  },
+  "description": "In distribute(), newTargetSharePrice is computed as: `(amount * START_REBASING_SHARE_PRICE + __rebasingSharePrice.targetValue * _totalRebasingShares) / _totalRebasingShares`. This uses `__rebasingSharePrice.targetValue` (the stored target, not the interpolated current value) but `_rebasingSharePrice` (the interpolated current value) is used as lastValue. When a second distribute() call happens mid-interpolation, the formula adds the new amount's share price increase on top of the previous target, but the interpolation resets lastTimestamp to now with lastValue = current interpolated value. This means the new interpolation goes from current_value to new_target over a fresh 30-day window, but new_target was computed using the old target (which may be significantly higher than current), potentially creating a target share price that is inconsistent with the actual token supply, allowing some users to extract more rewards than were distributed.",
+  "message": "Repeated distribute() calls during an active interpolation period can lead to share price targets that don't accurately reflect distributed amounts, potentially allowing rebasing users to claim more rewards than were actually burned/distributed, at the expense of non-rebasing supply.",
+  "recommendation": "Recompute the effective remaining rewards before updating targets, or ensure the formula uses the full remaining supply delta rather than combining potentially inconsistent interpolation states. Consider using the actual token amounts directly rather than share prices for the interpolation.",
+  "exploit_scenario": "1. distribute(1000) called at t=0. targetSharePrice = P1, targetTimestamp = t+30days.\n2. At t=15days (halfway), distribute(1000) called again.\n3. currentSharePrice = (P0+P1)/2 (halfway interpolated).\n4. newTargetSharePrice = currentSharePrice + (P1 - currentSharePrice) + delta_from_second_1000.\n5. But unmintedRebaseRewards.targetValue was already halfway consumed, so the combined target overestimates future rewards.\n6. Rebasing users receive more tokens than the two distribute() calls warrant.",
+  "swc_id": "",
+  "file": "ERC20RebaseDistributor.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "updateTotalRebasingShares silently zeroes shares on excessive decrease",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-12-ethereumcreditguild_ovbz0wgc/repo/src/tokens/ERC20RebaseDistributor.sol",
+   "line": 0,
+   "function": "updateTotalRebasingShares"
+  },
+  "description": "In updateTotalRebasingShares(), when sharesDelta is negative and the magnitude exceeds totalRebasingShares, sharesAfter silently stays 0 (the else branch is empty with just a comment '// else sharesAfter stays 0'). This means if through any accounting bug or rounding error the shares to be removed exceed the tracked total, the function silently sets totalRebasingShares to 0 instead of reverting. This resets the share price to START_REBASING_SHARE_PRICE, wiping out all accumulated share price increases. All remaining rebasing users would then have their shares valued at the starting price, destroying their accrued rebase rewards.",
+  "message": "If totalRebasingShares is artificially driven to 0 (or if a bug causes shareDecrease > sharesBefore), all rebasing users lose their accrued rebase rewards as the share price resets to START_REBASING_SHARE_PRICE. The unmintedRebaseRewards is also zeroed out, destroying pending distributions.",
+  "recommendation": "Add a revert or assertion when shareDecrease would exceed sharesBefore in contexts where this shouldn't be possible: require(shareDecrease <= sharesBefore, 'share accounting error'). Alternatively, add a tolerance for 1-2 wei of rounding but revert on larger discrepancies.",
+  "exploit_scenario": "1. Through the self-transfer bug or rounding accumulation, cause totalRebasingShares to be slightly less than what's expected.\n2. When the last user exits rebase, shareDecrease > sharesBefore.\n3. sharesAfter = 0, __rebasingSharePrice resets to START_REBASING_SHARE_PRICE.\n4. __unmintedRebaseRewards resets to 0, destroying pending distributions.\n5. Any user who hasn't yet exited rebase loses all pending rewards.",
+  "swc_id": "",
+  "file": "ERC20RebaseDistributor.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Infinite Loop in _decrementWeightUntilFree When Gauge Has Zero Weight",
+  "severity": "Critical",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-12-ethereumcreditguild_ovbz0wgc/repo/src/tokens/ERC20Gauges.sol",
+   "line": 0,
+   "function": "_decrementWeightUntilFree"
+  },
+  "description": "In `_decrementWeightUntilFree`, the loop increment `++i` is placed inside the `if (userGaugeWeight != 0)` block. If a user has a gauge in `_userGauges[user]` with `getUserGaugeWeight[user][gauge] == 0`, the loop counter `i` is never incremented for that iteration, causing an infinite loop that consumes all gas. This is possible because `_decrementGaugeWeight` removes the gauge from `_userGauges[user]` only when `oldWeight == weight` (i.e., full removal). If a gauge exists in the user's set with zero weight due to some edge case, or more critically: the `gaugeList` is a snapshot taken at the start of the loop (`_userGauges[user].values()`), but as `_decrementGaugeWeight` removes gauges from the underlying set during iteration, the snapshot array `gaugeList` remains unchanged. However, the cached `getUserGaugeWeight` for already-processed gauges becomes 0 after decrement. If the loop condition `(userFreeWeight + userFreed) < weight` remains true after processing all non-zero gauges (impossible in theory but possible if weight arithmetic is off), and there are entries with 0 weight remaining in the snapshot, the loop will spin forever on those entries without advancing `i`.",
+  "message": "Any transfer or burn operation that triggers `_decrementWeightUntilFree` with a user who has zero-weight gauge entries will consume all gas and revert, permanently bricking the ability to transfer or burn tokens for that user. This effectively freezes user funds.",
+  "recommendation": "Move `++i` outside the `if (userGaugeWeight != 0)` block so it always increments regardless of gauge weight:\n\nfor (uint256 i = 0; i < size && (userFreeWeight + userFreed) < weight; ) {\n    address gauge = gaugeList[i];\n    uint256 userGaugeWeight = getUserGaugeWeight[user][gauge];\n    if (userGaugeWeight != 0) {\n        userFreed += userGaugeWeight;\n        _decrementGaugeWeight(user, gauge, userGaugeWeight);\n        if (!_deprecatedGauges.contains(gauge)) {\n            totalTypeWeight[gaugeType[gauge]] -= userGaugeWeight;\n            totalFreed += userGaugeWeight;\n        }\n    }\n    unchecked { ++i; }\n}\n",
+  "exploit_scenario": "1. User allocates weight W to gauge G (getUserGaugeWeight[user][G] = W, getUserWeight[user] = W). 2. Through some mechanism (e.g., partial decrement leaving gauge in set but with non-zero weight, followed by a scenario where the gauge weight becomes 0 without removal from _userGauges), a gauge entry with 0 weight exists in _userGauges[user]. 3. User attempts transfer of amount > userFreeWeight. 4. _decrementWeightUntilFree is called, gaugeList snapshot includes the zero-weight gauge. 5. When the loop reaches that gauge, userGaugeWeight == 0, the if-block is skipped, ++i never executes, loop runs forever consuming all gas.",
+  "swc_id": "",
+  "file": "ERC20Gauges.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Flash Loan Attack: Allocate Gauge Weight With Borrowed Tokens Then Repay",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-12-ethereumcreditguild_ovbz0wgc/repo/src/tokens/ERC20Gauges.sol",
+   "line": 0,
+   "function": "incrementGauge"
+  },
+  "description": "The weight allocation check `newUserWeight <= balanceOf(user)` is performed at the time of `incrementGauge` / `incrementGauges` call. An attacker can use a flash loan to temporarily hold a large token balance, allocate maximum weight to a gauge (inflating `totalWeight` and `totalTypeWeight`), then repay the flash loan. After repayment, their balance drops to near zero but `getUserWeight[user]` and `getGaugeWeight[gauge]` remain inflated. `totalWeight` and `totalTypeWeight` remain inflated by the full borrowed amount. The attacker's over-allocated weight only gets freed lazily when they attempt a transfer/burn. This inflates gauge weights and `calculateGaugeAllocation` returns manipulated proportions, potentially redirecting emissions or credit allocation to an attacker-controlled gauge.",
+  "message": "An attacker can manipulate gauge weight proportions to divert protocol resources (token emissions, credit lines) to attacker-controlled gauges. If the protocol uses `calculateGaugeAllocation` to distribute rewards or credit, the attacker can capture a disproportionate share. The inflation of `totalWeight` persists until the attacker's weight is freed (which the attacker controls by not transferring).",
+  "recommendation": "Consider implementing a checkpoint/snapshot mechanism for gauge weights similar to ERC20Votes, where weight changes are only effective after a delay or at the next epoch boundary. Alternatively, use time-weighted average weights. At minimum, add a cooldown between weight changes and reward distributions.",
+  "exploit_scenario": "1. Attacker flash loans large amount of governance tokens (or uses a lending protocol). 2. Attacker calls incrementGauge(attackerGauge, largeAmount) - passes the balance check. 3. Flash loan is repaid - attacker's balance drops to 0 but getUserWeight[attacker] = largeAmount, getGaugeWeight[attackerGauge] = largeAmount, totalWeight inflated. 4. Protocol distributes rewards based on calculateGaugeAllocation - attackerGauge gets large share. 5. Attacker claims rewards. 6. Eventually a transfer attempt would trigger _decrementWeightUntilFree but attacker doesn't need to transfer. 7. The attack can be repeated each distribution period.",
+  "swc_id": "",
+  "file": "ERC20Gauges.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "totalWeight Accounting Diverges When Gauge Is Deprecated With Active User Weights",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-12-ethereumcreditguild_ovbz0wgc/repo/src/tokens/ERC20Gauges.sol",
+   "line": 0,
+   "function": "_removeGauge / decrementGauge"
+  },
+  "description": "When `_removeGauge` is called, it subtracts `getGaugeWeight[gauge]` (the total gauge weight) from `totalWeight` and `totalTypeWeight`. However, `getUserWeight` for each individual user is NOT decremented. Users retain their `getUserWeight` values reflecting the deprecated gauge's weight. This means users cannot allocate additional weight up to their full balance (they're artificially limited) until they manually call `decrementGauge` on the deprecated gauge. More critically, if a gauge is deprecated and then re-added via `_addGauge`, the existing `getGaugeWeight[gauge]` is added back to `totalWeight`. But if some users already called `decrementGauge` on the deprecated gauge (which does NOT update totalWeight for deprecated gauges per line in decrementGauge), the `getGaugeWeight[gauge]` used in `_addGauge` will be lower than the sum of individual `getUserGaugeWeight` values, causing `totalWeight` to be understated. Conversely, if users decrement after re-add, totalWeight could go negative (underflow) or become inconsistent.",
+  "message": "Accounting divergence in totalWeight leads to incorrect `calculateGaugeAllocation` results for all gauges. Protocol resource distribution becomes permanently skewed. In edge cases with repeated deprecation/re-addition cycles, totalWeight can underflow causing reverts or extreme miscalculation.",
+  "recommendation": "Implement a comprehensive audit of the deprecation/re-addition accounting. Consider tracking whether individual user decrements happened during deprecation period and reconciling on re-add. Alternatively, enforce that all user weights must be zeroed before a gauge can be re-added, eliminating the need for complex re-add weight restoration logic.",
+  "exploit_scenario": "1. Gauge G has totalWeight contribution of 1000 (two users each with 500). 2. Admin calls _removeGauge(G): totalWeight -= 1000, getGaugeWeight[G] = 1000 preserved. 3. User A calls decrementGauge(G, 500): getGaugeWeight[G] becomes 500, getUserWeight[A] -= 500. Since G is deprecated, totalWeight is NOT modified (correct). 4. Admin calls _addGauge(type, G): weight = getGaugeWeight[G] = 500, totalWeight += 500. 5. Now totalWeight reflects 500 for G, but User B still has 500 allocated to G. If User B calls decrementGauge(G, 500) after re-add: since G is now live, totalWeight -= 500 (correct). But the sequence matters. If done in different order, accounting breaks. 6. More critically: if _removeGauge is called when getGaugeWeight[G]=1000, then re-added (totalWeight+=1000), then both users decrement (each time totalWeight-=500 since gauge is live), totalWeight ends up with net 0 change - correct in this path. But paths with deprecation in between create inconsistencies.",
+  "swc_id": "",
+  "file": "ERC20Gauges.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Arithmetic Underflow: Loss Can Exceed creditTotalSupply Causing DoS",
+  "severity": "Critical",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-12-ethereumcreditguild_ovbz0wgc/repo/src/governance/ProfitManager.sol",
+   "line": 0,
+   "function": "notifyPnL"
+  },
+  "description": "In `notifyPnL`, when handling losses that exceed the surplus buffer, the contract computes `creditTotalSupply - loss`. However, `loss` at this point has already been reduced by `_surplusBuffer` (line: `loss -= _surplusBuffer`), so `loss` represents the remaining bad debt after the surplus buffer is depleted. If this remaining loss is greater than or equal to `creditTotalSupply` (which is plausible in extreme scenarios), the subtraction `creditTotalSupply - loss` will underflow as it operates on uint256, causing a revert/panic. This could permanently freeze the `notifyPnL` function for any gauge that has catastrophic bad debt, preventing any loss accounting from completing.",
+  "message": "If a loan term reports catastrophic bad debt where the loss (after surplus buffer depletion) exceeds the total CREDIT supply, the `notifyPnL` call will revert due to underflow, permanently bricking loss reporting for that gauge. No liquidation processing can complete, loans cannot be closed, and the protocol enters a deadlocked state.",
+  "recommendation": "Add a check before the subtraction: if `loss >= creditTotalSupply`, set `creditMultiplier = 0` (or a minimum dust value like 1) and burn all remaining credit. Example fix:\n\nif (loss >= creditTotalSupply) {\n    creditMultiplier = 0;\n    CreditToken(_credit).burn(creditTotalSupply);\n    emit CreditMultiplierUpdate(block.timestamp, 0);\n} else {\n    uint256 newCreditMultiplier = (creditMultiplier * (creditTotalSupply - loss)) / creditTotalSupply;\n    creditMultiplier = newCreditMultiplier;\n    emit CreditMultiplierUpdate(block.timestamp, newCreditMultiplier);\n}\n",
+  "exploit_scenario": "1. System has 1000 CREDIT total supply, surplusBuffer = 100 CREDIT, termSurplusBuffer[gauge] = 0.\n2. A lending term reports a loss of 1200 CREDIT (e.g., collateral value collapsed to near zero).\n3. `notifyPnL` is called with amount = -1200e18.\n4. loss = 1200e18. After `loss -= _surplusBuffer`: loss = 1100e18.\n5. creditTotalSupply = 1000e18 (from CreditToken.totalSupply() after burning 100).\n6. `creditTotalSupply - loss` = 1000e18 - 1100e18 \u2192 underflow, revert.\n7. Loss can never be processed; the gauge and its borrowers are stuck.",
+  "swc_id": "",
+  "file": "ProfitManager.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Precision Loss in Profit Config Storage Causes Systematic Rounding Discrepancy",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-12-ethereumcreditguild_ovbz0wgc/repo/src/governance/ProfitManager.sol",
+   "line": 0,
+   "function": "setProfitSharingConfig"
+  },
+  "description": "The `setProfitSharingConfig` function validates that `surplusBufferSplit + creditSplit + guildSplit + otherSplit == 1e18` (18 decimal precision), but then stores the values truncated to 9-decimal precision via `uint32(x / 1e9)`. When `notifyPnL` reads these values back with `* 1e9`, each recovered value may be slightly less than the original due to truncation. The `amountForCredit` is then computed as `amount - amountForSurplusBuffer - amountForGuild - amountForOther`, which means CREDIT holders receive slightly MORE than intended. More critically, if the initial values are not exactly divisible by 1e9 (e.g., surplusBufferSplit = 333333333333333333), the stored uint32 could overflow since 1e18/1e9 = 1e9 which exceeds uint32 max (4294967295 \u2248 4.29e9). A value of 1e18 / 1e9 = 1e9 overflows uint32!",
+  "message": "If any split value equals 1e18 (100%), casting `uint32(1e18 / 1e9) = uint32(1e9)` silently overflows uint32 (max ~4.29e9), storing an incorrect truncated value. This corrupts the profit sharing configuration, causing incorrect distribution of profits. For example, setting surplusBufferSplit to 100% would actually store a corrupted value, breaking the surplus buffer mechanism.",
+  "recommendation": "Use larger integer types for storage (uint64 can hold up to ~1.8e19, sufficient for 18-decimal values), or validate that input values are exactly divisible by 1e9 before storing:\n\nrequire(surplusBufferSplit % 1e9 == 0, 'precision loss');\nrequire(guildSplit % 1e9 == 0, 'precision loss');\nrequire(otherSplit % 1e9 == 0, 'precision loss');\n// Store as uint32 safely since values are multiples of 1e9 and <= 1e18\n\nOr use uint64 fields to eliminate the overflow risk for any valid percentage.",
+  "exploit_scenario": "1. Governor calls setProfitSharingConfig(1e18, 0, 0, 0, address(0)) \u2014 100% to surplus buffer.\n2. Validation passes: 1e18 + 0 + 0 + 0 == 1e18. \u2713\n3. Storage: uint32(1e18 / 1e9) = uint32(1_000_000_000) = uint32(0x3B9ACA00).\n4. uint32 max is 4_294_967_295. 1_000_000_000 < 4_294_967_295, so this specific case doesn't overflow.\n5. However, values like surplusBufferSplit = 4.3e18 could overflow if governance is misconfigured.\n6. More practically: surplusBufferSplit = 333_333_333_000_000_001 is validated (sum == 1e18 with others) but stored as uint32(333333333) which reconstitutes to 333_333_333_000_000_000 \u2014 1 wei discrepancy that silently accumulates, causing creditSplit in getProfitSharingConfig to be 1 wei more than expected, and actual distribution diverges from configuration.",
+  "swc_id": "",
+  "file": "ProfitManager.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Zero-amount delegation pollutes delegate set causing _decrementVotesUntilFree to fail freeing sufficient votes",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-12-ethereumcreditguild_ovbz0wgc/repo/src/tokens/ERC20MultiVotes.sol",
+   "line": 0,
+   "function": "_decrementVotesUntilFree / _incrementDelegation"
+  },
+  "description": "A user can call incrementDelegation(delegatee, 0) or delegate() when freeVotes==0, which passes the check `free >= amount` (0 >= 0) and adds delegatee to the _delegates set with 0 votes counted. These zero-vote delegate entries occupy slots in the delegate list. When _decrementVotesUntilFree is called (e.g., during transfer), it iterates the delegate list but SKIPS entries where `delegateVotes == 0` (line: `if (delegateVotes != 0)`). These zero-vote entries consume loop iterations without contributing to `totalFreed`. More critically, if an attacker fills all `maxDelegates` slots with zero-vote delegations before making any real delegations, or if the zero entries are interspersed, the decrement loop may not free enough votes within the gas budget, causing transfers/burns to fail or behave unexpectedly. Additionally, the delegateCount check becomes meaningless since the slots are consumed by zero-value delegates.",
+  "message": "An attacker can grief users by causing them to have delegate slots consumed by zero-vote entries. Legitimate delegations may be blocked (maxDelegates exceeded). _decrementVotesUntilFree iterates over zero-vote delegates uselessly, but since it iterates all and the invariant userDelegatedVotes only tracks non-zero amounts, the freed total calculation could be correct - however the primary issue is slot pollution blocking real delegations.",
+  "recommendation": "Add a check in _incrementDelegation to require amount > 0: `require(amount > 0, 'ERC20MultiVotes: zero delegation');`. This prevents zero-amount delegations from polluting the delegate set.",
+  "exploit_scenario": "1. User A has 100 tokens and maxDelegates=3. 2. Attacker (or user themselves) calls incrementDelegation(addr1, 0), incrementDelegation(addr2, 0), incrementDelegation(addr3, 0) - all succeed since 0 >= 0. 3. delegateCount is now 3. 4. User tries to call incrementDelegation(addr4, 50) - FAILS because delegateCount(3) >= maxDelegates(3) and user is not a contract exception. 5. The zero-vote delegates block all real delegations.",
+  "swc_id": "",
+  "file": "ERC20MultiVotes.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "delegateBySig consumes nonce before validating signer is non-zero address",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-12-ethereumcreditguild_ovbz0wgc/repo/src/tokens/ERC20MultiVotes.sol",
+   "line": 0,
+   "function": "delegateBySig"
+  },
+  "description": "In delegateBySig, the order of operations is: (1) ecrecover to get signer, (2) call _useNonce(signer) and check nonce, (3) check signer != address(0). If ecrecover returns address(0) due to an invalid/malformed signature, _useNonce(address(0)) is called first, incrementing the nonce for address(0). Then the `require(signer != address(0))` check catches it. While this doesn't directly compromise user funds (since the nonce for address(0) is irrelevant to real users), a more serious issue is that an attacker crafting a signature that recovers to address(0) can cause _delegate(address(0), delegatee) to be called if the address(0) check were absent. The current check prevents this but the nonce for address(0) is wasted on each such call. More importantly, a malleable or crafted signature that makes ecrecover return a legitimate user's address could force-delegate that user's votes.",
+  "message": "Minor: nonce waste for address(0). The more critical concern is that delegateBySig allows anyone to trigger delegation for any signer who has signed a valid message - if a signature is replayed (different delegatee not covered by nonce), the nonce prevents replay. Overall the primary issue is the ordering placing _useNonce before the zero-address check.",
+  "recommendation": "Reorder checks to validate signer != address(0) before calling _useNonce: `require(signer != address(0), 'ERC20MultiVotes: invalid signature'); require(nonce == _useNonce(signer), 'ERC20MultiVotes: invalid nonce');`",
+  "exploit_scenario": "1. Craft a signature where ecrecover returns address(0) (possible with specific v,r,s values). 2. Call delegateBySig with this signature. 3. _useNonce(address(0)) increments nonce[address(0)]. 4. require(signer != address(0)) reverts. 5. The nonce for address(0) has been incremented (griefing future calls with address(0) as signer, though irrelevant in practice).",
+  "swc_id": "",
+  "file": "ERC20MultiVotes.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Flash loan attack on governance: same-block token acquisition and checkpoint manipulation",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-12-ethereumcreditguild_ovbz0wgc/repo/src/tokens/ERC20MultiVotes.sol",
+   "line": 0,
+   "function": "incrementDelegation / _writeCheckpoint"
+  },
+  "description": "When a user acquires tokens and calls incrementDelegation in the same transaction/block, _writeCheckpoint updates or creates a checkpoint at block.number. If the checkpoint for this block already exists, it overwrites it. An attacker using flash loans can: (1) borrow large amounts of governance tokens, (2) delegate to themselves within the same block creating/updating a checkpoint, (3) use getVotes() (current, not past) to vote in any same-block governance action, (4) repay the flash loan. While getPastVotes requires blockNumber < block.number protecting historical votes, if the governance system uses getVotes() (current votes) rather than getPastVotes() for vote counting, flash loan attacks are possible. The contract provides both getVotes() and getPastVotes() without enforcing which is used.",
+  "message": "If any governance contract integrated with this token uses getVotes() instead of getPastVotes(), an attacker can flash loan tokens, inflate voting power in the same block, pass/block proposals, and repay - all in one transaction. This could allow unauthorized governance actions.",
+  "recommendation": "Ensure integrated governance contracts always use getPastVotes() with a block lag for vote counting. Consider adding a note in the contract documentation. Alternatively, emit an event or add a hook that governance contracts can use to enforce snapshot-based voting.",
+  "exploit_scenario": "1. Attacker identifies a governance contract that uses getVotes() for vote tallying. 2. Attacker takes a flash loan of governance tokens. 3. In the same transaction, calls incrementDelegation(attacker, flashLoanAmount). 4. Votes are now reflected in getVotes(attacker). 5. Attacker calls governance vote function (if it allows same-block voting). 6. Attacker undelegates and repays flash loan. 7. Governance action passed with attacker's inflated votes.",
+  "swc_id": "",
+  "file": "ERC20MultiVotes.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "Delegate set not cleaned up when _delegatesVotesCount reaches 0 via incremental undelegation path in _decrementVotesUntilFree",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-12-ethereumcreditguild_ovbz0wgc/repo/src/tokens/ERC20MultiVotes.sol",
+   "line": 0,
+   "function": "_decrementVotesUntilFree"
+  },
+  "description": "In _decrementVotesUntilFree, the function takes a memory snapshot of the delegate list via `_delegates[user].values()`, then iterates and removes delegates from the live EnumerableSet. However, the function only processes delegates with non-zero vote counts (`if (delegateVotes != 0)`). If any delegate somehow has 0 votes in _delegatesVotesCount but is still in the _delegates set (possible via the zero-amount delegation path), those entries are skipped and NOT removed from the set. This means the delegate set can permanently contain stale zero-vote entries that: (1) block new delegations due to maxDelegates limit, (2) waste gas in future iterations, and (3) create an inconsistent state where _delegates contains entries not reflected in _delegatesVotesCount.",
+  "message": "Persistent state inconsistency where delegate slots are permanently occupied by zero-vote entries. Users may be unable to add new legitimate delegations. The delegate count appears artificially inflated.",
+  "recommendation": "Either (1) prevent zero-amount delegations entirely with `require(amount > 0)`, or (2) in _decrementVotesUntilFree, also remove zero-vote delegates: remove the `if (delegateVotes != 0)` guard and always process/remove the delegate entry.",
+  "exploit_scenario": "1. User calls incrementDelegation(addr1, 0) - adds addr1 to _delegates with 0 votes. 2. _decrementVotesUntilFree is triggered during a transfer. 3. Loop reaches addr1, sees delegateVotes==0, skips it without removing. 4. addr1 remains in _delegates set permanently. 5. User cannot delegate to new addresses if maxDelegates is reached.",
+  "swc_id": "",
+  "file": "ERC20MultiVotes.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "governance_manipulation",
+  "title": "Flash Loan / Same-Block Voting Attack Due to Zero Voting Delay",
+  "severity": "Critical",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-12-ethereumcreditguild_ovbz0wgc/repo/src/governance/GuildVetoGovernor.sol",
+   "line": 0,
+   "function": "createVeto / castVote"
+  },
+  "description": "The `votingDelay()` function returns 0, meaning the snapshot block for voting power is the same block in which the veto proposal is created. An attacker can: (1) acquire a large amount of governance tokens (via flash loan or spot purchase) in the same block as the `createVeto()` call, (2) call `createVeto()` to create the veto proposal (snapshot is taken at the current block), (3) vote with the borrowed/acquired tokens via `castVote()`, and (4) repay the flash loan or sell tokens. Since `GovernorVotes` uses `token.getPastVotes(account, proposalSnapshot(proposalId))` for vote weight, and `proposalSnapshot` = `block.number` at creation time (because delay=0), the attacker's voting power at that block is used. This allows an attacker to temporarily acquire massive voting power to veto any queued timelock action.",
+  "message": "An attacker with access to flash loans or sufficient capital can veto (cancel) any legitimate governance action queued in the timelock, including critical protocol upgrades, parameter changes, or emergency actions. This can block governance entirely or be used to prevent protocol improvements.",
+  "recommendation": "Increase `votingDelay()` to at least 1-2 blocks (or preferably more) to ensure voting power snapshots are taken before the proposal is known, preventing same-block flash loan attacks. Example: `function votingDelay() public pure override returns (uint256) { return 7200; } // ~1 day`",
+  "exploit_scenario": "1. Attacker identifies a TimelockController action queued with id `timelockId`\n2. In a single transaction (using flash loan callback):\n   a. Borrow/acquire governance tokens exceeding quorum threshold\n   b. Delegate tokens to self (if not already checkpointed at this block - note: getPastVotes requires prior checkpoint)\n   c. Call `createVeto(timelockId)` - snapshot is taken at current block\n   d. Call `castVote(proposalId, 0)` - votes with borrowed tokens\n   e. `_quorumReached` returns true\n   f. Call `executeVeto(timelockId)` - cancels the timelock operation\n   g. Repay flash loan\n3. The legitimate governance action is cancelled\nNote: Step (b) requires the checkpoint to exist at the snapshot block, which may require the tokens to be acquired in the SAME block before the proposal (possible with flash loans if token supports same-block delegation checkpointing).",
+  "swc_id": "",
+  "file": "GuildVetoGovernor.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "state_consistency",
+  "title": "Timelock Address Change Corrupts State of Existing Veto Proposals",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-12-ethereumcreditguild_ovbz0wgc/repo/src/governance/GuildVetoGovernor.sol",
+   "line": 0,
+   "function": "updateTimelock"
+  },
+  "description": "The `updateTimelock()` function immediately changes the `timelock` state variable, which is used by both `state()` and `executeVeto()` for ALL proposals, including existing active ones. When `timelock` is updated: (1) `state()` will query the NEW timelock for timelockIds that belong to the OLD timelock, returning incorrect state (likely `Canceled` since the operation doesn't exist in the new timelock). (2) `executeVeto()` will call `cancel()` on the NEW timelock with a timelockId from the OLD timelock, either failing or cancelling an unrelated operation if the same ID happens to exist. This means any in-progress veto proposals become permanently broken.",
+  "message": "Changing the timelock address mid-vote breaks all active veto proposals. Active vetoes that have reached quorum become un-executable. Worse, if the new timelock happens to have the same operation ID, the cancel call could cancel an unrelated operation in the new timelock.",
+  "recommendation": "Store the timelock address per-proposal in `_timelockIds` or use a separate mapping. Alternatively, prevent timelock updates when there are active proposals. The `_getVetoCalls()` and `state()` functions should use the stored timelock address for a given proposal rather than the current global `timelock` variable.",
+  "exploit_scenario": "1. Legitimate veto proposal created for timelockId X on timelock A\n2. Voters cast against votes, quorum is reached (ProposalState.Succeeded)\n3. GOVERNOR calls `updateTimelock(timelockB)` (could be malicious governor or mistake)\n4. `state()` now queries timelockB.getTimestamp(timelockId_X) \u2192 returns 0 (not found) \u2192 returns ProposalState.Canceled\n5. `executeVeto(timelockId_X)` would call timelockB.cancel(timelockId_X) \u2192 reverts or cancels wrong operation\n6. The veto cannot be executed, and the original timelockA action proceeds",
+  "swc_id": "",
+  "file": "GuildVetoGovernor.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "access_control",
+  "title": "Zero Quorum Allows Instant Cancellation of Any Timelock Action",
+  "severity": "High",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-12-ethereumcreditguild_ovbz0wgc/repo/src/governance/GuildVetoGovernor.sol",
+   "line": 0,
+   "function": "setQuorum"
+  },
+  "description": "The `setQuorum()` function allows the GOVERNOR role to set `_quorum` to 0. With quorum=0, `_quorumReached()` returns `true` immediately for any proposal (since `0 <= 0`). Combined with the fact that `createVeto()` is callable by anyone and the veto can be executed immediately once quorum is reached (the contract allows early execution when quorum is met before timelock expires), a single GOVERNOR-role action of setting quorum to 0 allows ANY user to instantly veto ANY queued timelock operation with zero votes cast.",
+  "message": "If GOVERNOR role is compromised or acts maliciously, setting quorum to 0 enables griefing attacks where anyone can cancel any timelock operation without any token holder support. This defeats the purpose of the veto mechanism requiring community consensus.",
+  "recommendation": "Add a minimum quorum value check: `require(newQuorum > 0, 'GuildVetoGovernor: quorum cannot be zero');` Or better, set a minimum quorum as a percentage of total supply. Additionally, consider using a time-delay before quorum changes take effect.",
+  "exploit_scenario": "1. Attacker gains GOVERNOR role (or compromises it)\n2. Calls `setQuorum(0)`\n3. Any address calls `createVeto(timelockId)` for any pending operation\n4. `state()` immediately returns `Succeeded` (quorum=0 is reached with 0 votes, and timelockExecutionTime > block.timestamp)\n5. Any address calls `executeVeto(timelockId)` \u2192 cancels the operation\n6. Repeat for any queued timelock action",
+  "swc_id": "",
+  "file": "GuildVetoGovernor.sol",
+  "backend": "claude"
+ },
+ {
+  "type": "logic_error",
+  "title": "createVeto Allows Veto Creation for Operations Ready to Execute (Immediately Defeated)",
+  "severity": "Medium",
+  "tool": "frontier-anthropic",
+  "confidence": 0.8,
+  "location": {
+   "file": "/var/folders/38/s7h03tpx0h98shwqgy4_c7lw0000gq/T/evmbench_2023-12-ethereumcreditguild_ovbz0wgc/repo/src/governance/GuildVetoGovernor.sol",
+   "line": 0,
+   "function": "createVeto"
+  },
+  "description": "The `createVeto()` function checks `timelockExecutionTime > 1` but does NOT check whether `timelockExecutionTime <= block.timestamp` (i.e., the operation is already ready to execute or past its execution time). An operation with `getTimestamp()` returning a value \u2264 `block.timestamp` but > 1 is ready to execute in the timelock. A veto proposal created for such an operation will immediately be in `ProposalState.Defeated` state (per the `state()` override logic), making it impossible to execute. This wastes gas and could be used to spam useless proposals.",
+  "message": "Users can create veto proposals for timelock operations that are already executable, which immediately fail. While not directly causing fund loss, this creates confusion and wastes gas. More importantly, it means the `_timelockIds` mapping gets populated with defeated proposals.",
+  "recommendation": "Add a check that the timelock operation is not yet executable: `require(timelockExecutionTime > block.timestamp, 'GuildVetoGovernor: action already executable or past');`",
+  "exploit_scenario": "1. TimelockController has operation X with executionTime = block.timestamp (just became executable)\n2. User calls `createVeto(X)` - passes the > 1 check\n3. Proposal is created with `_timelockIds[proposalId] = X`\n4. `state(proposalId)` returns `Defeated` immediately because `timelockOperationTimestamp <= block.timestamp`\n5. The veto can never be executed",
+  "swc_id": "",
+  "file": "GuildVetoGovernor.sol",
+  "backend": "claude"
+ }
+]
