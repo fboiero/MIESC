@@ -25,6 +25,9 @@
 - **Severity:** {{ finding.severity }}
 - **Location:** {{ finding.location }}
 - **Category:** {{ finding.category }}
+{%- if finding.triage_tier %}
+- **Reentrancy Triage:** {{ finding.triage_tier | upper }}{% if finding.triage_guard and finding.triage_guard not in ['', 'unknown'] %} (guard: {{ finding.triage_guard }}){% endif %}
+{%- endif %}
 
 {{ finding.description }}
 

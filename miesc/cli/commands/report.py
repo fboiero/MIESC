@@ -2915,6 +2915,11 @@ def report(
                 "source": str(finding.get("source") or ""),
                 "evidence": list(finding.get("evidence") or []),
                 "verification": verification,
+                # Reentrancy triage (scan annotation) — flattened to scalars so both
+                # the Jinja2 and the simple fallback renderer can print them. Empty
+                # for non-reentrancy findings, so the template row stays conditional.
+                "triage_tier": str((finding.get("reentrancy_triage") or {}).get("tier") or ""),
+                "triage_guard": str((finding.get("reentrancy_triage") or {}).get("guard") or ""),
             }
         )
 

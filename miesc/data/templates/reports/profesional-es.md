@@ -504,6 +504,9 @@ Echidna o Medusa proveería esta capa.
 | **Estado** | {{ finding.status }} |
 | **Detectado por** | {{ finding.tool }} |
 | **Verificación** | {{ finding.verification }} |
+{%- if finding.triage_tier %}
+| **Triaje de reentrancy** | {{ finding.triage_tier | upper }}{% if finding.triage_guard and finding.triage_guard not in ['', 'unknown'] %} (guardia: {{ finding.triage_guard }}){% endif %} |
+{%- endif %}
 
 ### Descripción
 
