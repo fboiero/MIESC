@@ -30,6 +30,7 @@ interface IERC20 { function balanceOf(address) external view returns (uint256); 
 
 contract MyVault {
     uint256 public totalSupply;
+    constructor(address asset) {}
     function totalAssets() public view returns (uint256) {}
     function convertToShares(uint256 a) public view returns (uint256) {}
     function convertToAssets(uint256 s) public view returns (uint256) {}
@@ -132,6 +133,205 @@ class TestHarnessBuilder:
         )
         assert art is not None
         assert "echidna_vault_solvent" in art.property_map
+
+
+# ---------------------------------------------------------------------------
+# honest-skip pre-flight: unsupported constructor / driver shapes
+# ---------------------------------------------------------------------------
+
+# Faithful excerpt of the real Malda mErc20Immutable: an 8-argument constructor
+# with operator / interest-rate-model dependencies the harness cannot synthesise.
+MALDA_MERC20 = """// SPDX-License-Identifier: BSL-1.1
+pragma solidity =0.8.28;
+
+contract mErc20Immutable is mErc20 {
+    constructor(
+        address underlying_,
+        address operator_,
+        address interestRateModel_,
+        uint256 initialExchangeRateMantissa_,
+        string memory name_,
+        string memory symbol_,
+        uint8 decimals_,
+        address payable admin_
+    ) {}
+    function exchangeRateStored() public view returns (uint256) {}
+    function mint(uint256 mintAmount, address receiver, uint256 minAmountOut) external {}
+    function redeem(uint256 redeemTokens) external {}
+}
+"""
+
+# A single-asset-constructor cToken whose mint adds a non-fillable argument.
+NONSTANDARD_MINT_CTOKEN = """// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+contract Weird {
+    uint256 public totalSupply;
+    constructor(address u) {}
+    function exchangeRateStored() public view returns (uint256) {}
+    function balanceOf(address) public view returns (uint256) {}
+    function mint(uint256 amount, uint256 lockDuration) external {}
+    function redeem(uint256 c) external {}
+}
+"""
+
+
+class TestHonestSkip:
+    def test_multi_arg_constructor_is_skipped_with_reason(self):
+        outcome = EconomicHarnessBuilder().build_or_reason(
+            MALDA_MERC20, "mErc20Immutable", ["compound_no_inflation_theft"], "./m.sol"
+        )
+        assert outcome.artifact is None
+        assert outcome.skip_reason is not None
+        reason = outcome.skip_reason
+        # Names the real divergence: arity and the dependency params it can't stub.
+        assert "8 argument" in reason
+        assert "operator_" in reason
+        assert "interestRateModel_" in reason
+        assert "future work" in reason
+
+    def test_build_returns_none_on_unsupported_shape(self):
+        # The thin build() wrapper drops the reason but must not fabricate a harness.
+        art = EconomicHarnessBuilder().build(
+            MALDA_MERC20, "mErc20Immutable", ["compound_no_inflation_theft"], "./m.sol"
+        )
+        assert art is None
+
+    def test_nonstandard_mint_arg_is_skipped(self):
+        outcome = EconomicHarnessBuilder().build_or_reason(
+            NONSTANDARD_MINT_CTOKEN, "Weird", ["compound_no_inflation_theft"], "./w.sol"
+        )
+        assert outcome.artifact is None
+        assert outcome.skip_reason is not None
+        # lockDuration is not a safe-default arg -> refused honestly, not zeroed.
+        assert "mint()" in outcome.skip_reason
+        assert "lockDuration" in outcome.skip_reason
+
+    def test_mint_fee_arg_is_not_zeroed(self):
+        # `mintFee` must NOT match the min*/slippage zero-allowlist (camelCase
+        # boundary): zeroing a fee would silently change semantics, so skip instead.
+        src = """// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+contract FeeMkt {
+    uint256 public totalSupply;
+    constructor(address u) {}
+    function exchangeRateStored() public view returns (uint256) {}
+    function balanceOf(address) public view returns (uint256) {}
+    function mint(uint256 amount, uint256 mintFee) external {}
+    function redeem(uint256 c) external {}
+}
+"""
+        outcome = EconomicHarnessBuilder().build_or_reason(
+            src, "FeeMkt", ["compound_no_inflation_theft"], "./f.sol"
+        )
+        assert outcome.artifact is None
+        assert outcome.skip_reason is not None
+        assert "mintFee" in outcome.skip_reason
+
+    def test_no_explicit_constructor_is_skipped(self):
+        # A compound-shaped contract with no explicit constructor cannot receive the
+        # mock asset address -> honest skip naming the implicit/inherited constructor.
+        src = """// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+contract NoCtor {
+    uint256 public totalSupply;
+    function exchangeRateStored() public view returns (uint256) {}
+    function balanceOf(address) public view returns (uint256) {}
+    function mint(uint256 amount) external {}
+    function redeem(uint256 c) external {}
+}
+"""
+        outcome = EconomicHarnessBuilder().build_or_reason(
+            src, "NoCtor", ["compound_no_inflation_theft"], "./n.sol"
+        )
+        assert outcome.artifact is None
+        assert outcome.skip_reason is not None
+        assert "implicit or inherited" in outcome.skip_reason
+
+    def test_no_runnable_invariants_has_no_skip_reason(self):
+        # "nothing runnable" is distinct from "unsupported shape": both-None.
+        outcome = EconomicHarnessBuilder().build_or_reason(
+            VAULT_SRC, "MyVault", ["total_supply_equals_sum_balances"], "./V.sol"
+        )
+        assert outcome.artifact is None
+        assert outcome.skip_reason is None
+
+    def test_run_economic_fuzz_surfaces_skip_reason(self, tmp_path):
+        # End-to-end: a real-fork-shaped target is skipped with the precise reason,
+        # not a generic "no runnable form" message — and Echidna is never invoked.
+        target = tmp_path / "mErc20Immutable.sol"
+        target.write_text(MALDA_MERC20, encoding="utf-8")
+
+        class _AlwaysAvailable:
+            def is_available(self):
+                return ToolStatus.AVAILABLE
+
+            def analyze(self, *a, **k):  # pragma: no cover - must never be called
+                raise AssertionError("Echidna must not run on an unbindable target")
+
+        res = run_economic_fuzz(
+            str(target),
+            ["compound_no_inflation_theft"],
+            target_name="mErc20Immutable",
+            adapter=_AlwaysAvailable(),
+        )
+        assert res["status"] == "skipped"
+        assert "operator_" in res["reason"]
+        assert res["findings"] == []
+
+
+class TestDriverResolution:
+    def test_three_arg_mint_resolves_to_safe_defaults(self):
+        # A single-asset-constructor market with a 3-arg mint(amount, receiver, minOut)
+        # resolves to mint(amount, address(this), 0) rather than being skipped.
+        src = """// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+contract Mkt {
+    uint256 public totalSupply;
+    constructor(address u) {}
+    function exchangeRateStored() public view returns (uint256) {}
+    function balanceOf(address) public view returns (uint256) {}
+    function mint(uint256 amount, address receiver, uint256 minAmountOut) external {}
+    function redeem(uint256 c) external {}
+}
+"""
+        art = EconomicHarnessBuilder().build(
+            src, "Mkt", ["compound_no_inflation_theft"], "./Mkt.sol"
+        )
+        assert art is not None
+        assert "market.mint(amount, address(this), 0);" in art.source
+        assert "market.redeem(cTokens);" in art.source
+
+    def test_mock_mint_above_target_does_not_shadow(self):
+        # Flattened audit layout: a mock with mint(address,uint256) declared ABOVE the
+        # target. Resolution must read the target's own body, not the mock's mint.
+        src = """// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+contract ERC20Mock {
+    function mint(address to, uint256 amount) external {}
+}
+contract CToken {
+    uint256 public totalSupply;
+    constructor(address u) {}
+    function exchangeRateStored() public view returns (uint256) {}
+    function balanceOf(address) public view returns (uint256) {}
+    function mint(uint256 amount) external {}
+    function redeem(uint256 c) external {}
+}
+"""
+        art = EconomicHarnessBuilder().build(
+            src, "CToken", ["compound_no_inflation_theft"], "./c.sol"
+        )
+        assert art is not None
+        assert "market.mint(amount);" in art.source
+
+    def test_stock_shapes_emit_canonical_driver_calls(self):
+        # Regression: the stock ERC-4626 shape still emits byte-identical driver calls.
+        art = EconomicHarnessBuilder().build(
+            VAULT_SRC, "MyVault", ["erc4626_first_deposit_guard"], "./MyVault.sol"
+        )
+        assert art is not None
+        assert "vault.deposit(assets, address(this));" in art.source
+        assert "vault.redeem(shares, address(this), address(this));" in art.source
 
 
 # ---------------------------------------------------------------------------
