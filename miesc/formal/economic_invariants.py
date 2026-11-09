@@ -30,8 +30,9 @@ License: AGPL-3.0
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 # =============================================================================
 # Template data model
@@ -414,6 +415,92 @@ def _looks_like_compound(code: str) -> bool:
     return "mint" in cl and "redeem" in cl and ("ctoken" in cl or "mtoken" in cl)
 
 
+_CASH_FUNCS = ("_getCashPrior", "getCashPrior", "getCash")
+_BALANCEOF_SELF_RE = re.compile(r"\.balanceof\s*\(\s*address\s*\(\s*this\s*\)\s*\)")
+_INFLATION_SURFACE = {"balanceof": "open", "tracked": "closed", "unknown": "unknown"}
+
+
+def _function_body(code: str, func_name: str) -> Optional[str]:
+    """Body of the first `func_name` that HAS one, or None.
+
+    Scans every `function func_name(` occurrence and returns the first with a real
+    body — so an abstract/interface declaration (`... returns (uint256);`) appearing
+    earlier in a flattened file does not shadow the concrete override below it.
+    """
+    for m in re.finditer(rf"\bfunction\s+{re.escape(func_name)}\s*\(", code):
+        i = m.end() - 1  # at the opening '(' of the parameter list
+        depth = 0
+        while i < len(code):
+            if code[i] == "(":
+                depth += 1
+            elif code[i] == ")":
+                depth -= 1
+                if depth == 0:
+                    i += 1
+                    break
+            i += 1
+        while i < len(code) and code[i] not in "{;":
+            i += 1
+        if i >= len(code) or code[i] == ";":
+            continue  # abstract / interface declaration — try the next occurrence
+        depth = 0
+        start = i
+        while i < len(code):
+            if code[i] == "{":
+                depth += 1
+            elif code[i] == "}":
+                depth -= 1
+                if depth == 0:
+                    return code[start + 1 : i]
+            i += 1
+    return None
+
+
+def _assigned_from_balanceof(code: str, var: str) -> bool:
+    """True if `var` is ever assigned (``=``, not ``+=``/``-=``) from a self balance.
+
+    This is the sync()/skim() reopener: a tracked accumulator periodically reset to
+    ``underlying.balanceOf(address(this))`` re-exposes the donation vector, so such a
+    ``var`` is NOT a safe (closed) cash source despite being a state field.
+    """
+    pattern = re.compile(
+        rf"(?<![+\-*/]){re.escape(var)}\s*=\s*[^;=]*?"
+        r"\.balanceof\s*\(\s*address\s*\(\s*this\s*\)\s*\)",
+        re.IGNORECASE,
+    )
+    return bool(pattern.search(code))
+
+
+def _cash_source(code: str) -> str:
+    """Classify a Compound-V2 market's exchange-rate cash source.
+
+    Returns one of:
+      * ``"balanceof"`` — cash is read from ``underlying.balanceOf(address(this))``,
+        so a bare donation inflates the exchange rate: the first-depositor inflation
+        surface is OPEN (stock Compound V2; mitigated off-chain via dead-shares / a
+        zero initial collateral factor).
+      * ``"tracked"`` — cash is an internal accumulator never reset from a balance
+        read, so a donation does not move the rate: the inflation surface is CLOSED
+        by design (e.g. Malda's ``totalUnderlying``).
+      * ``"unknown"`` — no recognisable getCash shape; classification withheld.
+    """
+    for fname in _CASH_FUNCS:
+        body = _function_body(code, fname)
+        if body is None:
+            continue
+        if _BALANCEOF_SELF_RE.search(body.lower()):
+            return "balanceof"
+        m = re.search(r"return\s+([A-Za-z_]\w*)\s*;", body)
+        if m:
+            var = m.group(1)
+            return "balanceof" if _assigned_from_balanceof(code, var) else "tracked"
+        return "unknown"
+    # No getCash body found. We do NOT guess "open" from a stray balanceOf: the
+    # fee-on-transfer `doTransferIn` idiom (balanceBefore/After) reads self-balance
+    # without being the exchange-rate cash source. Withhold instead.
+    return "unknown"
+
+
 def _uses_spot_price(code: str) -> bool:
     cl = code.lower()
     spot_signals = (
@@ -439,7 +526,13 @@ def detect_economic_invariants(contract_source: str) -> List[Dict[str, Any]]:
 
     Returns:
         A list of template dicts (see EconomicInvariantTemplate.to_dict). Empty
-        list when nothing economic is recognised — an honest no-op.
+        list when nothing economic is recognised — an honest no-op. Compound-V2
+        templates additionally carry a `cash_source` / `inflation_surface`
+        annotation: the static discriminator that tells an `open` inflation surface
+        (exchange rate reads raw `balanceOf` — stock Compound) apart from a `closed`
+        one (internally-tracked cash — e.g. Malda). Templates are annotated, never
+        suppressed: the round-trip property still holds on a `closed` market, which
+        is a correct outcome, not a false signal.
     """
     if not contract_source:
         return []
@@ -448,6 +541,8 @@ def detect_economic_invariants(contract_source: str) -> List[Dict[str, Any]]:
     is_4626 = _looks_like_erc4626(contract_source)
     is_vault = is_4626 or _looks_like_vault(contract_source)
 
+    compound_names: set[str] = set()
+    cash_source: Optional[str] = None
     if is_vault:
         selected.append(VAULT_SOLVENCY)
         selected.append(NO_WITHDRAW_EXCEEDS_DEPOSIT)
@@ -457,6 +552,8 @@ def detect_economic_invariants(contract_source: str) -> List[Dict[str, Any]]:
     if _looks_like_compound(contract_source):
         selected.append(COMPOUND_NO_INFLATION_THEFT)
         selected.append(COMPOUND_MINT_NONZERO)
+        compound_names = {"compound_no_inflation_theft", "compound_mint_nonzero"}
+        cash_source = _cash_source(contract_source)
     if _looks_like_token(contract_source):
         selected.append(TOTAL_SUPPLY_EQUALS_SUM_BALANCES)
     if _uses_spot_price(contract_source):
@@ -470,7 +567,14 @@ def detect_economic_invariants(contract_source: str) -> List[Dict[str, Any]]:
             ordered.append(t)
             seen.add(t.name)
 
-    return [t.to_dict() for t in ordered]
+    result: List[Dict[str, Any]] = []
+    for t in ordered:
+        d = t.to_dict()
+        if t.name in compound_names and cash_source is not None:
+            d["cash_source"] = cash_source
+            d["inflation_surface"] = _INFLATION_SURFACE[cash_source]
+        result.append(d)
+    return result
 
 
 __all__ = [
