@@ -20,8 +20,13 @@ def test_audit_full_rejects_a_directory_with_guidance(tmp_path):
 
     result = CliRunner().invoke(audit, ["full", str(tmp_path)])
 
+    # Collapse whitespace: the Rich console wraps the message at the terminal width,
+    # so the phrase can straddle a line break ("is a \ndirectory") under a narrow CI
+    # terminal. Normalize before matching so the assertion is width-independent.
+    normalized = " ".join(result.output.lower().split())
+
     assert result.exit_code != 0
-    assert "is a directory" in result.output.lower()
-    assert "audit batch" in result.output
+    assert "is a directory" in normalized
+    assert "audit batch" in normalized
     # It must fail fast — before the banner / pipeline start, never with a raw errno.
-    assert "[Errno 21]" not in result.output
+    assert "[errno 21]" not in normalized
