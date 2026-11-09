@@ -9,7 +9,52 @@ Institution: UNDEF - IUA Cordoba
 License: AGPL-3.0
 """
 
-from typing import Any
+import sys as _sys
+from typing import Any, Optional, Sequence
+
+# --- Python version guard (runs on `import miesc`, before any 3.12+ import) ---
+# MIESC targets Python >= 3.12 (see pyproject `requires-python`). When the
+# `miesc` console script is installed for an older interpreter, importing the
+# package otherwise fails with a cryptic error far from the real cause — a
+# runtime `TypeError` on PEP 604 `X | None` annotations under 3.9, or a
+# `ModuleNotFoundError` for a dependency only installed for the newer
+# interpreter. `import miesc` runs first in every entry path, so a fail-fast
+# check here turns all of those into one clear, actionable message.
+#
+# This block uses only typing generics (`Optional`/`Tuple`), never a runtime
+# `X | None`, so it stays importable and callable under Python < 3.10.
+_MIN_PYTHON = (3, 12)
+
+
+def _python_version_error(
+    version_info: Sequence[int],
+    executable: str = _sys.executable,
+) -> Optional[str]:
+    """Return an actionable error message if the interpreter is too old, else None.
+
+    ``version_info`` is a sequence of the interpreter's ``(major, minor, ...)``
+    version parts. Kept as a small pure function so the version policy can be
+    unit-tested without spawning an unsupported interpreter.
+    """
+    if tuple(version_info[:2]) >= _MIN_PYTHON:
+        return None
+    detected = ".".join(str(part) for part in version_info[:3])
+    minimum = ".".join(str(part) for part in _MIN_PYTHON)
+    return (
+        f"MIESC requires Python >= {minimum}, but is running under Python {detected} "
+        f"({executable}). The 'miesc' console script was likely installed for an older "
+        f"interpreter. Reinstall it under Python {minimum}+ (for example "
+        f"'pipx install miesc' or 'uv tool install miesc'), or run it with a "
+        f"{minimum}+ interpreter via 'python3 -m miesc'."
+    )
+
+
+# `sys.version_info` mixes ints and a str (releaselevel); pass just the numeric
+# parts so the policy's type stays a clean Sequence[int].
+_version_error = _python_version_error(tuple(int(_p) for _p in _sys.version_info[:3]))
+if _version_error:  # pragma: no cover - exercised via subprocess test
+    raise RuntimeError(_version_error)
+# -----------------------------------------------------------------------------
 
 __version__ = "6.8.0"
 __author__ = "Fernando Boiero"
