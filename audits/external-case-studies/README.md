@@ -6,16 +6,18 @@ static-analysis scan, then apply a disciplined **manual triage** that separates 
 from the (many) false positives a scanner produces. These are kept as an evidence trail of
 MIESC's real-world behaviour, not as formal audit opinions.
 
-> **TL;DR:** Across nine mature-enough targets (Lombard LBTC, Doppler, Valantis STEX, YieldNest,
-> Arcadia lending-v2, Revert v4lend, Malda, Royco Dawn, Reserve Governor), **every High-severity
-> finding the scanner produced was a false positive** once read against the real code. The spread of
-> targets sharpens *why* the triage layer matters: on Malda a real judged High lived in a
-> trust-boundary invariant the scanner cannot express; on Royco Dawn the one real High-class bug (an
-> ERC-777 reentrancy) *does* sit behind a Slither flag, but the scanner cannot tell it from seven
-> benign look-alikes; and Reserve Governor is the mirror image — on pure governance code the scanner
-> is **silent (0 High)**, correctly, because the entire real risk surface is governance / trust-boundary
-> logic with no detector class. Loud or silent, the lesson holds: the **triage layer, not the raw
-> scan, is the product.**
+> **TL;DR:** Across ten mature-enough targets (Lombard LBTC, Doppler, Valantis STEX, YieldNest,
+> Arcadia lending-v2, Revert v4lend, Malda, Royco Dawn, Reserve Governor, Revert StableSwap Hooks),
+> **every High-severity finding the scanner produced was a false positive** once read against the real
+> code. The spread of targets sharpens *why* the triage layer matters: on Malda a real judged High
+> lived in a trust-boundary invariant the scanner cannot express; on Royco Dawn the one real High-class
+> bug (an ERC-777 reentrancy) sits behind a Slither flag, but the scanner cannot tell it from seven
+> benign look-alikes; Reserve Governor is the mirror image — on pure governance code the scanner is
+> **silent (0 High)**, correctly; and on Revert StableSwap Hooks the scanner flagged the *exact function*
+> of the one judged High (a native-ETH `removeLiquidity` reentrancy) yet **ranked it Medium**, because
+> the ETH exits via `poolManager.take` rather than a recognised value-send — the sharpest case of
+> *locating* a bug without *adjudicating* it. Loud or silent, located or missed, the lesson holds: the
+> **triage layer, not the raw scan, is the product.**
 
 ---
 
@@ -80,6 +82,7 @@ premium PDFs are regenerable from `results.json` and are not committed here to k
 | **Malda** (`malda-protocol/malda-lending`) | `ab4fa9b2` | 195 (0 Crit / 2 High / 25 Med / 80 Low / 88 Info) | **0/2 scanner Highs exploitable** — `arbitrary-send-eth` is an ETH-rescue to a constructor-set address, `reentrancy-balance` is the caller's own Mendi→Malda migration via trusted markets. The contest's one judged **High (H-1)** — an unchecked cross-chain `receiver` in `EverclearBridge` — sat in the same rebalancer subsystem but **outside Slither's lens** (a trust-boundary invariant, not an `arbitrary-send-*` pattern) |
 | **Royco Dawn** (`roycoprotocol/royco-dawn`) | `d5f9360c` | 382 (0 Crit / 1 High / 41 Med / 53 Low / 287 Info) | **0/1 scanner High exploitable** — `arbitrary-send-erc20` on `requestDeposit` is double-gated (AccessManager `restricted` + ERC-7540 operator model) and sends to the fixed kernel. Cantina closed **262 submissions → 0 valid, 0 High**. The real ERC-777 reentrancy (`stRedeem`) *does* sit behind one of eight `reentrancy-no-eth` Mediums the scanner raised — it **locates but cannot adjudicate** the one real vector (needs the ERC-777 precondition + NAV invariant) |
 | **Reserve Governor** (`reserve-protocol/reserve-governor`) | `dc27a684` | 66 (0 Crit / **0 High** / 9 Med / 19 Low / 38 Info) | **0 scanner Highs at all** — on governance code the lens is silent, matching Cantina's judged **0 valid Highs / 1,465 submissions** (Medium-tier payout). The 9 Mediums are benign noise; the real risk (optimistic/standard proposal ID collisions, selector-whitelist, timelock bypass, CEI ordering — `cancelLock` M-01 & M-02 fixed pre-commit) is governance logic with no detector class. The only `arbitrary-send-eth` Highs are in OZ's `Governor`/`Timelock` base, correctly scoped out |
+| **Revert StableSwap Hooks** (`revert-finance/stableswap-hooks`) | `cf0c30e5` | 76 (0 Crit / 6 High / 17 Med / 20 Low / 33 Info) | **0/6 scanner Highs exploitable** — two `arbitrary-send-*` on caller-own/caller-chosen funds behind the `onlyPoolManager` unlock callback, `encode-packed-collision` on a hash-pinned creation code, two `incorrect-exp`/`-shift` on Solady's formally-verified `cbrt`, one `reentrancy-eth` on add-liquidity whose only reentrant send runs post-commit. Reconciled vs the project's own `CANTINA.md` (**1 High + 11 Mediums**): Slither flagged the *exact function* of the one judged High (#29, native-ETH `removeLiquidity` reentrancy) but **ranked it Medium** — the ETH exits via `poolManager.take`, invisible to `reentrancy-eth`; the 11 economic findings have no detector class |
 
 ### lombard-lbtc-2026-10
 Lombard LBTC (Bitcoin-backed liquid token). The three scanner Highs (private-constant "shadowing",
@@ -201,6 +204,28 @@ by-design arbitrary send, correctly excluded as a dependency; a scanner that cou
 as first-party would manufacture three phantom "governance" Highs. Dependencies were staged via
 `npm pack` (download-only) plus the project's pnpm OZ patch, without running the repo's install
 scripts. See `triage-memo.md`.
+
+### revert-stableswap-hooks-2026-11
+Revert StableSwap Hooks (a Uniswap v4 hook bringing Curve-style StableSwap AMM behaviour — a
+constant-sum/product blend with amplification `A` — to v4 pools, with v2-style ERC20 LP tokens, rate
+oracles, and a `StableSwapZapIn` single-token-deposit periphery). This is the **richest reconciliation
+in the directory**, because the project publishes its own findings log (`CANTINA.md`, committed in-repo):
+the competition validated **1 High (#29) + 11 Mediums**. All six scanner Highs are false positives: two
+`arbitrary-send-*` move the caller's own (or caller-chosen) funds behind the `onlyPoolManager` unlock
+callback; `encode-packed-collision` is defused by a `keccak256`-pinned creation code; the two
+`incorrect-exp`/`-shift` fire on `cbrt`, lifted verbatim from Solady's formally-verified
+`FixedPointMathLib`; and the lone `reentrancy-eth` on `_handleAddLiquidityCallback` is benign (its
+flagged `settle{value}` goes to the trusted PoolManager, and the only attacker-reachable ETH refund
+runs after all reserves are committed) — not a judged finding, though the team applied the CEI reorder
+there anyway (#131). The instructive part is the one judged **High (#29)**, a native-ETH
+`removeLiquidity` reentrancy present at the scanned commit: Slither flagged the **exact function**
+(`_handleRemoveLiquidityCallback`) as a reentrancy site — but as **`reentrancy-no-eth` (Medium)**, not
+the High it is, because the ETH exits via `poolManager.take(currency, sender, amount)` (a plain call,
+no `{value}`), so `reentrancy-eth` never fires. The remaining eleven Mediums are pure StableSwap
+economics (rounding asymmetry, a missing fee floor, invariant overflow, zap-in sizing, exact-output
+rounding) with no detector class. Static **located** the one real High but could not **adjudicate** its
+severity, and was blind to the economic majority — the clearest "locate, don't adjudicate" case here.
+See `triage-memo.md`.
 
 ---
 

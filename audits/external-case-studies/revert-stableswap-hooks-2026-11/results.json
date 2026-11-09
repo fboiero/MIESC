@@ -1,0 +1,939 @@
+{
+  "contract": "Revert StableSwap Hooks (revert-finance/stableswap-hooks @ cf0c30e5, Cantina contest scope: src/)",
+  "results": [
+    {
+      "tool": "slither",
+      "contract": "src/ (contest scope)",
+      "status": "success",
+      "findings": [
+        {
+          "confidence": 0.9,
+          "description": "Liquidity._handleAddLiquidityCallback(bytes) (src/Liquidity.sol#132-187) uses arbitrary from in transferFrom: IERC20(Currency.unwrap(currency)).safeTransferFrom(sender,address(poolManager),actualAmounts[i_scope_0]) (src/Liquidity.sol#172)",
+          "location": {
+            "file": "src/Liquidity.sol",
+            "line": 132
+          },
+          "severity": "High",
+          "title": "arbitrary-send-erc20",
+          "tool": "slither",
+          "type": "arbitrary-send-erc20"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Reentrancy in Liquidity._handleAddLiquidityCallback(bytes) (src/Liquidity.sol#132-187): External calls: - poolManager.settle{value: actualAmounts[i_scope_0]}() (src/Liquidity.sol#169) - poolManager.sync(currency) (src/Liquidity.sol#171) - poolManager.settle() (src/Liquidity.sol#173) - poolManager.mint(address(this),currency.toId(),actualAmounts[i_scope_0]) (src/Liquidity.sol#176) External calls sending eth: - poolManager.settle{value: actualAmounts[i_scope_0]}() (src/Liquidity.sol#169) State variables written after the call(s): - _mint(sender,newShares) (src/Liquidity.sol#180) - _balances[from] = fromBalance - value (lib/uniswap-hooks/lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol#187) - _balances[to] += value (lib/uniswap-hooks/lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol#199) ERC20._balances (lib/uniswap-hooks/lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol#30) can be used in cross function reentrancies: - ERC20._update(address,address,uint256) (lib/uniswap-hooks/lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol#176-204) - ERC20.balanceOf(address) (lib/uniswap-hooks/lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol#87-89) - _mint(sender,newShares) (src/Liquidity.sol#180) - _totalSupply += value (lib/uniswap-hooks/lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol#179) - _totalSupply -= value (lib/uniswap-hooks/lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol#194) ERC20._totalSupply (lib/uniswap-hooks/lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol#34) can be used in cross function reentrancies: - ERC20._update(address,address,uint256) (lib/uniswap-hooks/lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol#176-204) - ERC20.totalSupply() (lib/uniswap-hooks/lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol#82-84) - reserves[i_scope_0] += actualAmounts[i_scope_0] (src/Liquidity.sol#177) Base.reserves (src/Base.sol#59) can be used in cross function reentrancies: - Liquidity._calculateAddLiquidity(uint256[]) (src/Liquidity.sol#219-262) - Liquidity._calculateRemoveLiquidity(uint256) (src/Liquidity.sol#265-272) - Base.reserves (src/Base.sol#59)",
+          "location": {
+            "file": "src/Liquidity.sol",
+            "line": 132
+          },
+          "severity": "High",
+          "title": "reentrancy-eth",
+          "tool": "slither",
+          "type": "reentrancy-eth"
+        },
+        {
+          "confidence": 0.9,
+          "description": "StableSwapHooksFactory.deploy(Currency[],Base.RateOracleConfig[],uint256,uint256,bytes32,bytes) (src/factories/StableSwapHooksFactory.sol#100-121) calls abi.encodePacked() with multiple dynamic arguments: - bytecode = abi.encodePacked(_creationCode,abi.encode(poolManager,_currencies,_rateOracles,_lpFeePercentage,_baseAmp)) (src/factories/StableSwapHooksFactory.sol#112-114)",
+          "location": {
+            "file": "src/factories/StableSwapHooksFactory.sol",
+            "line": 100
+          },
+          "severity": "High",
+          "title": "encode-packed-collision",
+          "tool": "slither",
+          "type": "encode-packed-collision"
+        },
+        {
+          "confidence": 0.6,
+          "description": "StableSwapMath.cbrt(uint256) (src/libraries/StableSwapMath.sol#217-238) has bitwise-xor operator ^ instead of the exponentiation operator **: - z = 0xf << 0xf < x >> r_cbrt_asm_0 << r_cbrt_asm_0 / 3 / 7 ^ r_cbrt_asm_0 % 3 (src/libraries/StableSwapMath.sol#226)",
+          "location": {
+            "file": "src/libraries/StableSwapMath.sol",
+            "line": 217
+          },
+          "severity": "High",
+          "title": "incorrect-exp",
+          "tool": "slither",
+          "type": "incorrect-exp"
+        },
+        {
+          "confidence": 0.9,
+          "description": "StableSwapMath.cbrt(uint256) (src/libraries/StableSwapMath.sol#217-238) contains an incorrect shift operation: z = 0xf << 0xf < x >> r_cbrt_asm_0 << r_cbrt_asm_0 / 3 / 7 ^ r_cbrt_asm_0 % 3 (src/libraries/StableSwapMath.sol#226)",
+          "location": {
+            "file": "src/libraries/StableSwapMath.sol",
+            "line": 217
+          },
+          "severity": "High",
+          "title": "incorrect-shift",
+          "tool": "slither",
+          "type": "incorrect-shift"
+        },
+        {
+          "confidence": 0.6,
+          "description": "StableSwapZapIn._addLiquidityAndGetShares(IStableSwapHooks,Currency[]) (src/periphery/StableSwapZapIn.sol#399-439) sends eth to arbitrary user Dangerous calls: - _hooks.addLiquidity{value: nativeValue}(balances,minAmounts,0) (src/periphery/StableSwapZapIn.sol#429)",
+          "location": {
+            "file": "src/periphery/StableSwapZapIn.sol",
+            "line": 399
+          },
+          "severity": "High",
+          "title": "arbitrary-send-eth",
+          "tool": "slither",
+          "type": "arbitrary-send-eth"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Base.constructor(IPoolManager,IStableSwapHooksFactory,uint256,Currency[],Base.RateOracleConfig[]) (src/Base.sol#95-141) ignores return value by _poolManager.initialize(poolKey,1 << 96) (src/Base.sol#138)",
+          "location": {
+            "file": "src/Base.sol",
+            "line": 95
+          },
+          "severity": "Medium",
+          "title": "unused-return",
+          "tool": "slither",
+          "type": "unused-return"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Fees.withdrawProtocolFees() (src/Fees.sol#83-87) ignores return value by poolManager.unlock(data) (src/Fees.sol#86)",
+          "location": {
+            "file": "src/Fees.sol",
+            "line": 83
+          },
+          "severity": "Medium",
+          "title": "unused-return",
+          "tool": "slither",
+          "type": "unused-return"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Fees.withdrawHookFees() (src/Fees.sol#91-95) ignores return value by poolManager.unlock(data) (src/Fees.sol#94)",
+          "location": {
+            "file": "src/Fees.sol",
+            "line": 91
+          },
+          "severity": "Medium",
+          "title": "unused-return",
+          "tool": "slither",
+          "type": "unused-return"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Liquidity.addLiquidity(uint256[],uint256[],uint256) (src/Liquidity.sol#81-88) ignores return value by poolManager.unlock(data) (src/Liquidity.sol#87)",
+          "location": {
+            "file": "src/Liquidity.sol",
+            "line": 81
+          },
+          "severity": "Medium",
+          "title": "unused-return",
+          "tool": "slither",
+          "type": "unused-return"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Liquidity.removeLiquidity(uint256,uint256[]) (src/Liquidity.sol#95-99) ignores return value by poolManager.unlock(data) (src/Liquidity.sol#98)",
+          "location": {
+            "file": "src/Liquidity.sol",
+            "line": 95
+          },
+          "severity": "Medium",
+          "title": "unused-return",
+          "tool": "slither",
+          "type": "unused-return"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Liquidity._handleAddLiquidityCallback(bytes) (src/Liquidity.sol#132-187) ignores return value by poolManager.settle() (src/Liquidity.sol#173)",
+          "location": {
+            "file": "src/Liquidity.sol",
+            "line": 132
+          },
+          "severity": "Medium",
+          "title": "unused-return",
+          "tool": "slither",
+          "type": "unused-return"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Liquidity._handleAddLiquidityCallback(bytes).refundValue (src/Liquidity.sol#162) is a local variable never initialized",
+          "location": {
+            "file": "src/Liquidity.sol",
+            "line": 162
+          },
+          "severity": "Medium",
+          "title": "uninitialized-local",
+          "tool": "slither",
+          "type": "uninitialized-local"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Reentrancy in Liquidity._handleRemoveLiquidityCallback(bytes) (src/Liquidity.sol#190-216): External calls: - poolManager.burn(address(this),currency.toId(),amounts[i]) (src/Liquidity.sol#207) - poolManager.take(currency,sender,amounts[i]) (src/Liquidity.sol#208) State variables written after the call(s): - _burn(sender,shares) (src/Liquidity.sol#213) - _balances[from] = fromBalance - value (lib/uniswap-hooks/lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol#187) - _balances[to] += value (lib/uniswap-hooks/lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol#199) ERC20._balances (lib/uniswap-hooks/lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol#30) can be used in cross function reentrancies: - ERC20._update(address,address,uint256) (lib/uniswap-hooks/lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol#176-204) - ERC20.balanceOf(address) (lib/uniswap-hooks/lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol#87-89) - _burn(sender,shares) (src/Liquidity.sol#213) - _totalSupply += value (lib/uniswap-hooks/lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol#179) - _totalSupply -= value (lib/uniswap-hooks/lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol#194) ERC20._totalSupply (lib/uniswap-hooks/lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol#34) can be used in cross function reentrancies: - ERC20._update(address,address,uint256) (lib/uniswap-hooks/lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol#176-204) - ERC20.totalSupply() (lib/uniswap-hooks/lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol#82-84) - reserves[i] -= amounts[i] (src/Liquidity.sol#210) Base.reserves (src/Base.sol#59) can be used in cross function reentrancies: - Liquidity._calculateAddLiquidity(uint256[]) (src/Liquidity.sol#219-262) - Liquidity._calculateRemoveLiquidity(uint256) (src/Liquidity.sol#265-272) - Base.reserves (src/Base.sol#59)",
+          "location": {
+            "file": "src/Liquidity.sol",
+            "line": 190
+          },
+          "severity": "Medium",
+          "title": "reentrancy-no-eth",
+          "tool": "slither",
+          "type": "reentrancy-no-eth"
+        },
+        {
+          "confidence": 0.6,
+          "description": "StableSwapMath.getInvariant(uint256[],uint256) (src/libraries/StableSwapMath.sol#30-81) performs a multiplication on the result of a division: - invariantProduct = invariantProduct / (nCurrencies ** nCurrencies) (src/libraries/StableSwapMath.sol#58) - invariant = ((ampTimesCoins * totalReserves / AMP_PRECISION + invariantProduct * nCurrencies) * invariant) / ((ampTimesCoins - AMP_PRECISION) * invariant / AMP_PRECISION + (nCurrencies + 1) * invariantProduct) (src/libraries/StableSwapMath.sol#63-67)",
+          "location": {
+            "file": "src/libraries/StableSwapMath.sol",
+            "line": 30
+          },
+          "severity": "Medium",
+          "title": "divide-before-multiply",
+          "tool": "slither",
+          "type": "divide-before-multiply"
+        },
+        {
+          "confidence": 0.6,
+          "description": "StableSwapMath.getTargetReserves(uint256,uint256,uint256,uint256[],uint256,uint256) (src/libraries/StableSwapMath.sol#94-154) performs a multiplication on the result of a division: - invariantProduct = invariantProduct * _invariant / (reserves * nCurrencies) (src/libraries/StableSwapMath.sol#123) - invariantProduct = invariantProduct * _invariant * AMP_PRECISION / (ampTimesCoins * nCurrencies) (src/libraries/StableSwapMath.sol#126)",
+          "location": {
+            "file": "src/libraries/StableSwapMath.sol",
+            "line": 94
+          },
+          "severity": "Medium",
+          "title": "divide-before-multiply",
+          "tool": "slither",
+          "type": "divide-before-multiply"
+        },
+        {
+          "confidence": 0.6,
+          "description": "StableSwapMath.cbrt(uint256) (src/libraries/StableSwapMath.sol#217-238) performs a multiplication on the result of a division: - z = x / z * z + z + z / 3 (src/libraries/StableSwapMath.sol#233) - z = x / z * z + z + z / 3 (src/libraries/StableSwapMath.sol#234)",
+          "location": {
+            "file": "src/libraries/StableSwapMath.sol",
+            "line": 217
+          },
+          "severity": "Medium",
+          "title": "divide-before-multiply",
+          "tool": "slither",
+          "type": "divide-before-multiply"
+        },
+        {
+          "confidence": 0.6,
+          "description": "StableSwapZapIn.quoteZapIn(address,uint256[],uint256) (src/periphery/StableSwapZapIn.sol#168-206) ignores return value by (shares,None) = hooks.quoteAddLiquidity(resultingAmounts) (src/periphery/StableSwapZapIn.sol#205)",
+          "location": {
+            "file": "src/periphery/StableSwapZapIn.sol",
+            "line": 168
+          },
+          "severity": "Medium",
+          "title": "unused-return",
+          "tool": "slither",
+          "type": "unused-return"
+        },
+        {
+          "confidence": 0.6,
+          "description": "StableSwapZapIn.zapIn(address,uint256[],Swap[],uint256) (src/periphery/StableSwapZapIn.sol#216-268) ignores return value by poolManager.unlock(abi.encode(hooks,currencies,_swaps)) (src/periphery/StableSwapZapIn.sol#253)",
+          "location": {
+            "file": "src/periphery/StableSwapZapIn.sol",
+            "line": 216
+          },
+          "severity": "Medium",
+          "title": "unused-return",
+          "tool": "slither",
+          "type": "unused-return"
+        },
+        {
+          "confidence": 0.6,
+          "description": "StableSwapZapIn.unlockCallback(bytes) (src/periphery/StableSwapZapIn.sol#278-348) ignores return value by poolManager.settle() (src/periphery/StableSwapZapIn.sol#339)",
+          "location": {
+            "file": "src/periphery/StableSwapZapIn.sol",
+            "line": 278
+          },
+          "severity": "Medium",
+          "title": "unused-return",
+          "tool": "slither",
+          "type": "unused-return"
+        },
+        {
+          "confidence": 0.6,
+          "description": "StableSwapZapIn._calculateOptimalSwaps(IStableSwapHooks,uint256[],uint256).ctx (src/periphery/StableSwapZapIn.sol#489) is a local variable never initialized",
+          "location": {
+            "file": "src/periphery/StableSwapZapIn.sol",
+            "line": 489
+          },
+          "severity": "Medium",
+          "title": "uninitialized-local",
+          "tool": "slither",
+          "type": "uninitialized-local"
+        },
+        {
+          "confidence": 0.6,
+          "description": "StableSwapZapIn._getTargetRatio(SwapCalcContext).totalInputs (src/periphery/StableSwapZapIn.sol#656) is a local variable never initialized",
+          "location": {
+            "file": "src/periphery/StableSwapZapIn.sol",
+            "line": 656
+          },
+          "severity": "Medium",
+          "title": "uninitialized-local",
+          "tool": "slither",
+          "type": "uninitialized-local"
+        },
+        {
+          "confidence": 0.6,
+          "description": "StableSwapZapIn._getTargetRatio(SwapCalcContext).totalReserves (src/periphery/StableSwapZapIn.sol#657) is a local variable never initialized",
+          "location": {
+            "file": "src/periphery/StableSwapZapIn.sol",
+            "line": 657
+          },
+          "severity": "Medium",
+          "title": "uninitialized-local",
+          "tool": "slither",
+          "type": "uninitialized-local"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Amp.startAmpRamp(uint256,uint256) (src/Amp.sol#69-101) uses timestamp for comparisons Dangerous comparisons: - block.timestamp <= baseAmpTime + MIN_AMP_RAMP_TIME (src/Amp.sol#74) - block.timestamp + MIN_AMP_RAMP_TIME >= _nextAmpTime (src/Amp.sol#78) - scaledNextAmp < currentAmp (src/Amp.sol#85) - scaledNextAmp * MAX_AMP_MULTIPLIER < currentAmp (src/Amp.sol#86) - scaledNextAmp > currentAmp * MAX_AMP_MULTIPLIER (src/Amp.sol#90)",
+          "location": {
+            "file": "src/Amp.sol",
+            "line": 69
+          },
+          "severity": "Low",
+          "title": "timestamp",
+          "tool": "slither",
+          "type": "timestamp"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Amp.getCurrentAmp() (src/Amp.sol#118-132) uses timestamp for comparisons Dangerous comparisons: - block.timestamp < _nextAmpTime (src/Amp.sol#122) - _nextAmp > _baseAmp (src/Amp.sol#126-128)",
+          "location": {
+            "file": "src/Amp.sol",
+            "line": 118
+          },
+          "severity": "Low",
+          "title": "timestamp",
+          "tool": "slither",
+          "type": "timestamp"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Base.constructor(IPoolManager,IStableSwapHooksFactory,uint256,Currency[],Base.RateOracleConfig[]) (src/Base.sol#95-141) has external calls inside a loop: _poolManager.initialize(poolKey,1 << 96) (src/Base.sol#138) Calls stack containing the loop: StableSwapHooks.constructor(IPoolManager,Currency[],Base.RateOracleConfig[],uint256,uint256)",
+          "location": {
+            "file": "src/Base.sol",
+            "line": 95
+          },
+          "severity": "Low",
+          "title": "calls-loop",
+          "tool": "slither",
+          "type": "calls-loop"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Reentrancy in Fees._handleWithdrawProtocolFeesCallback(bytes) (src/Fees.sol#98-111): External calls: - _handleWithdrawFeesPoolManagerAccounting(_protocolFeeCollector,_protocolFees) (src/Fees.sol#108) - poolManager.burn(address(this),currencies[i].toId(),_fees[i]) (src/Fees.sol#137) - poolManager.take(currencies[i],_beneficiary,_fees[i]) (src/Fees.sol#138) Event emitted after the call(s): - ProtocolFeesWithdrawn(sender,_protocolFeeCollector,_protocolFees) (src/Fees.sol#110)",
+          "location": {
+            "file": "src/Fees.sol",
+            "line": 98
+          },
+          "severity": "Low",
+          "title": "reentrancy-events",
+          "tool": "slither",
+          "type": "reentrancy-events"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Reentrancy in Fees._handleWithdrawHookFeesCallback(bytes) (src/Fees.sol#114-127): External calls: - _handleWithdrawFeesPoolManagerAccounting(_hookFeeCollector,_hookFees) (src/Fees.sol#124) - poolManager.burn(address(this),currencies[i].toId(),_fees[i]) (src/Fees.sol#137) - poolManager.take(currencies[i],_beneficiary,_fees[i]) (src/Fees.sol#138) Event emitted after the call(s): - HookFeesWithdrawn(sender,_hookFeeCollector,_hookFees) (src/Fees.sol#126)",
+          "location": {
+            "file": "src/Fees.sol",
+            "line": 114
+          },
+          "severity": "Low",
+          "title": "reentrancy-events",
+          "tool": "slither",
+          "type": "reentrancy-events"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Fees._handleWithdrawFeesPoolManagerAccounting(address,uint256[]) (src/Fees.sol#130-141) has external calls inside a loop: poolManager.take(currencies[i],_beneficiary,_fees[i]) (src/Fees.sol#138) Calls stack containing the loop: StableSwapHooks.unlockCallback(bytes) Fees._handleWithdrawProtocolFeesCallback(bytes)",
+          "location": {
+            "file": "src/Fees.sol",
+            "line": 130
+          },
+          "severity": "Low",
+          "title": "calls-loop",
+          "tool": "slither",
+          "type": "calls-loop"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Fees._addFees(uint256,uint256,uint256)._currencyIndex (src/Fees.sol#158) shadows: - Base._currencyIndex (src/Base.sol#62) (state variable)",
+          "location": {
+            "file": "src/Fees.sol",
+            "line": 158
+          },
+          "severity": "Low",
+          "title": "shadowing-local",
+          "tool": "slither",
+          "type": "shadowing-local"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Liquidity._handleAddLiquidityCallback(bytes) (src/Liquidity.sol#132-187) has external calls inside a loop: poolManager.mint(address(this),currency.toId(),actualAmounts[i_scope_0]) (src/Liquidity.sol#176) Calls stack containing the loop: StableSwapHooks.unlockCallback(bytes)",
+          "location": {
+            "file": "src/Liquidity.sol",
+            "line": 132
+          },
+          "severity": "Low",
+          "title": "calls-loop",
+          "tool": "slither",
+          "type": "calls-loop"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Reentrancy in Liquidity._handleAddLiquidityCallback(bytes) (src/Liquidity.sol#132-187): External calls: - poolManager.settle{value: actualAmounts[i_scope_0]}() (src/Liquidity.sol#169) - poolManager.sync(currency) (src/Liquidity.sol#171) - poolManager.settle() (src/Liquidity.sol#173) - poolManager.mint(address(this),currency.toId(),actualAmounts[i_scope_0]) (src/Liquidity.sol#176) External calls sending eth: - poolManager.settle{value: actualAmounts[i_scope_0]}() (src/Liquidity.sol#169) Event emitted after the call(s): - LiquidityAdded(sender,actualAmounts,newShares) (src/Liquidity.sol#186) - Transfer(from,to,value) (lib/uniswap-hooks/lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol#203) - _mint(sender,newShares) (src/Liquidity.sol#180)",
+          "location": {
+            "file": "src/Liquidity.sol",
+            "line": 132
+          },
+          "severity": "Low",
+          "title": "reentrancy-events",
+          "tool": "slither",
+          "type": "reentrancy-events"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Liquidity._handleRemoveLiquidityCallback(bytes) (src/Liquidity.sol#190-216) has external calls inside a loop: poolManager.burn(address(this),currency.toId(),amounts[i]) (src/Liquidity.sol#207) Calls stack containing the loop: StableSwapHooks.unlockCallback(bytes)",
+          "location": {
+            "file": "src/Liquidity.sol",
+            "line": 190
+          },
+          "severity": "Low",
+          "title": "calls-loop",
+          "tool": "slither",
+          "type": "calls-loop"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Reentrancy in Liquidity._handleRemoveLiquidityCallback(bytes) (src/Liquidity.sol#190-216): External calls: - poolManager.burn(address(this),currency.toId(),amounts[i]) (src/Liquidity.sol#207) - poolManager.take(currency,sender,amounts[i]) (src/Liquidity.sol#208) Event emitted after the call(s): - LiquidityRemoved(sender,amounts,shares) (src/Liquidity.sol#215) - Transfer(from,to,value) (lib/uniswap-hooks/lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol#203) - _burn(sender,shares) (src/Liquidity.sol#213)",
+          "location": {
+            "file": "src/Liquidity.sol",
+            "line": 190
+          },
+          "severity": "Low",
+          "title": "reentrancy-events",
+          "tool": "slither",
+          "type": "reentrancy-events"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Reentrancy in Swap._swap(address,PoolKey,SwapParams) (src/Swap.sol#62-87): External calls: - result = _swapExactInput(specifiedAmount,ctx) (src/Swap.sol#69-70) - poolManager.burn(address(this),currencies[_ctx.tokenOutIndex].toId(),_result.amountOut) (src/Swap.sol#158) - poolManager.mint(address(this),currencies[_ctx.tokenInIndex].toId(),_result.amountIn) (src/Swap.sol#159) - poolManager.burn(address(this),currencies[_ctx.tokenOutIndex].toId(),_result.amountOut) (src/Swap.sol#166) - poolManager.mint(address(this),currencies[_ctx.tokenInIndex].toId(),_result.amountIn) (src/Swap.sol#167) - result = _swapExactOutput(specifiedAmount,ctx) (src/Swap.sol#69-70) - poolManager.burn(address(this),currencies[_ctx.tokenOutIndex].toId(),_result.amountOut) (src/Swap.sol#158) - poolManager.mint(address(this),currencies[_ctx.tokenInIndex].toId(),_result.amountIn) (src/Swap.sol#159) - poolManager.burn(address(this),currencies[_ctx.tokenOutIndex].toId(),_result.amountOut) (src/Swap.sol#166) - poolManager.mint(address(this),currencies[_ctx.tokenInIndex].toId(),_result.amountIn) (src/Swap.sol#167) Event emitted after the call(s): - StableSwap(_sender,currencies[ctx.tokenInIndex],currencies[ctx.tokenOutIndex],result.amountIn,result.amountOut,result.lpFees,result.hookFees,result.protocolFees) (src/Swap.sol#72-81)",
+          "location": {
+            "file": "src/Swap.sol",
+            "line": 62
+          },
+          "severity": "Low",
+          "title": "reentrancy-events",
+          "tool": "slither",
+          "type": "reentrancy-events"
+        },
+        {
+          "confidence": 0.6,
+          "description": "Reentrancy in Swap._settleTrade(Swap.SwapContext,Swap.SwapResult,bool) (src/Swap.sol#154-172): External calls: - poolManager.burn(address(this),currencies[_ctx.tokenOutIndex].toId(),_result.amountOut) (src/Swap.sol#166) - poolManager.mint(address(this),currencies[_ctx.tokenInIndex].toId(),_result.amountIn) (src/Swap.sol#167) State variables written after the call(s): - reserves[_ctx.tokenInIndex] += _result.amountIn - _result.hookFees - _result.protocolFees (src/Swap.sol#169) - reserves[_ctx.tokenOutIndex] -= _result.amountOut (src/Swap.sol#170)",
+          "location": {
+            "file": "src/Swap.sol",
+            "line": 154
+          },
+          "severity": "Low",
+          "title": "reentrancy-benign",
+          "tool": "slither",
+          "type": "reentrancy-benign"
+        },
+        {
+          "confidence": 0.9,
+          "description": "StableSwapHooksFactory.constructor(IPoolManager,address,address,address,bytes32)._owner (src/factories/StableSwapHooksFactory.sol#59) shadows: - Ownable._owner (lib/uniswap-hooks/lib/openzeppelin-contracts/contracts/access/Ownable.sol#21) (state variable)",
+          "location": {
+            "file": "src/factories/StableSwapHooksFactory.sol",
+            "line": 59
+          },
+          "severity": "Low",
+          "title": "shadowing-local",
+          "tool": "slither",
+          "type": "shadowing-local"
+        },
+        {
+          "confidence": 0.6,
+          "description": "StableSwapZapIn.zapIn(address,uint256[],Swap[],uint256) (src/periphery/StableSwapZapIn.sol#216-268) has external calls inside a loop: currencies[i_scope_0] = hooks.currencies(i_scope_0) (src/periphery/StableSwapZapIn.sol#244)",
+          "location": {
+            "file": "src/periphery/StableSwapZapIn.sol",
+            "line": 216
+          },
+          "severity": "Low",
+          "title": "calls-loop",
+          "tool": "slither",
+          "type": "calls-loop"
+        },
+        {
+          "confidence": 0.6,
+          "description": "StableSwapZapIn.unlockCallback(bytes) (src/periphery/StableSwapZapIn.sol#278-348) has external calls inside a loop: poolManager.settle{value: amount}() (src/periphery/StableSwapZapIn.sol#335)",
+          "location": {
+            "file": "src/periphery/StableSwapZapIn.sol",
+            "line": 278
+          },
+          "severity": "Low",
+          "title": "calls-loop",
+          "tool": "slither",
+          "type": "calls-loop"
+        },
+        {
+          "confidence": 0.6,
+          "description": "StableSwapZapIn._addLiquidityAndGetShares(IStableSwapHooks,Currency[]) (src/periphery/StableSwapZapIn.sol#399-439) has external calls inside a loop: balance = token.balanceOf(address(this)) (src/periphery/StableSwapZapIn.sol#416) Calls stack containing the loop: StableSwapZapIn.zapIn(address,uint256[],Swap[],uint256)",
+          "location": {
+            "file": "src/periphery/StableSwapZapIn.sol",
+            "line": 399
+          },
+          "severity": "Low",
+          "title": "calls-loop",
+          "tool": "slither",
+          "type": "calls-loop"
+        },
+        {
+          "confidence": 0.6,
+          "description": "StableSwapZapIn._refundLeftovers(Currency[],uint256[]) (src/periphery/StableSwapZapIn.sol#447-473) has external calls inside a loop: leftover = IERC20(Currency.unwrap(currency)).balanceOf(address(this)) (src/periphery/StableSwapZapIn.sol#460) Calls stack containing the loop: StableSwapZapIn.zapIn(address,uint256[],Swap[],uint256)",
+          "location": {
+            "file": "src/periphery/StableSwapZapIn.sol",
+            "line": 447
+          },
+          "severity": "Low",
+          "title": "calls-loop",
+          "tool": "slither",
+          "type": "calls-loop"
+        },
+        {
+          "confidence": 0.6,
+          "description": "StableSwapZapIn._calculateOptimalSwaps(IStableSwapHooks,uint256[],uint256) (src/periphery/StableSwapZapIn.sol#481-541) has external calls inside a loop: reserve = _hooks.reserves(i) (src/periphery/StableSwapZapIn.sol#500) Calls stack containing the loop: StableSwapZapIn.quoteZapIn(address,uint256[],uint256)",
+          "location": {
+            "file": "src/periphery/StableSwapZapIn.sol",
+            "line": 481
+          },
+          "severity": "Low",
+          "title": "calls-loop",
+          "tool": "slither",
+          "type": "calls-loop"
+        },
+        {
+          "confidence": 0.6,
+          "description": "StableSwapZapIn._getDynamicRate(IStableSwapHooks,uint256) (src/periphery/StableSwapZapIn.sol#723-738) has external calls inside a loop: rate = _hooks.rates(_index) (src/periphery/StableSwapZapIn.sol#724) Calls stack containing the loop: StableSwapZapIn.quoteZapIn(address,uint256[],uint256) StableSwapZapIn._calculateOptimalSwaps(IStableSwapHooks,uint256[],uint256)",
+          "location": {
+            "file": "src/periphery/StableSwapZapIn.sol",
+            "line": 723
+          },
+          "severity": "Low",
+          "title": "calls-loop",
+          "tool": "slither",
+          "type": "calls-loop"
+        },
+        {
+          "confidence": 0.9,
+          "description": "8 different versions of Solidity are used: - Version constraint ^0.8.20 is used by: -^0.8.20 (lib/uniswap-hooks/lib/openzeppelin-contracts/contracts/access/Ownable.sol#4) -^0.8.20 (lib/uniswap-hooks/lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol#4) -^0.8.20 (lib/uniswap-hooks/lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol#4) -^0.8.20 (lib/uniswap-hooks/lib/openzeppelin-contracts/contracts/utils/Address.sol#4) -^0.8.20 (lib/uniswap-hooks/lib/openzeppelin-contracts/contracts/utils/Context.sol#4) -^0.8.20 (lib/uniswap-hooks/lib/openzeppelin-contracts/contracts/utils/Create2.sol#4) -^0.8.20 (lib/uniswap-hooks/lib/openzeppelin-contracts/contracts/utils/Errors.sol#4) -^0.8.20 (lib/uniswap-hooks/lib/openzeppelin-contracts/contracts/utils/LowLevelCall.sol#4) -^0.8.20 (lib/uniswap-hooks/lib/openzeppelin-contracts/contracts/utils/Panic.sol#4) -^0.8.20 (lib/uniswap-hooks/lib/openzeppelin-contracts/contracts/utils/Pausable.sol#4) -^0.8.20 (lib/uniswap-hooks/lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol#4) -^0.8.20 (lib/uniswap-hooks/lib/openzeppelin-contracts/contracts/utils/StorageSlot.sol#5) -^0.8.20 (lib/uniswap-hooks/lib/openzeppelin-contracts/contracts/utils/math/Math.sol#4) -^0.8.20 (lib/uniswap-hooks/lib/openzeppelin-contracts/contracts/utils/math/SafeCast.sol#5) - Version constraint >=0.6.2 is used by: ->=0.6.2 (lib/uniswap-hooks/lib/openzeppelin-contracts/contracts/interfaces/IERC1363.sol#4) ->=0.6.2 (lib/uniswap-hooks/lib/openzeppelin-contracts/contracts/interfaces/IERC20Metadata.sol#4) ->=0.6.2 (lib/uniswap-hooks/lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol#4) - Version constraint >=0.4.16 is used by: ->=0.4.16 (lib/uniswap-hooks/lib/openzeppelin-contracts/contracts/interfaces/IERC165.sol#4) ->=0.4.16 (lib/uniswap-hooks/lib/openzeppelin-contracts/contracts/interfaces/IERC20.sol#4) ->=0.4.16 (lib/uniswap-hooks/lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol#4) ->=0.4.16 (lib/uniswap-hooks/lib/openzeppelin-contracts/contracts/utils/introspection/IERC165.sol#4) - Version constraint >=0.8.4 is used by: ->=0.8.4 (lib/uniswap-hooks/lib/openzeppelin-contracts/contracts/interfaces/draft-IERC6093.sol#4) - Version constraint ^0.8.0 is used by: -^0.8.0 (lib/uniswap-hooks/lib/v4-core/src/interfaces/IExtsload.sol#2) -^0.8.0 (lib/uniswap-hooks/lib/v4-core/src/interfaces/IHooks.sol#2) -^0.8.0 (lib/uniswap-hooks/lib/v4-core/src/interfaces/IProtocolFees.sol#2) -^0.8.0 (lib/uniswap-hooks/lib/v4-core/src/interfaces/callback/IUnlockCallback.sol#2) -^0.8.0 (lib/uniswap-hooks/lib/v4-core/src/interfaces/external/IERC20Minimal.sol#2) -^0.8.0 (lib/uniswap-hooks/lib/v4-core/src/interfaces/external/IERC6909Claims.sol#2) -^0.8.0 (lib/uniswap-hooks/lib/v4-core/src/libraries/BitMath.sol#2) -^0.8.0 (lib/uniswap-hooks/lib/v4-core/src/libraries/CustomRevert.sol#2) -^0.8.0 (lib/uniswap-hooks/lib/v4-core/src/libraries/Hooks.sol#2) -^0.8.0 (lib/uniswap-hooks/lib/v4-core/src/libraries/LPFeeLibrary.sol#2) -^0.8.0 (lib/uniswap-hooks/lib/v4-core/src/libraries/ParseBytes.sol#3) -^0.8.0 (lib/uniswap-hooks/lib/v4-core/src/libraries/SafeCast.sol#2) -^0.8.0 (lib/uniswap-hooks/lib/v4-core/src/libraries/TickMath.sol#2) -^0.8.0 (lib/uniswap-hooks/lib/v4-core/src/types/BalanceDelta.sol#2) -^0.8.0 (lib/uniswap-hooks/lib/v4-core/src/types/BeforeSwapDelta.sol#2) -^0.8.0 (lib/uniswap-hooks/lib/v4-core/src/types/Currency.sol#2) -^0.8.0 (lib/uniswap-hooks/lib/v4-core/src/types/PoolId.sol#2) -^0.8.0 (lib/uniswap-hooks/lib/v4-core/src/types/PoolKey.sol#2) - Version constraint ^0.8.24 is used by: -^0.8.24 (lib/uniswap-hooks/lib/v4-core/src/interfaces/IExttload.sol#2) -^0.8.24 (lib/uniswap-hooks/lib/v4-core/src/interfaces/IPoolManager.sol#2) -^0.8.24 (lib/uniswap-hooks/lib/v4-core/src/types/PoolOperation.sol#2) - Version constraint ^0.8.26 is used by: -^0.8.26 (lib/uniswap-hooks/src/base/BaseHook.sol#4) - Version constraint 0.8.30 is used by: -0.8.30 (src/Amp.sol#2) -0.8.30 (src/Base.sol#2) -0.8.30 (src/Fees.sol#2) -0.8.30 (src/Liquidity.sol#2) -0.8.30 (src/StableSwapHooks.sol#2) -0.8.30 (src/Swap.sol#2) -0.8.30 (src/factories/StableSwapHooksFactory.sol#2) -0.8.30 (src/interfaces/IStableSwapHooks.sol#2) -0.8.30 (src/interfaces/IStableSwapHooksFactory.sol#2) -0.8.30 (src/libraries/Actions.sol#2) -0.8.30 (src/libraries/StableSwapMath.sol#2) -0.8.30 (src/periphery/StableSwapZapIn.sol#2)",
+          "location": {
+            "file": "src/Amp.sol",
+            "line": 2
+          },
+          "severity": "Info",
+          "title": "pragma",
+          "tool": "slither",
+          "type": "pragma"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter Amp.startAmpRamp(uint256,uint256)._nextAmp (src/Amp.sol#69) is not in mixedCase",
+          "location": {
+            "file": "src/Amp.sol",
+            "line": 69
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter Base.getCurrencyIndex(Currency)._currency (src/Base.sol#146) is not in mixedCase",
+          "location": {
+            "file": "src/Base.sol",
+            "line": 146
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter Fees.setProtocolFeePercentage(uint256)._feePercentage (src/Fees.sol#55) is not in mixedCase",
+          "location": {
+            "file": "src/Fees.sol",
+            "line": 55
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter Fees.setHookFeePercentage(uint256)._feePercentage (src/Fees.sol#69) is not in mixedCase",
+          "location": {
+            "file": "src/Fees.sol",
+            "line": 69
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter Liquidity.quoteAddLiquidity(uint256[])._amounts (src/Liquidity.sol#60) is not in mixedCase",
+          "location": {
+            "file": "src/Liquidity.sol",
+            "line": 60
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter Liquidity.quoteRemoveLiquidity(uint256)._shares (src/Liquidity.sol#71) is not in mixedCase",
+          "location": {
+            "file": "src/Liquidity.sol",
+            "line": 71
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter Liquidity.addLiquidity(uint256[],uint256[],uint256)._minShares (src/Liquidity.sol#81) is not in mixedCase",
+          "location": {
+            "file": "src/Liquidity.sol",
+            "line": 81
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter Liquidity.removeLiquidity(uint256,uint256[])._minAmounts (src/Liquidity.sol#95) is not in mixedCase",
+          "location": {
+            "file": "src/Liquidity.sol",
+            "line": 95
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "StableSwapHooks (src/StableSwapHooks.sol#15-57) does not implement functions: - BaseHook.getHookPermissions() (lib/uniswap-hooks/src/base/BaseHook.sol#69)",
+          "location": {
+            "file": "src/StableSwapHooks.sol",
+            "line": 15
+          },
+          "severity": "Info",
+          "title": "unimplemented-functions",
+          "tool": "slither",
+          "type": "unimplemented-functions"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter StableSwapHooksFactory.setProtocolFeeCollector(address)._collector (src/factories/StableSwapHooksFactory.sol#73) is not in mixedCase",
+          "location": {
+            "file": "src/factories/StableSwapHooksFactory.sol",
+            "line": 73
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter StableSwapHooksFactory.setHookFeeCollector(address)._collector (src/factories/StableSwapHooksFactory.sol#79) is not in mixedCase",
+          "location": {
+            "file": "src/factories/StableSwapHooksFactory.sol",
+            "line": 79
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter StableSwapHooksFactory.deploy(Currency[],Base.RateOracleConfig[],uint256,uint256,bytes32,bytes)._currencies (src/factories/StableSwapHooksFactory.sol#101) is not in mixedCase",
+          "location": {
+            "file": "src/factories/StableSwapHooksFactory.sol",
+            "line": 101
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter StableSwapHooksFactory.deploy(Currency[],Base.RateOracleConfig[],uint256,uint256,bytes32,bytes)._rateOracles (src/factories/StableSwapHooksFactory.sol#102) is not in mixedCase",
+          "location": {
+            "file": "src/factories/StableSwapHooksFactory.sol",
+            "line": 102
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter StableSwapHooksFactory.deploy(Currency[],Base.RateOracleConfig[],uint256,uint256,bytes32,bytes)._lpFeePercentage (src/factories/StableSwapHooksFactory.sol#103) is not in mixedCase",
+          "location": {
+            "file": "src/factories/StableSwapHooksFactory.sol",
+            "line": 103
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter StableSwapHooksFactory.deploy(Currency[],Base.RateOracleConfig[],uint256,uint256,bytes32,bytes)._baseAmp (src/factories/StableSwapHooksFactory.sol#104) is not in mixedCase",
+          "location": {
+            "file": "src/factories/StableSwapHooksFactory.sol",
+            "line": 104
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter StableSwapHooksFactory.deploy(Currency[],Base.RateOracleConfig[],uint256,uint256,bytes32,bytes)._salt (src/factories/StableSwapHooksFactory.sol#105) is not in mixedCase",
+          "location": {
+            "file": "src/factories/StableSwapHooksFactory.sol",
+            "line": 105
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter StableSwapHooksFactory.deploy(Currency[],Base.RateOracleConfig[],uint256,uint256,bytes32,bytes)._creationCode (src/factories/StableSwapHooksFactory.sol#106) is not in mixedCase",
+          "location": {
+            "file": "src/factories/StableSwapHooksFactory.sol",
+            "line": 106
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Function IStableSwapHooks.TICK_SPACING() (src/interfaces/IStableSwapHooks.sol#18) is not in mixedCase",
+          "location": {
+            "file": "src/interfaces/IStableSwapHooks.sol",
+            "line": 18
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter StableSwapMath.getInvariant(uint256[],uint256)._scaledReserves (src/libraries/StableSwapMath.sol#30) is not in mixedCase",
+          "location": {
+            "file": "src/libraries/StableSwapMath.sol",
+            "line": 30
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter StableSwapMath.getTargetReserves(uint256,uint256,uint256,uint256[],uint256,uint256)._source (src/libraries/StableSwapMath.sol#95) is not in mixedCase",
+          "location": {
+            "file": "src/libraries/StableSwapMath.sol",
+            "line": 95
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter StableSwapMath.getTargetReserves(uint256,uint256,uint256,uint256[],uint256,uint256)._target (src/libraries/StableSwapMath.sol#96) is not in mixedCase",
+          "location": {
+            "file": "src/libraries/StableSwapMath.sol",
+            "line": 96
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter StableSwapMath.getTargetReserves(uint256,uint256,uint256,uint256[],uint256,uint256)._sourceReserves (src/libraries/StableSwapMath.sol#97) is not in mixedCase",
+          "location": {
+            "file": "src/libraries/StableSwapMath.sol",
+            "line": 97
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter StableSwapMath.getTargetReserves(uint256,uint256,uint256,uint256[],uint256,uint256)._scaledReserves (src/libraries/StableSwapMath.sol#98) is not in mixedCase",
+          "location": {
+            "file": "src/libraries/StableSwapMath.sol",
+            "line": 98
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter StableSwapMath.getTargetReserves(uint256,uint256,uint256,uint256[],uint256,uint256)._amplification (src/libraries/StableSwapMath.sol#99) is not in mixedCase",
+          "location": {
+            "file": "src/libraries/StableSwapMath.sol",
+            "line": 99
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter StableSwapMath.getTargetReserves(uint256,uint256,uint256,uint256[],uint256,uint256)._invariant (src/libraries/StableSwapMath.sol#100) is not in mixedCase",
+          "location": {
+            "file": "src/libraries/StableSwapMath.sol",
+            "line": 100
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter StableSwapMath.scaleTo(uint256,uint256)._rate (src/libraries/StableSwapMath.sol#159) is not in mixedCase",
+          "location": {
+            "file": "src/libraries/StableSwapMath.sol",
+            "line": 159
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter StableSwapMath.descale(uint256,uint256)._rate (src/libraries/StableSwapMath.sol#166) is not in mixedCase",
+          "location": {
+            "file": "src/libraries/StableSwapMath.sol",
+            "line": 166
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter StableSwapMath.getRate(Currency)._currency (src/libraries/StableSwapMath.sol#174) is not in mixedCase",
+          "location": {
+            "file": "src/libraries/StableSwapMath.sol",
+            "line": 174
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter StableSwapMath.geometricMean(uint256[])._values (src/libraries/StableSwapMath.sol#188) is not in mixedCase",
+          "location": {
+            "file": "src/libraries/StableSwapMath.sol",
+            "line": 188
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "StableSwapMath.cbrt(uint256) (src/libraries/StableSwapMath.sol#217-238) uses assembly - INLINE ASM (src/libraries/StableSwapMath.sol#219-237)",
+          "location": {
+            "file": "src/libraries/StableSwapMath.sol",
+            "line": 217
+          },
+          "severity": "Info",
+          "title": "assembly",
+          "tool": "slither",
+          "type": "assembly"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter StableSwapZapIn.quoteZapIn(address,uint256[],uint256)._maxIterations (src/periphery/StableSwapZapIn.sol#168) is not in mixedCase",
+          "location": {
+            "file": "src/periphery/StableSwapZapIn.sol",
+            "line": 168
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        },
+        {
+          "confidence": 0.9,
+          "description": "Parameter StableSwapZapIn.zapIn(address,uint256[],Swap[],uint256)._swaps (src/periphery/StableSwapZapIn.sol#216) is not in mixedCase",
+          "location": {
+            "file": "src/periphery/StableSwapZapIn.sol",
+            "line": 216
+          },
+          "severity": "Info",
+          "title": "naming-convention",
+          "tool": "slither",
+          "type": "naming-convention"
+        }
+      ],
+      "execution_time": 0.0,
+      "metadata": {
+        "detectors": "slither 0.11.3 default (project foundry [lint] not applied)"
+      }
+    }
+  ],
+  "summary": {
+    "CRITICAL": 0,
+    "HIGH": 6,
+    "MEDIUM": 17,
+    "LOW": 20,
+    "INFO": 33
+  },
+  "tools_run": [
+    "slither"
+  ],
+  "version": "6.x"
+}
