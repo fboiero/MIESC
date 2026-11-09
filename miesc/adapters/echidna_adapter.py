@@ -25,6 +25,7 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, cast
 
+from miesc.adapters._fuzz_result import apply_fuzz_verdict
 from miesc.core.tool_protocol import (
     ToolAdapter,
     ToolCapability,
@@ -310,7 +311,12 @@ class EchidnaAdapter(ToolAdapter):
             tests_run = self._extract_tests_run(output)
             coverage_info = self._extract_coverage(output)
 
-            return {
+            # Did echidna actually drive the contract? A degenerate run (empty
+            # ABI, no properties, compile failure) evaluates nothing — reporting
+            # its "0 findings" as a clean pass would be a false negative.
+            exercised = tests_run > 0 or self._campaign_exercised(output)
+
+            result_dict = {
                 "tool": "echidna",
                 "version": "1.0.0",
                 "status": "success",
@@ -321,6 +327,8 @@ class EchidnaAdapter(ToolAdapter):
                 "test_limit": self.test_limit,
                 "dpga_compliant": True,
             }
+            apply_fuzz_verdict(result_dict, tool="echidna", exercised=exercised, diagnostic=output)
+            return result_dict
 
         except subprocess.TimeoutExpired:
             logger.error(f"Echidna timeout after {self.timeout}s")
@@ -413,6 +421,30 @@ class EchidnaAdapter(ToolAdapter):
             findings.append(current_finding)
 
         return findings
+
+    # Markers that only appear once Echidna has actually driven the EVM or
+    # resolved a property/assertion. A degenerate run (empty ABI, no
+    # properties, compile failure) prints none of them.
+    # Only markers that appear AFTER real execution — never count-bearing
+    # status lines like "fuzzing: 0/50000" or "tests found: 0", which can show
+    # up before a single call and would re-open the false-clean side door.
+    _EXERCISED_MARKERS = (
+        ": passing",
+        ": passed",
+        "passed!",
+        ": failing",
+        "failed!",
+        "unique instructions:",
+        "total calls:",
+        "corpus size:",
+    )
+
+    def _campaign_exercised(self, output: str) -> bool:
+        """True iff Echidna's output shows it evaluated at least one property or
+        executed fuzzing transactions. Used to distinguish a genuine clean run
+        from a campaign that never ran (which must not be reported as clean)."""
+        lowered = output.lower()
+        return any(marker in lowered for marker in self._EXERCISED_MARKERS)
 
     def _extract_tests_run(self, output: str) -> int:
         """Extract the number of properties Echidna evaluated from its output.

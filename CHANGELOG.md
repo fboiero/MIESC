@@ -64,6 +64,23 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **Fuzzing adapters no longer report a campaign that never fuzzed as a clean pass.** The
+  coverage-guided fuzzers (`medusa`, `echidna`, `dogefuzz`) returned `status: "success"` with `0`
+  findings whenever the subprocess exited, even when the campaign achieved **0% coverage / 0
+  transactions** — i.e. when it never exercised the contract (no invariant/property harness, an
+  unsupported CLI flag, or a compile failure). "No findings" from a campaign that never ran is a
+  false negative. A new shared helper `miesc/adapters/_fuzz_result.py` (`classify_fuzz_campaign` /
+  `apply_fuzz_verdict`) now gives every fuzzer one honest verdict: a campaign is reported as
+  `success` only when it produced findings **or** shows a positive exercise signal (coverage > 0,
+  executed transactions, or ≥1 property/assertion evaluated); otherwise it is reported as
+  `inconclusive` with a `warning`, `metadata.campaign_exercised: false`, and a
+  `metadata.campaign_diagnostic` (the tool's own output tail, e.g. medusa 1.3.1's
+  `unknown flag: --assertion-mode`). `inconclusive` drops out of the successful-tools set and
+  surfaces as a warning in the audit output instead of a silent clean pass. This is the honest
+  reporting half of the fuzzing gap; auto-generating/wiring an invariant harness so the fuzzers
+  actually fuzz (and fixing medusa's `--assertion-mode` invocation for medusa 1.3.1) remains a
+  follow-up.
+
 - **PoC `FoundryRunner` now parses forge >=1.x test JSON too.** The PoC-validation runner had the
   same two bugs the Foundry adapter did: it only parsed the legacy top-level `test_results`/boolean
   `success` shape (not forge >=1.x's per-suite nesting with a `status` string), and it combined
