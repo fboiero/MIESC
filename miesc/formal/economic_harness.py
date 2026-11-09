@@ -45,7 +45,7 @@ import re
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, NamedTuple, Optional
 
 from miesc.formal.economic_invariants import ECONOMIC_INVARIANT_TEMPLATES
 
@@ -158,9 +158,45 @@ _ROUND_TRIP_NO_LOSS = RunnableProperty(
 )
 
 
+# Deployer-context runnable forms for the Compound-V2 lending class (mToken/cToken). The
+# exchange rate is cash/totalSupply; a donation that inflates cash without minting cTokens is
+# the same first-depositor attack as the ERC-4626 inflation, surfaced here on `market`.
+_RUNNABLE_COMPOUND: Dict[str, RunnableProperty] = {
+    "compound_no_inflation_theft": RunnableProperty(
+        template_name="compound_no_inflation_theft",
+        function_name="echidna_ctoken_no_inflation_theft",
+        body=(
+            "    // compound_no_inflation_theft (deployer-context form).\n"
+            "    // A realistic depositor minting cTokens must recover ~their underlying on redeem;\n"
+            "    // a donation-inflated exchange rate rounds the mint to zero cTokens.\n"
+            "    function echidna_ctoken_no_inflation_theft() public view returns (bool) {\n"
+            "        if (market.totalSupply() == 0) return true;\n"
+            "        uint256 probe = 1e18;\n"
+            "        uint256 er = market.exchangeRateStored();\n"
+            "        uint256 c = probe * 1e18 / er;\n"
+            "        uint256 back = c * er / 1e18;\n"
+            "        return back * 100 >= probe * 99;\n"
+            "    }"
+        ),
+    ),
+    "compound_mint_nonzero": RunnableProperty(
+        template_name="compound_mint_nonzero",
+        function_name="echidna_ctoken_mint_nonzero",
+        body=(
+            "    // compound_mint_nonzero (deployer-context form).\n"
+            "    // A positive mint against a funded market must issue positive cTokens.\n"
+            "    function echidna_ctoken_mint_nonzero() public view returns (bool) {\n"
+            "        if (market.totalSupply() == 0) return true;\n"
+            "        return (1e18 * 1e18) / market.exchangeRateStored() > 0;\n"
+            "    }"
+        ),
+    ),
+}
+
+
 def supported_invariants() -> set[str]:
     """Economic invariant names for which a runnable harness form exists."""
-    return set(_RUNNABLE_ERC4626.keys())
+    return set(_RUNNABLE_ERC4626.keys()) | set(_RUNNABLE_COMPOUND.keys())
 
 
 # ---------------------------------------------------------------------------
@@ -214,6 +250,50 @@ _DRIVERS = """    // ---- driver functions Echidna fuzzes to drive the attack --
         vault.redeem(shares, address(this), address(this));
     }"""
 
+_COMPOUND_DRIVERS = """    // ---- driver functions Echidna fuzzes to drive the attack ----
+    function h_mint(uint256 amount) public {
+        amount = 1 + (amount % 1e24);
+        market.mint(amount);
+    }
+
+    function h_donate(uint256 amount) public {
+        amount = amount % 1e24;
+        token.transfer(address(market), amount);
+    }
+
+    function h_redeem(uint256 cTokens) public {
+        uint256 bal = market.balanceOf(address(this));
+        if (bal == 0) return;
+        cTokens = 1 + (cTokens % bal);
+        market.redeem(cTokens);
+    }"""
+
+
+# Per-class harness wiring: which runnable forms, driver block, and deployed instance name.
+class _HarnessClass(NamedTuple):
+    runnable: Dict[str, RunnableProperty]
+    drivers: str
+    var: str
+
+
+_CLASSES: Dict[str, _HarnessClass] = {
+    "erc4626": _HarnessClass(_RUNNABLE_ERC4626, _DRIVERS, "vault"),
+    "compound": _HarnessClass(_RUNNABLE_COMPOUND, _COMPOUND_DRIVERS, "market"),
+}
+
+
+def _resolve_class(invariant_names: List[str]) -> Optional[str]:
+    """The harness class of the first invariant name that has a runnable form, or None.
+
+    A single harness deploys one target with one driver set, so invariants from different
+    classes cannot share a harness: the first match wins and the rest are dropped.
+    """
+    for name in invariant_names:
+        for cls, cfg in _CLASSES.items():
+            if name in cfg.runnable:
+                return cls
+    return None
+
 
 @dataclass
 class HarnessArtifact:
@@ -258,14 +338,26 @@ class EconomicHarnessBuilder:
             include_round_trip: Also emit the robust round-trip discriminator when
                 the first-deposit guard is selected.
         """
+        cls = _resolve_class(invariant_names)
+        if cls is None:
+            return None
+        config = _CLASSES[cls]
+        runnable_map = config.runnable
+        drivers = config.drivers
+        var = config.var
+
         props: List[RunnableProperty] = []
         seen: set[str] = set()
         for name in invariant_names:
-            runnable = _RUNNABLE_ERC4626.get(name)
+            runnable = runnable_map.get(name)
             if runnable and runnable.function_name not in seen:
                 props.append(runnable)
                 seen.add(runnable.function_name)
-        if include_round_trip and "erc4626_first_deposit_guard" in invariant_names:
+        if (
+            include_round_trip
+            and cls == "erc4626"
+            and "erc4626_first_deposit_guard" in invariant_names
+        ):
             if _ROUND_TRIP_NO_LOSS.function_name not in seen:
                 props.append(_ROUND_TRIP_NO_LOSS)
                 seen.add(_ROUND_TRIP_NO_LOSS.function_name)
@@ -291,7 +383,7 @@ class EconomicHarnessBuilder:
             "",
             f"contract {harness_name} {{",
             "    MockERC20 public token;",
-            f"    {target_name} public vault;",
+            f"    {target_name} public {var};",
         ]
         if state_decls:
             parts.extend(state_decls)
@@ -299,12 +391,12 @@ class EconomicHarnessBuilder:
             "",
             "    constructor() {",
             "        token = new MockERC20();",
-            f"        vault = new {target_name}(address(token));",
+            f"        {var} = new {target_name}(address(token));",
             "        token.mint(address(this), 1e30);",
-            "        token.approve(address(vault), type(uint256).max);",
+            f"        token.approve(address({var}), type(uint256).max);",
             "    }",
             "",
-            _DRIVERS,
+            drivers,
             "",
         ]
         for p in props:

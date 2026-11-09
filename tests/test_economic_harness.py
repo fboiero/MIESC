@@ -275,3 +275,79 @@ def test_run_economic_fuzz_detects_inflation_end_to_end(tmp_path):
     # Echidna actually evaluated the properties (the capture bug yielded 0).
     assert (out.get("echidna") or {}).get("tests_run", 0) >= 1, out
     assert any(f.get("type") == "economic_invariant_violation" for f in out["findings"]), out
+
+
+# ---------------------------------------------------------------------------
+# Compound-V2 lending class (mToken/cToken) — a self-contained cToken, NOT a real
+# protocol (Malda's markets need an Operator / interest model / oracle).
+# ---------------------------------------------------------------------------
+
+_VULN_CTOKEN = """// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+interface IToken {
+    function transferFrom(address, address, uint256) external returns (bool);
+    function transfer(address, uint256) external returns (bool);
+    function balanceOf(address) external view returns (uint256);
+}
+contract VulnCToken {
+    IToken public underlying; uint256 public totalSupply; mapping(address => uint256) public balanceOf;
+    constructor(address u) { underlying = IToken(u); }
+    function getCash() public view returns (uint256) { return underlying.balanceOf(address(this)); }
+    function exchangeRateStored() public view returns (uint256) {
+        if (totalSupply == 0) return 1e18; return getCash() * 1e18 / totalSupply;
+    }
+    function mint(uint256 amount) public returns (uint256 c) {
+        uint256 er = exchangeRateStored(); c = amount * 1e18 / er;
+        underlying.transferFrom(msg.sender, address(this), amount); totalSupply += c; balanceOf[msg.sender] += c;
+    }
+    function redeem(uint256 c) public returns (uint256 a) {
+        uint256 er = exchangeRateStored(); a = c * er / 1e18;
+        balanceOf[msg.sender] -= c; totalSupply -= c; underlying.transfer(msg.sender, a);
+    }
+}
+"""
+
+
+class TestCompoundHarness:
+    def test_build_generates_compound_harness(self):
+        art = EconomicHarnessBuilder().build(
+            target_source=_VULN_CTOKEN,
+            target_name="VulnCToken",
+            invariant_names=["compound_no_inflation_theft", "compound_mint_nonzero"],
+            target_import="./VulnCToken.sol",
+        )
+        assert art is not None
+        src = art.source
+        # Deploys the market with the compound driver set and the lending properties.
+        assert "VulnCToken public market" in src
+        assert "market = new VulnCToken(address(token));" in src
+        assert "function h_mint(" in src
+        assert "function echidna_ctoken_no_inflation_theft()" in src
+        assert "function echidna_ctoken_mint_nonzero()" in src
+        # No ERC-4626 driver leaked in.
+        assert "vault.deposit" not in src
+
+    def test_compound_names_are_supported(self):
+        assert "compound_no_inflation_theft" in supported_invariants()
+        assert "compound_mint_nonzero" in supported_invariants()
+
+
+@pytest.mark.skipif(not shutil.which("echidna"), reason="echidna not installed")
+def test_run_economic_fuzz_detects_ctoken_inflation_end_to_end(tmp_path):
+    """Real Echidna: a donation-inflatable Compound-V2-style cToken must report `detected`.
+
+    Self-contained cToken, not malda-lending — binding these invariants to a real lending
+    deployment (Operator / interest model / oracle) is a separate step.
+    """
+    ctoken = tmp_path / "VulnCToken.sol"
+    ctoken.write_text(_VULN_CTOKEN, encoding="utf-8")
+    out = run_economic_fuzz(
+        str(ctoken),
+        ["compound_no_inflation_theft", "compound_mint_nonzero"],
+        target_name="VulnCToken",
+        test_limit=15000,
+        timeout=240,
+    )
+    assert out["status"] == "detected", out
+    assert (out.get("echidna") or {}).get("tests_run", 0) >= 1, out
+    assert any(f.get("type") == "economic_invariant_violation" for f in out["findings"]), out
