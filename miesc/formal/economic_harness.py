@@ -25,13 +25,20 @@ economic invariants it:
 
 Honesty / scope
 ---------------
-The harness generator is concrete for the **ERC-4626 vault** class (the class
-`economic_invariants.py` flags out-of-scope for static analysis). It assumes the
-target vault constructor takes a single asset-token address, and exposes the
-standard `deposit(assets,receiver)` / `redeem(shares,receiver,owner)` /
-`convertToShares` / `convertToAssets` / `totalAssets` / `totalSupply` API. When
-the target diverges the harness will fail to compile and the runner reports that
-honestly rather than fabricating a result.
+The harness generator is concrete for two classes `economic_invariants.py` flags
+out-of-scope for static analysis: the **ERC-4626 vault** and the **Compound-V2
+lending market** (cToken / mToken). It can synthesise a deployment only for a
+single-ERC20-asset constructor, and drives `deposit`/`redeem` (vault) or
+`mint`/`redeem` (market) whose extra arguments map to safe defaults (ERC-standard
+actor positions, or name-matched `receiver`/`min*` arguments).
+
+When the target diverges — e.g. a real fork like Malda whose `mErc20Immutable`
+constructor takes operator / interest-rate-model / oracle addresses — the shape
+is parsed *up front* and the run is skipped with a precise reason naming the
+divergence, instead of emitting a harness that fails to compile deep in Echidna.
+Binding such multi-dependency deployments (synthesising operator / IRM / oracle
+stubs) is deliberately left as future work; the generator refuses them honestly
+rather than fabricating a result.
 
 Author: Fernando Boiero <fboiero@frvm.utn.edu.ar>
 License: AGPL-3.0
@@ -232,53 +239,18 @@ _MOCK_ERC20 = """contract MockERC20 {
     }
 }"""
 
-_DRIVERS = """    // ---- driver functions Echidna fuzzes to drive the attack ----
-    function h_deposit(uint256 assets) public {
-        assets = 1 + (assets % 1e24);
-        vault.deposit(assets, address(this));
-    }
 
-    function h_donate(uint256 amount) public {
-        amount = amount % 1e24;
-        token.transfer(address(vault), amount);
-    }
-
-    function h_redeem(uint256 shares) public {
-        uint256 bal = vault.balanceOf(address(this));
-        if (bal == 0) return;
-        shares = 1 + (shares % bal);
-        vault.redeem(shares, address(this), address(this));
-    }"""
-
-_COMPOUND_DRIVERS = """    // ---- driver functions Echidna fuzzes to drive the attack ----
-    function h_mint(uint256 amount) public {
-        amount = 1 + (amount % 1e24);
-        market.mint(amount);
-    }
-
-    function h_donate(uint256 amount) public {
-        amount = amount % 1e24;
-        token.transfer(address(market), amount);
-    }
-
-    function h_redeem(uint256 cTokens) public {
-        uint256 bal = market.balanceOf(address(this));
-        if (bal == 0) return;
-        cTokens = 1 + (cTokens % bal);
-        market.redeem(cTokens);
-    }"""
-
-
-# Per-class harness wiring: which runnable forms, driver block, and deployed instance name.
+# Per-class harness wiring: which runnable forms, and the deployed instance name.
+# Driver blocks are synthesised per-target (see `_DRIVER_BUILDERS`) so the call
+# signatures match the real target rather than a hard-coded stock-Compound shape.
 class _HarnessClass(NamedTuple):
     runnable: Dict[str, RunnableProperty]
-    drivers: str
     var: str
 
 
 _CLASSES: Dict[str, _HarnessClass] = {
-    "erc4626": _HarnessClass(_RUNNABLE_ERC4626, _DRIVERS, "vault"),
-    "compound": _HarnessClass(_RUNNABLE_COMPOUND, _COMPOUND_DRIVERS, "market"),
+    "erc4626": _HarnessClass(_RUNNABLE_ERC4626, "vault"),
+    "compound": _HarnessClass(_RUNNABLE_COMPOUND, "market"),
 }
 
 
@@ -316,6 +288,255 @@ def _extract_pragma(source: str) -> str:
     return m.group(0) if m else "pragma solidity ^0.8.0;"
 
 
+# ---------------------------------------------------------------------------
+# Target-shape resolution (honest-skip instead of silently-broken harness)
+# ---------------------------------------------------------------------------
+#
+# The generator can only synthesise a deployment it knows how to satisfy: a
+# single-ERC20-asset constructor and a driver call whose extra arguments map to
+# safe defaults. Real-world Compound-V2 / ERC-4626 forks diverge (e.g. Malda's
+# `mErc20Immutable` takes operator / interest-rate-model / oracle). Rather than
+# emit a harness that fails to compile deep in Echidna, we parse the target's
+# shape up-front and skip with a precise, honest reason when we cannot bind it.
+
+_STORAGE_KEYWORDS = frozenset({"memory", "calldata", "storage"})
+# Extra driver-call arguments we can fill with a semantically-safe default.
+_ADDRESS_TYPES = frozenset({"address", "address payable", "addresspayable"})
+# Address params that denote "the account acting" — safe to pass address(this).
+_SELF_ADDRESS_NAMES = frozenset(
+    {"receiver", "recipient", "to", "onbehalfof", "owner", "beneficiary", "dst", "account"}
+)
+# uint params we may zero: minimum-output / slippage guards (0 = no constraint).
+# Matched against the ORIGINAL-case name with a camelCase boundary so `minAmountOut`
+# qualifies but `mintFee` / `minter` do not (lowercasing would destroy that boundary).
+# `maxSlippage` is excluded: zeroing a *max* tolerance is the opposite of permissive.
+_ZERO_UINT_NAME_RE = re.compile(r"^(?:[mM]in(?:imum)?(?![a-z])|[sS]lippage)")
+
+
+def _contract_body(source: str, contract_name: str) -> Optional[str]:
+    """Brace-balanced body of `contract_name` (contract or abstract contract)."""
+    decl = re.search(rf"\b(?:abstract\s+)?contract\s+{re.escape(contract_name)}\b", source)
+    if not decl:
+        return None
+    open_idx = source.find("{", decl.end())
+    if open_idx < 0:
+        return None
+    depth = 0
+    for j in range(open_idx, len(source)):
+        if source[j] == "{":
+            depth += 1
+        elif source[j] == "}":
+            depth -= 1
+            if depth == 0:
+                return source[open_idx + 1 : j]
+    return None
+
+
+def _split_top_level(raw: str) -> List[str]:
+    """Split a parameter list on commas that are not nested inside brackets."""
+    parts: List[str] = []
+    depth = 0
+    cur: List[str] = []
+    for ch in raw:
+        if ch in "([{<":
+            depth += 1
+        elif ch in ")]}>":
+            depth -= 1
+        if ch == "," and depth == 0:
+            parts.append("".join(cur))
+            cur = []
+        else:
+            cur.append(ch)
+    tail = "".join(cur).strip()
+    if tail:
+        parts.append(tail)
+    return [p.strip() for p in parts if p.strip()]
+
+
+def _parse_param(part: str) -> tuple[str, str]:
+    """(type, name) for one parameter; name is '' when unnamed."""
+    toks = [t for t in part.split() if t not in _STORAGE_KEYWORDS]
+    if not toks:
+        return ("", "")
+    if len(toks) == 1:
+        return (toks[0], "")
+    return (" ".join(toks[:-1]), toks[-1])
+
+
+def _param_list(raw: str) -> List[tuple[str, str]]:
+    return [_parse_param(p) for p in _split_top_level(raw)]
+
+
+def _norm_type(ptype: str) -> str:
+    return re.sub(r"\s+", "", ptype).lower()
+
+
+def _constructor_params(source: str, contract_name: str) -> Optional[List[tuple[str, str]]]:
+    """Explicit constructor params of `contract_name`, or None when there is no
+    explicit constructor (implicit / inherited — not resolvable here)."""
+    body = _contract_body(source, contract_name)
+    if body is None:
+        return None
+    m = re.search(r"\bconstructor\s*\(([^)]*)\)", body)
+    if not m:
+        return None
+    return _param_list(m.group(1))
+
+
+def _resolve_constructor_arg(source: str, target_name: str) -> tuple[Optional[str], Optional[str]]:
+    """(deploy-arg expression, None) when synthesisable, else (None, skip reason)."""
+    params = _constructor_params(source, target_name)
+    if params is None:
+        return None, (
+            f"no explicit single-ERC20-asset constructor found on {target_name} "
+            "(implicit or inherited constructors are not resolved); the economic "
+            "harness must pass the mock asset address to the target's constructor."
+        )
+    if len(params) == 1 and _norm_type(params[0][0]) in _ADDRESS_TYPES:
+        return "address(token)", None
+    shown = ", ".join(f"{t} {n}".strip() for t, n in params) or "(no parameters)"
+    return None, (
+        f"{target_name} constructor takes {len(params)} argument(s) [{shown}]; the "
+        "economic harness can only synthesise a single ERC20-asset constructor. "
+        "Deploy-dependency stub synthesis (operator / interest-rate model / oracle) "
+        "is future work."
+    )
+
+
+def _find_function_params(
+    source: str, func_name: str, target_name: str
+) -> Optional[List[tuple[str, str]]]:
+    """Params of `function func_name(...)` on the target contract.
+
+    Looks inside `target_name`'s own body first so a mock declared earlier in a
+    flattened audit file (e.g. `ERC20Mock.mint(address,uint256)`) cannot shadow the
+    target's function. Falls back to the whole source for a function inherited from
+    a parent contract (which lives outside `target_name`'s body).
+    """
+    pattern = rf"\bfunction\s+{re.escape(func_name)}\s*\(([^)]*)\)"
+    body = _contract_body(source, target_name)
+    if body is not None:
+        m = re.search(pattern, body)
+        if m:
+            return _param_list(m.group(1))
+    m = re.search(pattern, source)
+    if not m:
+        return None
+    return _param_list(m.group(1))
+
+
+def _resolve_call_args(
+    params: List[tuple[str, str]], primary_expr: str, standard_self_arity: int
+) -> tuple[Optional[str], Optional[str]]:
+    """Build the argument list for a driver call, or a reason it cannot be filled.
+
+    `params[0]` is the primary (amount / shares) and gets `primary_expr`. Positions
+    1..standard_self_arity-1 are ERC-standard actor addresses (receiver / owner) and
+    are filled with address(this) by position. Any further argument is filled only
+    when its name/type matches the safe allowlist (actor-address -> address(this),
+    min*/slippage uint -> 0); otherwise the shape is refused honestly.
+    """
+    if not params:
+        return None, "function has no parameters to drive"
+    args = [primary_expr]
+    for idx, (ptype, pname) in enumerate(params[1:], start=1):
+        tnorm = _norm_type(ptype)
+        nlow = pname.lower()
+        if idx < standard_self_arity and tnorm in _ADDRESS_TYPES:
+            args.append("address(this)")
+        elif tnorm in _ADDRESS_TYPES and nlow in _SELF_ADDRESS_NAMES:
+            args.append("address(this)")
+        elif tnorm.startswith("uint") and _ZERO_UINT_NAME_RE.match(pname):
+            args.append("0")
+        else:
+            return None, f"cannot fill argument '{ptype} {pname}' from safe defaults"
+    return ", ".join(args), None
+
+
+def _build_erc4626_drivers(source: str, target_name: str) -> tuple[Optional[str], Optional[str]]:
+    dep = _find_function_params(source, "deposit", target_name)
+    red = _find_function_params(source, "redeem", target_name)
+    if dep is None:
+        return None, "target exposes no deposit(...) to drive the ERC-4626 harness"
+    if red is None:
+        return None, "target exposes no redeem(...) to drive the ERC-4626 harness"
+    dep_args, reason = _resolve_call_args(dep, "assets", standard_self_arity=2)
+    if reason:
+        return None, f"deposit() shape unsupported: {reason}"
+    red_args, reason = _resolve_call_args(red, "shares", standard_self_arity=3)
+    if reason:
+        return None, f"redeem() shape unsupported: {reason}"
+    block = (
+        "    // ---- driver functions Echidna fuzzes to drive the attack ----\n"
+        "    function h_deposit(uint256 assets) public {\n"
+        "        assets = 1 + (assets % 1e24);\n"
+        f"        vault.deposit({dep_args});\n"
+        "    }\n\n"
+        "    function h_donate(uint256 amount) public {\n"
+        "        amount = amount % 1e24;\n"
+        "        token.transfer(address(vault), amount);\n"
+        "    }\n\n"
+        "    function h_redeem(uint256 shares) public {\n"
+        "        uint256 bal = vault.balanceOf(address(this));\n"
+        "        if (bal == 0) return;\n"
+        "        shares = 1 + (shares % bal);\n"
+        f"        vault.redeem({red_args});\n"
+        "    }"
+    )
+    return block, None
+
+
+def _build_compound_drivers(source: str, target_name: str) -> tuple[Optional[str], Optional[str]]:
+    mnt = _find_function_params(source, "mint", target_name)
+    red = _find_function_params(source, "redeem", target_name)
+    if mnt is None:
+        return None, "target exposes no mint(...) to drive the Compound-V2 harness"
+    if red is None:
+        return None, "target exposes no redeem(...) to drive the Compound-V2 harness"
+    mint_args, reason = _resolve_call_args(mnt, "amount", standard_self_arity=1)
+    if reason:
+        return None, f"mint() shape unsupported: {reason}"
+    red_args, reason = _resolve_call_args(red, "cTokens", standard_self_arity=1)
+    if reason:
+        return None, f"redeem() shape unsupported: {reason}"
+    block = (
+        "    // ---- driver functions Echidna fuzzes to drive the attack ----\n"
+        "    function h_mint(uint256 amount) public {\n"
+        "        amount = 1 + (amount % 1e24);\n"
+        f"        market.mint({mint_args});\n"
+        "    }\n\n"
+        "    function h_donate(uint256 amount) public {\n"
+        "        amount = amount % 1e24;\n"
+        "        token.transfer(address(market), amount);\n"
+        "    }\n\n"
+        "    function h_redeem(uint256 cTokens) public {\n"
+        "        uint256 bal = market.balanceOf(address(this));\n"
+        "        if (bal == 0) return;\n"
+        "        cTokens = 1 + (cTokens % bal);\n"
+        f"        market.redeem({red_args});\n"
+        "    }"
+    )
+    return block, None
+
+
+_DRIVER_BUILDERS = {
+    "erc4626": _build_erc4626_drivers,
+    "compound": _build_compound_drivers,
+}
+
+
+@dataclass
+class BuildOutcome:
+    """Result of an attempted harness build: the artifact, or an honest skip reason.
+
+    Exactly one of `artifact` / `skip_reason` is set when the build was attempted;
+    both are None when the selected invariants have no runnable form at all.
+    """
+
+    artifact: Optional["HarnessArtifact"] = None
+    skip_reason: Optional[str] = None
+
+
 class EconomicHarnessBuilder:
     """Builds runnable Echidna harnesses from economic invariant selections."""
 
@@ -330,8 +551,38 @@ class EconomicHarnessBuilder:
     ) -> Optional[HarnessArtifact]:
         """Generate a harness for `target_name`, or None if nothing is runnable.
 
+        Thin wrapper over :meth:`build_or_reason` that drops the skip reason; use
+        :meth:`build_or_reason` when the caller needs to report *why* a target was
+        not bindable (unsupported constructor / driver shape).
+        """
+        return self.build_or_reason(
+            target_source,
+            target_name,
+            invariant_names,
+            target_import,
+            include_round_trip=include_round_trip,
+        ).artifact
+
+    def build_or_reason(
+        self,
+        target_source: str,
+        target_name: str,
+        invariant_names: List[str],
+        target_import: str,
+        *,
+        include_round_trip: bool = True,
+    ) -> BuildOutcome:
+        """Generate a harness, or return a precise reason it cannot be bound.
+
+        Returns a :class:`BuildOutcome`:
+          * ``artifact`` set   -> a runnable harness was generated.
+          * ``skip_reason`` set -> the target's constructor or mint/redeem shape is
+            not synthesisable; the reason names the exact divergence (honest skip
+            instead of a harness that fails to compile).
+          * both None          -> the selected invariants have no runnable form.
+
         Args:
-            target_source: Solidity source of the target (for pragma extraction).
+            target_source: Solidity source of the target (shape + pragma extraction).
             target_name:   Solidity contract name to deploy in the harness.
             invariant_names: Selected economic invariant names.
             target_import: Relative import path to the target file (e.g. "./Vault.sol").
@@ -340,11 +591,19 @@ class EconomicHarnessBuilder:
         """
         cls = _resolve_class(invariant_names)
         if cls is None:
-            return None
+            return BuildOutcome()
         config = _CLASSES[cls]
         runnable_map = config.runnable
-        drivers = config.drivers
         var = config.var
+
+        # Honest-skip pre-flight: can we deploy and drive this target's shape?
+        ctor_arg, reason = _resolve_constructor_arg(target_source, target_name)
+        if reason:
+            return BuildOutcome(skip_reason=reason)
+        drivers, reason = _DRIVER_BUILDERS[cls](target_source, target_name)
+        if reason:
+            return BuildOutcome(skip_reason=reason)
+        assert ctor_arg is not None and drivers is not None  # narrowed by reason checks
 
         props: List[RunnableProperty] = []
         seen: set[str] = set()
@@ -363,7 +622,7 @@ class EconomicHarnessBuilder:
                 seen.add(_ROUND_TRIP_NO_LOSS.function_name)
 
         if not props:
-            return None
+            return BuildOutcome()
 
         pragma = _extract_pragma(target_source)
         harness_name = "MIESCEconomicHarness"
@@ -391,7 +650,7 @@ class EconomicHarnessBuilder:
             "",
             "    constructor() {",
             "        token = new MockERC20();",
-            f"        {var} = new {target_name}(address(token));",
+            f"        {var} = new {target_name}({ctor_arg});",
             "        token.mint(address(this), 1e30);",
             f"        token.approve(address({var}), type(uint256).max);",
             "    }",
@@ -404,13 +663,14 @@ class EconomicHarnessBuilder:
             parts.append("")
         parts.append("}")
 
-        return HarnessArtifact(
+        artifact = HarnessArtifact(
             source="\n".join(parts) + "\n",
             harness_contract_name=harness_name,
             target_name=target_name,
             properties=props,
             import_path=target_import,
         )
+        return BuildOutcome(artifact=artifact)
 
 
 # ---------------------------------------------------------------------------
@@ -493,20 +753,25 @@ def run_economic_fuzz(
         }
 
     builder = EconomicHarnessBuilder()
-    artifact = builder.build(
+    outcome = builder.build_or_reason(
         target_source=src,
         target_name=resolved_name,
         invariant_names=invariant_names,
         target_import=f"./{Path(target_path).name}",
     )
-    if artifact is None:
+    if outcome.artifact is None:
+        reason = outcome.skip_reason or (
+            "No runnable economic harness form for the selected invariants "
+            f"(supported: {sorted(supported_invariants())})."
+        )
         return {
             "status": "skipped",
-            "reason": "No runnable economic harness form for the selected invariants "
-            f"(supported: {sorted(supported_invariants())}).",
+            "reason": reason,
+            "target_contract": resolved_name,
             "properties": [],
             "findings": [],
         }
+    artifact = outcome.artifact
 
     # Write the harness next to the target so the relative import resolves.
     target_dir = Path(target_path).resolve().parent
@@ -596,6 +861,7 @@ def run_economic_fuzz(
 
 
 __all__ = [
+    "BuildOutcome",
     "EconomicHarnessBuilder",
     "HarnessArtifact",
     "RunnableProperty",
