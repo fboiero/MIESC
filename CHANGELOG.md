@@ -80,6 +80,21 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **LLM adapter results now carry an extraction diagnostic, so "0 findings" is distinguishable from
+  a parse failure.** An AI adapter that returned `0 findings, status: success` gave no way to tell
+  "the model found nothing" from "the model's response could not be parsed" — the raw reasoning was
+  dropped. `extract_llm_json` now records a small diagnostic in a thread-local sink, and `run_tool`
+  attaches it to the tool result as `metadata.llm_extraction`: `{parsed, strategy, error, empty,
+  raw_excerpt}`. The three cases are now tellable apart — parsed-non-empty (no excerpt), parsed-empty
+  (a bounded raw excerpt, so the empty answer can be inspected), and parse-failed (excerpt + error).
+  The mechanism is central (no per-adapter changes; every LLM adapter that funnels through
+  `extract_llm_json` is covered, keyed by a normalized log prefix) and `run_tool` clears the sink
+  before each tool so a non-LLM tool never inherits a stale entry. Known gap: an adapter that makes
+  its LLM calls in its own worker threads records into those threads' sinks, so `run_tool` attaches
+  nothing for it — never a sibling's result. The complementary full-raw capture remains
+  `MIESC_LLM_DUMP_DIR` (writes each raw response to a file). Diagnostics only — no status or
+  behaviour change.
+
 - **`inconclusive` is now a first-class tool status (no longer mislabeled as `error`).** The honest
   `inconclusive` verdict the fuzzing adapters emit for a campaign that never exercised the contract
   was not registered in the canonical status vocabulary, so `normalize_tool_status` rewrote it to
