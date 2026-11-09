@@ -1997,18 +1997,12 @@ class GPTLensAdapter(OllamaCallMixin, LLMCacheMixin, ToolAdapter):
         Returns:
             File content as string or None on error
         """
-        try:
-            with open(contract_path, "r", encoding="utf-8") as f:
-                return f.read()
-        except FileNotFoundError:
-            logger.error("GPTLens: Contract file not found: %s", contract_path)
-            return None
-        except PermissionError:
-            logger.error("GPTLens: Permission denied reading: %s", contract_path)
-            return None
-        except Exception as e:
-            logger.error("GPTLens: Error reading contract %s: %s", contract_path, e)
-            return None
+        from miesc.adapters._source_loader import load_contract_source
+
+        source = load_contract_source(contract_path)
+        if source is None:
+            logger.error("GPTLens: no readable Solidity source at %s", contract_path)
+        return source
 
     def _truncate_code(self, code: str) -> str:
         """
