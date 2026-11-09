@@ -17,6 +17,7 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from miesc.adapters._fuzz_result import apply_fuzz_verdict
 from miesc.core.tool_protocol import (
     ToolAdapter,
     ToolCapability,
@@ -237,7 +238,19 @@ class MedusaAdapter(ToolAdapter):
                 f"{coverage_info.get('coverage_percentage', 0)}% coverage in {execution_time:.2f}s"
             )
 
-            return {
+            # Did the campaign actually drive the contract? Any positive signal
+            # (coverage, executed tests, explored paths, corpus entries) means
+            # medusa fuzzed; none means it never ran (unsupported CLI flag,
+            # compilation failure, no deployable target) and "0 findings" is
+            # inconclusive, not clean.
+            exercised = (
+                float(coverage_info.get("coverage_percentage", 0) or 0) > 0
+                or int(coverage_info.get("tests_run", 0) or 0) > 0
+                or int(coverage_info.get("paths_explored", 0) or 0) > 0
+                or int(coverage_info.get("corpus_size", 0) or 0) > 0
+            )
+
+            result_dict = {
                 "tool": "medusa",
                 "version": "0.3.0",
                 "status": "success" if result.returncode in [0, 1] else "error",
@@ -245,6 +258,15 @@ class MedusaAdapter(ToolAdapter):
                 "metadata": metadata,
                 "execution_time": execution_time,
             }
+            # Only downgrade a non-error exit; a genuine process error stays error.
+            if result_dict["status"] != "error":
+                apply_fuzz_verdict(
+                    result_dict,
+                    tool="medusa",
+                    exercised=exercised,
+                    diagnostic=(result.stdout or "") + (result.stderr or ""),
+                )
+            return result_dict
 
         except subprocess.TimeoutExpired:
             execution_time = time.time() - start_time

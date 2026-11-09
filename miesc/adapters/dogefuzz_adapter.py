@@ -30,6 +30,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
+from miesc.adapters._fuzz_result import apply_fuzz_verdict
 from miesc.core.tool_protocol import (
     ToolAdapter,
     ToolCapability,
@@ -273,6 +274,24 @@ class DogeFuzzAdapter(ToolAdapter):
             logger.info(
                 f"DogeFuzz: Completed - {len(findings)} findings, {coverage_pct:.1f}% coverage"
             )
+
+            # Zero coverage across statements/branches/functions means the
+            # campaign never instrumented or drove the contract (e.g. it did not
+            # compile) — its "0 findings" is inconclusive, not a clean pass.
+            cov = self._global_coverage
+            exercised = (
+                coverage_pct > 0
+                or len(cov.statements_covered) > 0
+                or len(cov.branches_covered) > 0
+                or len(cov.functions_covered) > 0
+            )
+            diagnostic = (
+                f"instrumented statements={cov.total_statements}, "
+                f"covered statements={len(cov.statements_covered)}, "
+                f"functions={len(cov.functions_covered)}, "
+                f"seed_pool={len(self._seed_pool)}, invariants={len(invariants)}"
+            )
+            apply_fuzz_verdict(result, tool="dogefuzz", exercised=exercised, diagnostic=diagnostic)
 
             return result
 
