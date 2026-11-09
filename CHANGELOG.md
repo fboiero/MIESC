@@ -64,6 +64,16 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **`inconclusive` is now a first-class tool status (no longer mislabeled as `error`).** The honest
+  `inconclusive` verdict the fuzzing adapters emit for a campaign that never exercised the contract
+  was not registered in the canonical status vocabulary, so `normalize_tool_status` rewrote it to
+  `error` with a confusing `reason: "unknown_status:inconclusive"` / `adapter returned unknown status
+  'inconclusive'` in the `audit full` summary. `inconclusive` (and the alias `degraded`) is now part
+  of `TOOL_STATUSES`, `summarize_tool_statuses`, and `format_tool_summary` (which prints a dedicated
+  `· inconclusive N` segment and counts it in the total), in both the CLI and the ML orchestrator's
+  copy of the mapping. It stays grouped with the non-success tools in the audit tool list so it
+  remains visible, while the per-tool line keeps its distinct `inconclusive` label and warning.
+
 - **Clear, fail-fast error when `miesc` runs under an unsupported Python.** MIESC targets Python
   >= 3.12, but when the `miesc` console script is installed for an older interpreter, importing the
   package failed with a cryptic error far from the cause — a runtime `TypeError` on a PEP 604

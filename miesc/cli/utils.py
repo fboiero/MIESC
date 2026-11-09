@@ -451,7 +451,10 @@ class AdapterLoader:
 #              unsupported_source)
 #   timeout  - the tool was killed after the configured timeout
 #   error    - the tool ran and failed; ``error`` carries the message
-TOOL_STATUSES = ("success", "skipped", "timeout", "error")
+#   inconclusive - the tool ran but produced no trustworthy signal (e.g. a
+#              coverage-guided fuzzer that never exercised the contract); it is
+#              neither a clean pass nor a failure, and ``warning`` says why
+TOOL_STATUSES = ("success", "skipped", "timeout", "error", "inconclusive")
 
 _STATUS_ALIASES = {
     "success": "success",
@@ -468,6 +471,8 @@ _STATUS_ALIASES = {
     "error": "error",
     "failed": "error",
     "failure": "error",
+    "inconclusive": "inconclusive",
+    "degraded": "inconclusive",
 }
 
 
@@ -507,7 +512,7 @@ def summarize_tool_statuses(results: Iterable[Dict[str, Any]]) -> Dict[str, List
     ``timeout``, ``error``. Pseudo-tools (``miesc-intelligence`` ...) are included
     only where they carry a status."""
     buckets: Dict[str, List[str]] = {
-        k: [] for k in ("success", "fallback", "skipped", "timeout", "error")
+        k: [] for k in ("success", "fallback", "skipped", "timeout", "error", "inconclusive")
     }
     for r in results:
         tool = str(r.get("tool") or "")
@@ -521,13 +526,26 @@ def summarize_tool_statuses(results: Iterable[Dict[str, Any]]) -> Dict[str, List
 
 
 def format_tool_summary(results: Iterable[Dict[str, Any]]) -> str:
-    """One line a reader can trust: ``ran 42/50 (2 fallback) · skipped 6 · timeout 0 · error 2``."""
+    """One line a reader can trust:
+    ``ran 42/50 (2 fallback) · skipped 6 · timeout 0 · error 2 · inconclusive 1``."""
     b = summarize_tool_statuses(results)
-    total = len(b["success"]) + len(b["skipped"]) + len(b["timeout"]) + len(b["error"])
+    total = (
+        len(b["success"])
+        + len(b["skipped"])
+        + len(b["timeout"])
+        + len(b["error"])
+        + len(b["inconclusive"])
+    )
     ran = f"ran {len(b['success'])}/{total}"
     if b["fallback"]:
         ran += f" ({len(b['fallback'])} fallback)"
-    return f"{ran} · skipped {len(b['skipped'])} · timeout {len(b['timeout'])} · error {len(b['error'])}"
+    line = (
+        f"{ran} · skipped {len(b['skipped'])} · timeout {len(b['timeout'])} "
+        f"· error {len(b['error'])}"
+    )
+    if b["inconclusive"]:
+        line += f" · inconclusive {len(b['inconclusive'])}"
+    return line
 
 
 def tool_availability(tools: Iterable[str]) -> Dict[str, Dict[str, Any]]:
