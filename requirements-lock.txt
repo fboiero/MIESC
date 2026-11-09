@@ -12,7 +12,7 @@ attrs==26.1.0
     # via aiohttp
 bitarray==3.12.3
     # via eth-account
-cbor2==6.1.5
+cbor2==6.2.0.post2
     # via crytic-compile
 certifi==2026.10.23
     # via requests
@@ -83,7 +83,7 @@ markupsafe==3.0.4
     # via jinja2
 mdurl==0.1.2
     # via markdown-it-py
-multidict==7.1.0
+multidict==7.2.1
     # via
     #   aiohttp
     #   yarl
@@ -106,13 +106,13 @@ pycryptodome==3.23.0
     #   eth-keyfile
     #   slither-analyzer
     #   solc-select
-pydantic==2.14.1
+pydantic==2.14.3
     # via
     #   miesc (pyproject.toml)
     #   eth-account
     #   eth-utils
     #   web3
-pydantic-core==2.50.1
+pydantic-core==2.50.4
     # via pydantic
 pygments==2.21.0
     # via rich
@@ -148,17 +148,17 @@ typing-extensions==4.16.0
     #   pydantic-core
     #   typing-inspection
     #   web3
-typing-inspection==0.4.4
+typing-inspection==0.4.5
     # via pydantic
 urllib3==2.8.0
     # via
     #   requests
     #   types-requests
-wcwidth==0.9.3
+wcwidth==0.9.4
     # via prettytable
 web3==7.16.0
     # via slither-analyzer
-websockets==17.3
+websockets==17.4
     # via web3
 yarl==1.25.1
     # via aiohttp
