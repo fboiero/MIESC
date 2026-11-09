@@ -1151,9 +1151,13 @@ def context_aware_fp_check(
                 rf"function\s+{re.escape(func_name)}\s*\([^)]*\)[^{{]*\{{",
                 re.DOTALL,
             )
-            match = func_pattern.search(source_code)
+            # Search the finding's OWN contract: a same-named function in another
+            # contract of the file (ERC20 `transfer`, a sibling's `withdraw`)
+            # must not lend or withhold its modifier. (The 500-char window is
+            # unchanged; narrowing it to the function body is a follow-up.)
+            match = func_pattern.search(contract_scope)
             if match:
-                context = source_code[match.start() : match.start() + 500]
+                context = _function_text(contract_scope, match.start())
                 if _ADMIN_MODIFIERS.search(context):
                     return True, f"Function {func_name} has admin modifier"
         # For selfdestruct/suicidal without function name — check if destroy/selfdestruct functions have guard
@@ -1161,10 +1165,10 @@ def context_aware_fp_check(
         if "selfdestruct" in ftype or "suicidal" in ftype:
             for fn in ("destroy", "kill", "close", "shutdown"):
                 fn_match = re.search(
-                    rf"function\s+{fn}\s*\([^)]*\)[^{{]*\{{", source_code, re.DOTALL
+                    rf"function\s+{fn}\s*\([^)]*\)[^{{]*\{{", contract_scope, re.DOTALL
                 )
                 if fn_match:
-                    context = source_code[fn_match.start() : fn_match.start() + 300]
+                    context = _function_text(contract_scope, fn_match.start())
                     if _ADMIN_MODIFIERS.search(context):
                         return True, f"Function {fn}() has admin modifier — selfdestruct guarded"
 
@@ -1184,7 +1188,8 @@ def context_aware_fp_check(
     # Works for both OZ ReentrancyGuard and MIESC inline guard
     if canonical == CanonicalCategory.REENTRANCY:
         if func_name:
-            func_context = _get_function_context(source_code, func_name)
+            # The guarded function must be the one in the finding's own contract.
+            func_context = _get_function_context(contract_scope, func_name)
             if "nonReentrant" in func_context or "nonreentrant" in func_context.lower():
                 return True, f"Function {func_name} has nonReentrant guard"
         # Also suppress if the contract inherits ReentrancyGuard and finding has no specific function
@@ -1208,10 +1213,54 @@ def context_aware_fp_check(
     return False, None
 
 
-def _get_function_context(source_code: str, func_name: str, chars: int = 500) -> str:
+def _function_text(scope: str, start: int) -> str:
+    """Text of the function whose declaration begins at ``start`` (the ``function``
+    keyword): its signature through its OWN closing brace, or through ``;`` for an
+    abstract/interface declaration with no body.
+
+    Bounds a modifier/guard check to one function so a neighbour's ``onlyOwner``
+    or ``require(msg.sender == owner)`` a few lines down cannot leak in (the Parity
+    ``initWallet`` / ``kill`` case). Brace/paren matching runs on comment-blanked
+    text — same offsets — so a ``{`` inside a string or comment does not fool it.
+    """
+    code = _blank_comments(scope)
+    n = len(code)
+    i = start
+    while i < n and code[i] != "(":  # reach the parameter list
+        i += 1
+    depth = 0
+    while i < n:  # skip balanced parens of the parameter list
+        if code[i] == "(":
+            depth += 1
+        elif code[i] == ")":
+            depth -= 1
+            if depth == 0:
+                i += 1
+                break
+        i += 1
+    while i < n and code[i] not in "{;":  # modifiers live between ) and { / ;
+        i += 1
+    if i >= n:
+        return scope[start:]
+    if code[i] == ";":  # abstract / interface: no body
+        return scope[start : i + 1]
+    depth = 0
+    while i < n:  # match the body braces
+        if code[i] == "{":
+            depth += 1
+        elif code[i] == "}":
+            depth -= 1
+            if depth == 0:
+                return scope[start : i + 1]
+        i += 1
+    return scope[start:]
+
+
+def _get_function_context(source_code: str, func_name: str) -> str:
+    """Text of ``func_name``'s own declaration (first match) in ``source_code``."""
     match = re.search(rf"function\s+{re.escape(func_name)}", source_code)
     if match:
-        return source_code[match.start() : match.start() + chars]
+        return _function_text(source_code, match.start())
     return ""
 
 
