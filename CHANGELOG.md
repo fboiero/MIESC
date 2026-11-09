@@ -9,6 +9,22 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **`miesc doctor --smoke` / `--smoke-all`: a functional probe that reports whether a tool *runs*,
+  not just whether it is *installed*.** `doctor` has always reported tool *availability*
+  (`is_available`), which overstates reality — a tool can be present yet fail on a real target (wrong
+  input type, a dead CLI flag, a missing backend). The new opt-in probe runs each available tool
+  against a tiny self-contained contract, in an isolated subprocess with a hard wall-clock timeout,
+  and reports one of four honest verdicts: **functional** (ran, returned `success`/`inconclusive`),
+  **degraded** (installed but errored/produced nothing on the fixture), **slow** (did not finish in
+  the probe budget — explicitly *not* "broken"), or **needs-backend** (an LLM-backed tool with no
+  reachable Ollama, labelled without spawning a probe). It prints the headline gap
+  `functional X / available Y / total Z`. `--smoke` covers the fast, deterministic layers (static,
+  ML, specialized, cross-chain); `--smoke-all` adds the slow ones (fuzzing, symbolic, formal, AI) with
+  a longer per-probe budget. Cloud LLM keys are stripped from the probe environment so a smoke run
+  never reaches a paid API. A `functional` verdict means the tool runs on a 15-line contract, not that
+  it works on a real multi-file project — the probe catches the crash / wrong-input / dead-flag class
+  of wiring bug.
+
 - **Visual polish + Immunefi submission-readiness for the premium / profesional / profesional-es
   reports.** The three audit templates and the `profesional.css` / `profesional-es.css`
   stylesheets were refined to read like a top-tier firm's report (tighter typography, accent
