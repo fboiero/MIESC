@@ -944,7 +944,11 @@ def _run_full_audit_basic(
                 all_findings_flat.append(f)
         if all_findings_flat:
             try:
-                code_text = Path(contract).read_text(encoding="utf-8")
+                from miesc.adapters._source_loader import load_contract_source
+
+                # Resolve a file OR a project directory (src/ scope) so the
+                # intelligence engine's code context is populated for `audit full <dir>`.
+                code_text = load_contract_source(contract) or ""
             except Exception:
                 code_text = ""
             enhanced = enhance_findings(
@@ -1491,18 +1495,6 @@ def audit_full(
         miesc audit full contract.sol -l 1,2,3          # Only layers 1-3
         miesc audit full contract.sol -o report.json    # Save to file
     """
-    # `audit full` runs the single-contract 9-layer pipeline; the orchestrator reads
-    # one source file. A directory target silently degrades the whole run — the
-    # source read fails ("[Errno 21] Is a directory"), so the ML/LLM layers get no
-    # code and produce nothing. Fail fast and point at `audit batch`, which iterates
-    # the .sol files in a directory, instead of crashing deep in the pipeline.
-    if Path(contract).is_dir():
-        error(
-            f"'{contract}' is a directory. 'audit full' analyses a single contract; "
-            "use 'miesc audit batch' to audit every .sol file in a directory."
-        )
-        sys.exit(2)
-
     print_banner()
     info(f"Full audit of {contract}")
 

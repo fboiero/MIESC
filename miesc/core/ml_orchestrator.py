@@ -227,13 +227,21 @@ class MLOrchestrator:
             )
 
     def _read_contract_source(self, contract_path: str) -> str:
-        """Lee código fuente del contrato."""
+        """Lee código fuente del contrato (archivo o directorio de proyecto).
+
+        Usa el loader compartido, que resuelve un directorio a sus ``.sol`` en
+        scope (``src/``), así ``audit full <dir>`` no degrada en silencio.
+        """
         try:
-            with open(contract_path, "r", encoding="utf-8") as f:
-                return f.read()
+            from miesc.adapters._source_loader import load_contract_source
+
+            source = load_contract_source(contract_path)
+            if source is not None:
+                return source
+            logger.warning(f"No readable Solidity source at {contract_path}")
         except Exception as e:
             logger.warning(f"Could not read contract source: {e}")
-            return ""
+        return ""
 
     def _build_code_context_map(
         self,
