@@ -6,14 +6,16 @@ static-analysis scan, then apply a disciplined **manual triage** that separates 
 from the (many) false positives a scanner produces. These are kept as an evidence trail of
 MIESC's real-world behaviour, not as formal audit opinions.
 
-> **TL;DR:** Across eight mature-enough targets (Lombard LBTC, Doppler, Valantis STEX, YieldNest,
-> Arcadia lending-v2, Revert v4lend, Malda, Royco Dawn), **every High-severity finding the scanner
-> produced was a false positive** once read against the real code. The last two sharpen *why*: on
-> Malda a real judged High existed but lived in a trust-boundary invariant the scanner cannot
-> express; on Royco Dawn the one real High-class bug (an ERC-777 reentrancy in `stRedeem`) *does*
-> sit behind a Slither flag — but the scanner cannot tell that site from seven benign look-alikes,
-> because the discrimination rests on a token-standard precondition and an accounting invariant it
-> never models. Both are the same lesson: the **triage layer, not the raw scan, is the product.**
+> **TL;DR:** Across nine mature-enough targets (Lombard LBTC, Doppler, Valantis STEX, YieldNest,
+> Arcadia lending-v2, Revert v4lend, Malda, Royco Dawn, Reserve Governor), **every High-severity
+> finding the scanner produced was a false positive** once read against the real code. The spread of
+> targets sharpens *why* the triage layer matters: on Malda a real judged High lived in a
+> trust-boundary invariant the scanner cannot express; on Royco Dawn the one real High-class bug (an
+> ERC-777 reentrancy) *does* sit behind a Slither flag, but the scanner cannot tell it from seven
+> benign look-alikes; and Reserve Governor is the mirror image — on pure governance code the scanner
+> is **silent (0 High)**, correctly, because the entire real risk surface is governance / trust-boundary
+> logic with no detector class. Loud or silent, the lesson holds: the **triage layer, not the raw
+> scan, is the product.**
 
 ---
 
@@ -77,6 +79,7 @@ premium PDFs are regenerable from `results.json` and are not committed here to k
 | **Revert v4lend** (`revert-finance/v4lend`) | `f6d0fb41` | 441 (0 Crit / 36 High / 144 Med / 163 Low / 98 Info) | **0/36 High exploitable** — reentrancy under the vault's `transformedTokenId` mutex / trusted-asset direct path, OZ `ReentrancyGuard` automators and owner-registered hook callees; ETH sends to the position's NFT owner or trusted Uniswap routers; `incorrect-shift`/`-exp` fired only in Uniswap v4-core deps |
 | **Malda** (`malda-protocol/malda-lending`) | `ab4fa9b2` | 195 (0 Crit / 2 High / 25 Med / 80 Low / 88 Info) | **0/2 scanner Highs exploitable** — `arbitrary-send-eth` is an ETH-rescue to a constructor-set address, `reentrancy-balance` is the caller's own Mendi→Malda migration via trusted markets. The contest's one judged **High (H-1)** — an unchecked cross-chain `receiver` in `EverclearBridge` — sat in the same rebalancer subsystem but **outside Slither's lens** (a trust-boundary invariant, not an `arbitrary-send-*` pattern) |
 | **Royco Dawn** (`roycoprotocol/royco-dawn`) | `d5f9360c` | 382 (0 Crit / 1 High / 41 Med / 53 Low / 287 Info) | **0/1 scanner High exploitable** — `arbitrary-send-erc20` on `requestDeposit` is double-gated (AccessManager `restricted` + ERC-7540 operator model) and sends to the fixed kernel. Cantina closed **262 submissions → 0 valid, 0 High**. The real ERC-777 reentrancy (`stRedeem`) *does* sit behind one of eight `reentrancy-no-eth` Mediums the scanner raised — it **locates but cannot adjudicate** the one real vector (needs the ERC-777 precondition + NAV invariant) |
+| **Reserve Governor** (`reserve-protocol/reserve-governor`) | `dc27a684` | 66 (0 Crit / **0 High** / 9 Med / 19 Low / 38 Info) | **0 scanner Highs at all** — on governance code the lens is silent, matching Cantina's judged **0 valid Highs / 1,465 submissions** (Medium-tier payout). The 9 Mediums are benign noise; the real risk (optimistic/standard proposal ID collisions, selector-whitelist, timelock bypass, CEI ordering — `cancelLock` M-01 & M-02 fixed pre-commit) is governance logic with no detector class. The only `arbitrary-send-eth` Highs are in OZ's `Governor`/`Timelock` base, correctly scoped out |
 
 ### lombard-lbtc-2026-10
 Lombard LBTC (Bitcoin-backed liquid token). The three scanner Highs (private-constant "shadowing",
@@ -176,6 +179,28 @@ scanner produces the candidate set; it cannot rank or confirm within it, because
 rests on a token-standard precondition and a NAV-solvency invariant it does not model. The NAV
 division-by-zero, fee-threshold-unmintability and fee-compounding findings have **no static flag at
 all**. The lesson: **static locates, semantic review adjudicates.** See `triage-memo.md`.
+
+### reserve-governor-2026-11
+Reserve Governor (a hybrid optimistic/standard on-chain governance system over OpenZeppelin
+Governor + TimelockController — an ERC4626 `StakingVault` with vote-locking and multi-token rewards,
+a fast/veto proposal path, an `OptimisticSelectorRegistry` whitelisting `(target, selector)` pairs,
+and a `TimelockControllerOptimistic` with an optimistic bypass). This is the **mirror image** of the
+vault/lending targets: scoped to the first-party `contracts/`, MIESC's default scan produced
+**0 Critical and 0 High** — the static lens is *silent* on governance logic — and that matches the
+competition's judged outcome exactly: the public Cantina leaderboard shows **0 valid Highs across
+1,465 submissions** (the pot settled at the Medium tier). The 9 owned Mediums are benign detector
+noise (`incorrect-equality`, an ERC4626 `_withdraw` `reentrancy-no-eth` benign by callee trust, and
+ignored `EnumerableSet`/`deposit` return values). Every real issue the competition and the project's
+own committed pre-contest review surfaced is **governance / trust-boundary logic** with no detector
+class — optimistic/standard proposal ID collisions, veto-threshold boundaries, selector-registry
+whitelisting, timelock-bypass correctness, throttle rounding, and a `cancelLock` CEI-ordering theft
+(review M-01) plus a reward-accounting nit (M-02), **both already fixed before the contest commit**
+(verified). Scoping note: the only `arbitrary-send-eth` Highs in the whole run are OZ's own
+`Timelock`/`Governor` execution paths (`_execute`, `_executeOperations`, `relay`) — the timelock's
+by-design arbitrary send, correctly excluded as a dependency; a scanner that counted `node_modules/`
+as first-party would manufacture three phantom "governance" Highs. Dependencies were staged via
+`npm pack` (download-only) plus the project's pnpm OZ patch, without running the repo's install
+scripts. See `triage-memo.md`.
 
 ---
 
