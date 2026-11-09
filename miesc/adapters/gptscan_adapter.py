@@ -367,8 +367,9 @@ Respond ONLY with valid JSON. Report ONLY vulnerabilities you are CONFIDENT abou
         return raw_output.get("findings", []) if isinstance(raw_output, dict) else []
 
     def can_analyze(self, contract_path: str) -> bool:
-        """Check if adapter can analyze the contract."""
-        return Path(contract_path).suffix == ".sol"
+        """Check if adapter can analyze the contract (a .sol file or a project dir)."""
+        p = Path(contract_path)
+        return p.suffix == ".sol" or p.is_dir()
 
     def get_default_config(self) -> Dict[str, Any]:
         """Get default configuration."""
@@ -379,13 +380,13 @@ Respond ONLY with valid JSON. Report ONLY vulnerabilities you are CONFIDENT abou
     # ============================================================================
 
     def _read_contract(self, contract_path: str) -> Optional[str]:
-        """Read contract file content."""
-        try:
-            with open(contract_path, "r", encoding="utf-8") as f:
-                return f.read()
-        except Exception as e:
-            logger.error(f"Error reading contract: {e}")
-            return None
+        """Read contract source (a single .sol file or a project directory)."""
+        from miesc.adapters._source_loader import load_contract_source
+
+        source = load_contract_source(contract_path)
+        if source is None:
+            logger.error(f"Error reading contract: no readable Solidity source at {contract_path}")
+        return source
 
     def _detect_best_model(self) -> str:
         """Detect the best available Ollama model for security analysis via HTTP API."""

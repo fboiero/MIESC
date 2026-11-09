@@ -393,13 +393,13 @@ class SmartLLMAdapter(OllamaCallMixin, LLMCacheMixin, ToolAdapter):
     # ============================================================================
 
     def _read_contract(self, contract_path: str) -> Optional[str]:
-        """Read contract file content."""
-        try:
-            with open(contract_path, "r", encoding="utf-8") as f:
-                return f.read()
-        except Exception as e:
-            logger.error(f"Error reading contract: {e}")
-            return None
+        """Read contract source (a single .sol file or a project directory)."""
+        from miesc.adapters._source_loader import load_contract_source
+
+        source = load_contract_source(contract_path)
+        if source is None:
+            logger.error(f"Error reading contract: no readable Solidity source at {contract_path}")
+        return source
 
     def _truncate_code(self, code: str, max_tokens: int) -> str:
         """Truncate code to fit within context window (approximate token limit)."""

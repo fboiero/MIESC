@@ -1012,19 +1012,13 @@ Respond with ONLY the JSON object. No explanations outside JSON."""
     # ============================================================================
 
     def _read_contract(self, contract_path: str) -> Optional[str]:
-        """Read contract file content."""
-        try:
-            with open(contract_path, "r", encoding="utf-8") as f:
-                return f.read()
-        except FileNotFoundError:
-            logger.error(f"Contract file not found: {contract_path}")
-            return None
-        except PermissionError:
-            logger.error(f"Permission denied reading: {contract_path}")
-            return None
-        except Exception as e:
-            logger.error(f"Error reading contract: {e}")
-            return None
+        """Read contract source (a single .sol file or a project directory)."""
+        from miesc.adapters._source_loader import load_contract_source
+
+        source = load_contract_source(contract_path)
+        if source is None:
+            logger.error(f"Error reading contract: no readable Solidity source at {contract_path}")
+        return source
 
     def _truncate_code(self, code: str) -> str:
         """Truncate contract code to fit within the model context window."""
