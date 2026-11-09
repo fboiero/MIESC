@@ -54,6 +54,16 @@ pragma solidity ^0.8.0;
 contract Counter { uint256 public count; function inc() public { count++; } }
 """
 
+COMPOUND_CTOKEN = """
+pragma solidity ^0.8.0;
+contract MToken {
+    uint256 public totalSupply;
+    function exchangeRateStored() public view returns (uint256) {}
+    function mint(uint256 amount) public returns (uint256) {}
+    function redeem(uint256 cTokens) public returns (uint256) {}
+}
+"""
+
 
 class TestTemplateLibrary:
     def test_expected_templates_present(self):
@@ -90,6 +100,11 @@ class TestDetection:
         assert "erc4626_first_deposit_guard" in names
         assert "vault_solvency" in names
         assert "no_withdraw_exceeds_deposit" in names
+
+    def test_compound_ctoken_gets_lending_set(self):
+        names = {i["name"] for i in detect_economic_invariants(COMPOUND_CTOKEN)}
+        assert "compound_no_inflation_theft" in names
+        assert "compound_mint_nonzero" in names
 
     def test_plain_token_gets_supply_conservation(self):
         names = {i["name"] for i in detect_economic_invariants(PLAIN_TOKEN)}

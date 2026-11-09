@@ -300,6 +300,74 @@ function invariant_priceImmuneToSpotDonation() public {{
 )
 
 
+COMPOUND_NO_INFLATION_THEFT = EconomicInvariantTemplate(
+    name="compound_no_inflation_theft",
+    category="economic",
+    importance="CRITICAL",
+    natural_language=(
+        "A Compound-V2-style market must not let a first depositor inflate the exchange rate "
+        "(cash / totalSupply) with a bare underlying donation so that a later minter's deposit "
+        "rounds to zero cTokens. A mint-then-redeem round-trip must return ~the deposited amount."
+    ),
+    certora_spec=f"""// Round-trip value preservation on a cToken mint/redeem.
+{_CANDIDATE_NOTE}
+rule mintRedeemNoLoss(env e, uint256 amount) {{
+    uint256 c = mint(e, amount);
+    uint256 back = redeem(e, c);
+    assert back * 100 >= amount * 99;
+}}""",
+    echidna_property=f"""// A realistic depositor must recover ~their underlying across mint/redeem.
+{_CANDIDATE_NOTE}
+function echidna_ctoken_no_inflation_theft() public view returns (bool) {{
+    if (totalSupply() == 0) return true;
+    uint256 probe = 1e18;
+    uint256 er = exchangeRateStored();
+    return (probe * 1e18 / er) * er / 1e18 * 100 >= probe * 99;
+}}""",
+    foundry_test=f"""// Foundry: mint then redeem must not lose value to exchange-rate inflation.
+{_CANDIDATE_NOTE}
+function invariant_ctokenNoInflationTheft() public {{
+    if (market.totalSupply() == 0) return;
+    uint256 er = market.exchangeRateStored();
+    assertGe((1e18 * 1e18 / er) * er / 1e18 * 100, 1e18 * 99);
+}}""",
+    related_vulnerabilities=[
+        "compound-inflation",
+        "ctoken-first-deposit",
+        "exchange-rate-manipulation",
+    ],
+)
+
+COMPOUND_MINT_NONZERO = EconomicInvariantTemplate(
+    name="compound_mint_nonzero",
+    category="economic",
+    importance="CRITICAL",
+    natural_language=(
+        "A positive mint against a funded Compound-V2-style market must issue positive cTokens; "
+        "a donation-inflated exchange rate that rounds the issuance to zero steals the deposit."
+    ),
+    certora_spec=f"""// A positive mint must issue positive cTokens.
+{_CANDIDATE_NOTE}
+rule mintIssuesShares(env e, uint256 amount) {{
+    require amount > 0;
+    assert mint(e, amount) > 0;
+}}""",
+    echidna_property=f"""// A unit mint against a funded market must issue positive cTokens.
+{_CANDIDATE_NOTE}
+function echidna_ctoken_mint_nonzero() public view returns (bool) {{
+    if (totalSupply() == 0) return true;
+    return (1e18 * 1e18) / exchangeRateStored() > 0;
+}}""",
+    foundry_test=f"""// Foundry: a funded market must mint positive cTokens for a unit deposit.
+{_CANDIDATE_NOTE}
+function invariant_ctokenMintNonZero() public {{
+    if (market.totalSupply() == 0) return;
+    assertGt((1e18 * 1e18) / market.exchangeRateStored(), 0);
+}}""",
+    related_vulnerabilities=["compound-inflation", "ctoken-first-deposit"],
+)
+
+
 # Full ordered library (used for listing / docs / tests).
 ECONOMIC_INVARIANT_TEMPLATES: Dict[str, EconomicInvariantTemplate] = {
     t.name: t
@@ -310,6 +378,8 @@ ECONOMIC_INVARIANT_TEMPLATES: Dict[str, EconomicInvariantTemplate] = {
         NO_WITHDRAW_EXCEEDS_DEPOSIT,
         TOTAL_SUPPLY_EQUALS_SUM_BALANCES,
         PRICE_NOT_FROM_SPOT_BALANCE,
+        COMPOUND_NO_INFLATION_THEFT,
+        COMPOUND_MINT_NONZERO,
     )
 }
 
@@ -335,6 +405,13 @@ def _looks_like_vault(code: str) -> bool:
 def _looks_like_token(code: str) -> bool:
     cl = code.lower()
     return "totalsupply" in cl and "balanceof" in cl
+
+
+def _looks_like_compound(code: str) -> bool:
+    cl = code.lower()
+    if "exchangeratestored" in cl or "exchangeratecurrent" in cl:
+        return True
+    return "mint" in cl and "redeem" in cl and ("ctoken" in cl or "mtoken" in cl)
 
 
 def _uses_spot_price(code: str) -> bool:
@@ -377,6 +454,9 @@ def detect_economic_invariants(contract_source: str) -> List[Dict[str, Any]]:
     if is_4626:
         selected.append(ERC4626_SHARE_PRICE_NON_DECREASING)
         selected.append(ERC4626_FIRST_DEPOSIT_GUARD)
+    if _looks_like_compound(contract_source):
+        selected.append(COMPOUND_NO_INFLATION_THEFT)
+        selected.append(COMPOUND_MINT_NONZERO)
     if _looks_like_token(contract_source):
         selected.append(TOTAL_SUPPLY_EQUALS_SUM_BALANCES)
     if _uses_spot_price(contract_source):
