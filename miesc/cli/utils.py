@@ -642,7 +642,11 @@ def run_tool(tool: str, contract: str, timeout: int = 0, **kwargs: Any) -> Dict[
                 "error": f"Tool {tool} not available: {status.value}",
             }
 
-        # Run analysis
+        # Run analysis. Clear the LLM-extraction sink first (P2-7) so this run
+        # cannot inherit a stale diagnostic from a previous tool on this thread.
+        from miesc.llm.json_extraction import clear_extraction_records, take_extraction_record
+
+        clear_extraction_records()
         result = adapter.analyze(contract, timeout=timeout, **kwargs)
 
         findings = result.get("findings", [])
@@ -683,6 +687,13 @@ def run_tool(tool: str, contract: str, timeout: int = 0, **kwargs: Any) -> Dict[
                 **(result.get("metadata") or {}),
                 FUZZ_CAMPAIGN_KEY: campaign,
             }
+        # P2-7: attach the LLM-extraction diagnostic recorded during analyze(),
+        # when one exists for this tool, so a "0 findings" result is
+        # distinguishable from a parse failure (parsed vs parsed-but-empty vs
+        # unparseable, with a raw excerpt on the latter two).
+        llm_extraction = take_extraction_record(tool)
+        if llm_extraction is not None and isinstance(record.get("metadata"), dict):
+            record["metadata"]["llm_extraction"] = llm_extraction
         return record
 
     except Exception as e:
