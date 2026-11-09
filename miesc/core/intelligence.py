@@ -830,6 +830,45 @@ def _enclosing_contract_span(source_code: str, pos: int) -> Optional[Tuple[str, 
     return None
 
 
+def _enclosing_contract_text(source_code: str, line: Optional[int]) -> Optional[str]:
+    """Full source of the contract/library/interface that contains ``line``
+    (1-based) — the declaration header through the matching closing brace — or
+    ``None`` when the line lands outside any contract body.
+
+    The header is included so the ``is Base, Guard`` inheritance list is in scope:
+    a contract guarded only by inheritance (``contract Bank is ReentrancyGuard``)
+    is still recognised. Used to scope contract-level presence checks to the
+    finding's OWN contract, so a guard/import in one contract of a multi-contract
+    file cannot suppress a finding in another.
+    """
+    if not source_code or not line or line < 1:
+        return None
+    code = _blank_comments(source_code)  # same offsets; declarations only
+    for decl in _CONTRACT_BODY_RE.finditer(code):
+        start_line = code.count("\n", 0, decl.start()) + 1
+        if start_line > line:
+            break
+        open_brace = decl.end() - 1
+        depth = 0
+        end = open_brace
+        while end < len(code):
+            if code[end] == "{":
+                depth += 1
+            elif code[end] == "}":
+                depth -= 1
+                if depth == 0:
+                    break
+            end += 1
+        end_line = code.count("\n", 0, end) + 1
+        # Compare by LINE range (not char offset): a finding reported on the
+        # `contract Foo {` line resolves even when the line begins with
+        # `abstract ` or indentation. Solidity does not nest contracts, so the
+        # enclosing span is unambiguous.
+        if start_line <= line <= end_line:
+            return source_code[decl.start() : end + 1]  # slice the real source
+    return None
+
+
 def _passes_post_filter(
     name: Optional[str], source_code: str, match: "re.Match[str]", abs_pos: int, cfg: Dict[str, Any]
 ) -> bool:
@@ -1093,6 +1132,17 @@ def context_aware_fp_check(
     canonical = normalize_finding_type(finding)
     loc = finding.get("location", {})
     func_name = loc.get("function", "") if isinstance(loc, dict) else ""
+    try:
+        line = int(loc.get("line") or 0) if isinstance(loc, dict) else 0
+    except (TypeError, ValueError):
+        line = 0
+    # Contract-level presence checks (Rules 4b/5/6) run against the finding's OWN
+    # contract — declaration header through closing brace — never the whole file,
+    # so a guard/import/base in one contract cannot suppress a finding in another
+    # contract of the same multi-contract file. Falls back to the whole file when
+    # the finding has no usable line (0, missing, or a non-integer/range string
+    # some tools emit) that lands in a contract — i.e. the prior behaviour.
+    contract_scope = _enclosing_contract_text(source_code, line) or source_code
 
     # Rule 1: access-control findings on functions with admin modifiers → FP
     if canonical == CanonicalCategory.ACCESS_CONTROL:
@@ -1139,18 +1189,20 @@ def context_aware_fp_check(
                 return True, f"Function {func_name} has nonReentrant guard"
         # Also suppress if the contract inherits ReentrancyGuard and finding has no specific function
         if not func_name or func_name in ("unknown", "<unknown>"):
-            if "ReentrancyGuard" in source_code or "MiescReentrancyGuard" in source_code:
+            if "ReentrancyGuard" in contract_scope or "MiescReentrancyGuard" in contract_scope:
                 return True, "Contract has ReentrancyGuard — reentrancy mitigated"
 
     # Rule 5: Proxy upgrade findings when contract uses OpenZeppelin's
     # Initializable or UUPSUpgradeable → likely already guarded
     if canonical == CanonicalCategory.PROXY_UPGRADE:
-        if re.search(r"Initializable|UUPSUpgradeable|TransparentUpgradeableProxy", source_code):
+        if re.search(r"Initializable|UUPSUpgradeable|TransparentUpgradeableProxy", contract_scope):
             return True, "Contract uses OpenZeppelin upgrade infrastructure"
 
-    # Rule 6: unchecked_call on SafeERC20-imported contracts → FP
+    # Rule 6: unchecked_call on SafeERC20-imported contracts → FP. The import is a
+    # file-level gate, but the `using SafeERC20` / safe* usage must be in the
+    # finding's own contract — a sibling contract's usage does not protect it.
     if canonical == CanonicalCategory.UNCHECKED_CALL and _OZ_IMPORT.search(source_code):
-        if re.search(r"SafeERC20|safeTransfer|safeTransferFrom|safeApprove", source_code):
+        if re.search(r"SafeERC20|safeTransfer|safeTransferFrom|safeApprove", contract_scope):
             return True, "Contract uses SafeERC20 for token operations"
 
     return False, None
