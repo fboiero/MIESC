@@ -91,6 +91,9 @@ MIESC employs a 9-layer defense-in-depth approach. The following table shows the
 | Status | {{ finding.status }} |
 | Detected by | {{ finding.confirming_tools | join(', ') if finding.confirming_tools else finding.tool }}{% if finding.tool_count and finding.tool_count > 1 %} ({{ finding.tool_count }} tools agree){% endif %} |
 | Confidence | {{ finding.confidence_pct | default('n/a') }}{% if finding.cross_validated_static or finding.cross_validated_llm %} — cross-validated{% endif %} |
+{%- if finding.triage_tier %}
+| Reentrancy Triage | {{ finding.triage_tier | upper }}{% if finding.triage_guard and finding.triage_guard not in ['', 'unknown'] %} (guard: {{ finding.triage_guard }}){% endif %} |
+{%- endif %}
 
 #### Description
 

@@ -503,6 +503,9 @@ Echidna, or Medusa would supply this layer.
 | **Status** | {{ finding.status }} |
 | **Detected By** | {{ finding.confirming_tools | join(', ') if finding.confirming_tools else finding.tool }} |
 | **Verification** | {{ finding.verification }} |
+{%- if finding.triage_tier %}
+| **Reentrancy Triage** | {{ finding.triage_tier | upper }}{% if finding.triage_guard and finding.triage_guard not in ['', 'unknown'] %} (guard: {{ finding.triage_guard }}){% endif %} |
+{%- endif %}
 
 ### Description
 
