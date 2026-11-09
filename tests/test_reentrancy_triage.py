@@ -21,6 +21,7 @@ import json
 from pathlib import Path
 
 from miesc.ml.reentrancy_triage import (
+    annotate_results,
     review_tier,
     triage_reentrancy,
     triage_summary,
@@ -144,3 +145,37 @@ def test_helpers():
     assert triage_summary(findings) == {"reentrancy_total": 2, "review": 1, "noise": 1}
     rev = review_tier(findings)
     assert len(rev) == 1 and rev[0].tier == "review"
+
+
+# ---------------------------------------------------------------------------
+# annotate_results — the scan-pipeline wiring (in-place, recall-safe)
+# ---------------------------------------------------------------------------
+
+
+def test_annotate_results_labels_in_place_and_counts():
+    review = {"type": "reentrancy-no-eth", "description": _REVIEW_DESC}
+    admin = {"type": "reentrancy-no-eth", "description": _ADMIN_DESC}
+    other = {"type": "naming-convention", "description": "Parameter _x not mixedCase"}
+    all_results = [{"findings": [review, other]}, {"findings": [admin]}]
+
+    counts = annotate_results(all_results)
+
+    assert counts == {"reentrancy_total": 2, "review": 1, "noise": 1}
+    # Annotation is written onto the original finding dicts (in place).
+    assert review["reentrancy_triage"]["tier"] == "review"
+    assert "value-function" in review["reentrancy_triage"]["signals"]
+    assert admin["reentrancy_triage"]["tier"] == "noise"
+    assert admin["reentrancy_triage"]["reason"]
+    # Non-reentrancy findings are never touched, and nothing is dropped.
+    assert "reentrancy_triage" not in other
+    assert len(all_results[0]["findings"]) == 2
+    assert len(all_results[1]["findings"]) == 1
+
+
+def test_annotate_results_handles_missing_findings_key():
+    # A per-tool result without a findings list must not crash the annotation.
+    assert annotate_results([{"tool": "x"}, {"findings": []}]) == {
+        "reentrancy_total": 0,
+        "review": 0,
+        "noise": 0,
+    }

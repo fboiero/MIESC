@@ -1174,6 +1174,27 @@ def _apply_triage_rank(all_results: list[dict[str, Any]], *, contract: str, quie
             )
 
 
+def _apply_reentrancy_triage(all_results: list[dict[str, Any]], *, quiet: bool) -> None:
+    """Partition reentrancy findings into REVIEW vs NOISE — annotate, recall-safe.
+
+    Annotates ``finding['reentrancy_triage']`` (tier / signals / reason) on every
+    ``reentrancy-*`` finding and prints a one-line shortlist summary. Never drops or
+    reorders a finding; purely additive, so it is always safe to run."""
+    try:
+        from miesc.ml.reentrancy_triage import annotate_results
+    except Exception as e:  # noqa: BLE001
+        if not quiet:
+            info(f"reentrancy triage skipped: {e}")
+        return
+    counts = annotate_results(all_results)
+    if not quiet and counts["reentrancy_total"] > 0:
+        info(
+            f"reentrancy triage: {counts['reentrancy_total']} finding(s) → "
+            f"{counts['review']} REVIEW shortlist / {counts['noise']} NOISE "
+            "— annotated, recall-safe (nothing dropped)"
+        )
+
+
 def _apply_acceptance_ordering(
     all_results: list[dict[str, Any]], *, choice: str, quiet: bool
 ) -> None:
@@ -1279,6 +1300,12 @@ def _display_and_save(
     except Exception as e:  # noqa: BLE001
         if not quiet:
             info(f"confidence annotation skipped: {e}")
+
+    # Label reentrancy findings REVIEW vs NOISE — after all filtering, so the
+    # annotation and its summary match exactly what is written to the output.
+    # Always-on, additive: nothing is dropped or reordered.
+    _apply_reentrancy_triage(all_results, quiet=quiet)
+
     # Detect tool failures — help users who installed miesc without slither/aderyn
     tools_succeeded = [r for r in all_results if r.get("status") == "success"]
     tools_errored = [r for r in all_results if r.get("status") in ("error", "timeout")]
