@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from pathlib import PurePosixPath
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, cast
 
 from miesc.core.finding_taxonomy import CanonicalCategory, normalize_finding_type
@@ -1023,8 +1024,59 @@ _ADMIN_MODIFIERS = re.compile(
     r"\bonlyOwner\b|\bonlyRole\b|\bonlyAdmin\b|\brequire\s*\(\s*msg\.sender\s*==\s*owner",
     re.IGNORECASE,
 )
-_TEST_FILE = re.compile(r"test[_/]|mock[_/]|\.t\.sol$|Test\.sol$", re.IGNORECASE)
 _OZ_IMPORT = re.compile(r"@openzeppelin|import.*openzeppelin|import.*solmate", re.IGNORECASE)
+
+# Directory segments that mark test/mock scope. Deliberately the SINGULAR forms
+# only, matching the prior regex (`test[_/]` / `mock[_/]`): MIESC documents
+# scanning `tests/fixtures/*.sol` as its smoke/demo target (examples/README.md,
+# docs/evidence, DPG compliance), so a `tests/` segment must NOT suppress.
+_TEST_DIR_SEGMENTS = {"test", "mock"}
+
+
+def _is_test_or_mock_path(file_path: str) -> bool:
+    """True when a finding's file is a test or mock file.
+
+    Matched on PATH COMPONENTS, never a raw substring of the whole (absolute)
+    path — so a production contract living under a directory such as
+    ``~/test_projects/`` or ``~/mock_data/`` is NOT mistaken for test code.
+
+    A path is test/mock when either:
+
+    - a path segment is exactly ``test`` or ``mock`` (singular, as the prior
+      regex matched — ``tests/`` is deliberately NOT a suppressor here; see
+      ``_TEST_DIR_SEGMENTS``); or
+    - the ``.sol`` basename is a Foundry test (``*.t.sol``), or carries a
+      ``test`` / ``mock`` marker at a real word boundary — a camelCase cap
+      (``FooTest.sol``, ``MockToken.sol``) or a ``.`` / ``_`` / ``-`` separator
+      (``Foo.test.sol``, ``test_Foo.sol``). ``Contest.sol`` (…con+test, no
+      boundary) is production, not a test.
+    """
+    if not file_path:
+        return False
+    pure = PurePosixPath(file_path.replace("\\", "/"))
+    if any(seg.lower() in _TEST_DIR_SEGMENTS for seg in pure.parts):
+        return True
+
+    name = pure.name
+    low = name.lower()
+    if not low.endswith(".sol"):
+        return False
+    stem = low[: -len(".sol")]
+    if stem.endswith(".t"):  # Foundry *.t.sol
+        return True
+    # `test_` / `mock_` basename prefix (the prior `test[_/]` / `mock[_/]`).
+    if low.startswith("test_") or low.startswith("mock_"):
+        return True
+    # `*Test.sol` at a real word boundary — a camelCase cap (`FooTest.sol`) or a
+    # `.`/`_`/`-` separator (`Foo.test.sol`) — so `Contest.sol` (…con+test, no
+    # boundary) stays production. Mirrors the prior `Test\.sol$` rule, minus its
+    # substring false positive. (There was no matching `Mock.sol$` rule before,
+    # so none is added here — keeping this strictly to what was suppressed.)
+    if stem.endswith("test") and len(stem) > len("test"):
+        pos = len(stem) - len("test")
+        if name[pos].isupper() or name[pos - 1] in "._-":
+            return True
+    return False
 
 
 def context_aware_fp_check(
@@ -1067,7 +1119,7 @@ def context_aware_fp_check(
                         return True, f"Function {fn}() has admin modifier — selfdestruct guarded"
 
     # Rule 2: findings in test/mock files → FP
-    if file_path and _TEST_FILE.search(file_path):
+    if file_path and _is_test_or_mock_path(file_path):
         return True, f"Finding in test/mock file: {file_path}"
 
     # Rule 3: arithmetic overflow on Solidity 0.8+ → FP (built-in protection)
