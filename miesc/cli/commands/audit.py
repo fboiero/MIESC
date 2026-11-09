@@ -15,7 +15,7 @@ import os
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Callable, Dict, List
 
 import click
 
@@ -760,6 +760,119 @@ def _rank_report_findings(findings: dict[str, Any], *, contract: str) -> None:
     info(f"rank: ordered {total} finding(s) by P(real) — triage, recall-safe (nothing dropped)")
 
 
+def _intelligence_source_for(
+    contract: str,
+) -> tuple[Callable[[str], tuple[str, str]], List[tuple[str, str]], str]:
+    """Return ``(source_for, scope_files, default_path)`` for recall-safe,
+    per-file intelligence on a **directory** target.
+
+    ``source_for(raw_file) -> (canonical_path, source_text)`` resolves a finding's
+    own file by exact path, by path under the project root, or by an UNAMBIGUOUS
+    basename match (the rule used in reentrancy triage). An unresolved file
+    returns ``("", "")`` so its findings run with no source — no cross-file
+    suppression. ``scope_files`` carries every in-scope ``.sol`` so zero-recall
+    detection keeps covering files that have no tool findings.
+    """
+    from miesc.adapters._source_loader import iter_scope_files
+
+    root = Path(contract)
+    rel_index: Dict[str, Path] = {}
+    name_hits: Dict[str, List[Path]] = {}
+    for sol in iter_scope_files(root):
+        rel_index[str(sol.relative_to(root))] = sol
+        name_hits.setdefault(sol.name, []).append(sol)
+
+    def _read(path: Path) -> str:
+        try:
+            return path.read_text(errors="ignore")
+        except Exception:
+            return ""
+
+    scope_files = [(str(sol), _read(sol)) for sol in rel_index.values()]
+    cache: Dict[str, tuple[str, str]] = {}
+
+    def source_for(raw: str) -> tuple[str, str]:
+        if not raw:
+            return ("", "")
+        if raw in cache:
+            return cache[raw]
+        cand: Path | None = None
+        rp = Path(raw)
+        # Resolve ROOT-first: a relative path must map to the file under the
+        # project root, never to a same-named file under the process CWD (which
+        # would feed the wrong source — the cross-context bug we are fixing). An
+        # absolute path outside the scope index is trusted only when absolute.
+        if raw in rel_index:
+            cand = rel_index[raw]
+        elif (root / raw).is_file():
+            cand = root / raw
+        elif rp.is_absolute() and rp.is_file():
+            cand = rp
+        else:
+            hits = name_hits.get(rp.name, [])
+            if len(hits) == 1:  # trust a basename only when unambiguous
+                cand = hits[0]
+        result = (str(cand), _read(cand)) if cand is not None else ("", "")
+        cache[raw] = result
+        return result
+
+    return source_for, scope_files, str(root)
+
+
+def _enhance_all_results(all_results: List[Dict[str, Any]], contract: str) -> List[Dict[str, Any]]:
+    """Run the MIESC intelligence engine over ``all_results`` and return the
+    rebuilt list (cross-tool scoring, semantic dedup, zero-recall detection,
+    context-aware FP suppression, severity calibration).
+
+    Recall-safe for a directory target: findings are enhanced **per source
+    file**, never against a concatenated multi-file blob — a guard/import/pragma
+    in one file must not suppress a true positive in another. For a single file
+    the behaviour is unchanged. Any failure degrades gracefully to the input.
+    """
+    try:
+        from miesc.core.intelligence import enhance_findings, enhance_findings_by_file
+
+        all_findings_flat: List[Dict[str, Any]] = []
+        for result in all_results:
+            for f in result.get("findings", []):
+                f.setdefault("tool", result.get("tool", "unknown"))
+                all_findings_flat.append(f)
+        if not all_findings_flat:
+            return all_results
+
+        if Path(contract).is_file():
+            from miesc.adapters._source_loader import load_contract_source
+
+            code_text = load_contract_source(contract) or ""
+            enhanced = enhance_findings(
+                all_findings_flat, source_code=code_text, file_path=str(contract)
+            )
+        else:
+            source_for, scope_files, default_path = _intelligence_source_for(contract)
+            enhanced = enhance_findings_by_file(
+                all_findings_flat,
+                source_for,
+                scope_files=scope_files,
+                default_path=default_path,
+            )
+
+        non_suppressed = [f for f in enhanced if not f.get("fp_suppressed")]
+        suppressed_count = sum(1 for f in enhanced if f.get("fp_suppressed"))
+        # Preserve per-tool metadata for report layer coverage
+        tool_metadata = [{k: v for k, v in r.items() if k != "findings"} for r in all_results]
+        new_results = tool_metadata + [
+            {"tool": "miesc-intelligence", "status": "success", "findings": non_suppressed}
+        ]
+        if suppressed_count > 0:
+            info(f"Intelligence engine: suppressed {suppressed_count} likely false positives")
+        deduped = len(all_findings_flat) - len(enhanced)
+        if deduped > 0:
+            info(f"Intelligence engine: merged {deduped} duplicate findings across tools")
+        return new_results
+    except Exception:
+        return all_results  # graceful degradation
+
+
 def _run_full_audit_with_correlation(
     contract: str,
     output: str | None,
@@ -933,41 +1046,10 @@ def _run_full_audit_basic(
 
     # v5.2.0: Intelligence engine — cross-tool scoring, semantic dedup,
     # zero-recall pattern detection, context-aware FP suppression,
-    # LLM↔static cross-validation, severity calibration.
-    try:
-        from miesc.core.intelligence import enhance_findings
-
-        all_findings_flat: list[dict[str, Any]] = []
-        for result in all_results:
-            for f in result.get("findings", []):
-                f.setdefault("tool", result.get("tool", "unknown"))
-                all_findings_flat.append(f)
-        if all_findings_flat:
-            try:
-                from miesc.adapters._source_loader import load_contract_source
-
-                # Resolve a file OR a project directory (src/ scope) so the
-                # intelligence engine's code context is populated for `audit full <dir>`.
-                code_text = load_contract_source(contract) or ""
-            except Exception:
-                code_text = ""
-            enhanced = enhance_findings(
-                all_findings_flat, source_code=code_text, file_path=str(contract)
-            )
-            non_suppressed = [f for f in enhanced if not f.get("fp_suppressed")]
-            suppressed_count = sum(1 for f in enhanced if f.get("fp_suppressed"))
-            # Preserve per-tool metadata for report layer coverage
-            tool_metadata = [{k: v for k, v in r.items() if k != "findings"} for r in all_results]
-            all_results = tool_metadata + [
-                {"tool": "miesc-intelligence", "status": "success", "findings": non_suppressed}
-            ]
-            if suppressed_count > 0:
-                info(f"Intelligence engine: suppressed {suppressed_count} likely false positives")
-            deduped = len(all_findings_flat) - len(enhanced)
-            if deduped > 0:
-                info(f"Intelligence engine: merged {deduped} duplicate findings across tools")
-    except Exception:
-        pass  # graceful degradation
+    # LLM↔static cross-validation, severity calibration. Recall-safe for a
+    # directory target: findings are enhanced per source file (see
+    # `_enhance_all_results`), never against a concatenated multi-file blob.
+    all_results = _enhance_all_results(all_results, contract)
 
     # Recall-safe benign-context verifier (opt-in)
     if verify_fp:
@@ -1235,37 +1317,10 @@ def audit_quick(
 
     # v5.2.0: Intelligence engine — cross-tool scoring, semantic dedup,
     # zero-recall pattern detection, context-aware FP suppression,
-    # LLM↔static cross-validation, severity calibration.
-    try:
-        from miesc.core.intelligence import enhance_findings
-
-        all_findings_flat = []
-        for result in all_results:
-            for f in result.get("findings", []):
-                f.setdefault("tool", result.get("tool", "unknown"))
-                all_findings_flat.append(f)
-        if all_findings_flat:
-            try:
-                code_text = open(contract).read()
-            except Exception:
-                code_text = ""
-            enhanced = enhance_findings(
-                all_findings_flat, source_code=code_text, file_path=str(contract)
-            )
-            non_suppressed = [f for f in enhanced if not f.get("fp_suppressed")]
-            suppressed_count = sum(1 for f in enhanced if f.get("fp_suppressed"))
-            # Preserve per-tool metadata for report layer coverage
-            tool_metadata = [{k: v for k, v in r.items() if k != "findings"} for r in all_results]
-            all_results = tool_metadata + [
-                {"tool": "miesc-intelligence", "status": "success", "findings": non_suppressed}
-            ]
-            if suppressed_count > 0:
-                info(f"Intelligence engine: suppressed {suppressed_count} likely false positives")
-            deduped = len(all_findings_flat) - len(enhanced)
-            if deduped > 0:
-                info(f"Intelligence engine: merged {deduped} duplicate findings across tools")
-    except Exception:
-        pass  # graceful degradation
+    # LLM↔static cross-validation, severity calibration. Recall-safe for a
+    # directory target: findings are enhanced per source file (see
+    # `_enhance_all_results`), never against a concatenated multi-file blob.
+    all_results = _enhance_all_results(all_results, contract)
 
     # Recall-safe benign-context verifier (opt-in)
     if verify_fp:
@@ -1907,37 +1962,10 @@ def audit_profile(
 
     # v5.2.0: Intelligence engine — cross-tool scoring, semantic dedup,
     # zero-recall pattern detection, context-aware FP suppression,
-    # LLM↔static cross-validation, severity calibration.
-    try:
-        from miesc.core.intelligence import enhance_findings
-
-        all_findings_flat = []
-        for result in all_results:
-            for f in result.get("findings", []):
-                f.setdefault("tool", result.get("tool", "unknown"))
-                all_findings_flat.append(f)
-        if all_findings_flat:
-            try:
-                code_text = open(contract).read()
-            except Exception:
-                code_text = ""
-            enhanced = enhance_findings(
-                all_findings_flat, source_code=code_text, file_path=str(contract)
-            )
-            non_suppressed = [f for f in enhanced if not f.get("fp_suppressed")]
-            suppressed_count = sum(1 for f in enhanced if f.get("fp_suppressed"))
-            # Preserve per-tool metadata for report layer coverage
-            tool_metadata = [{k: v for k, v in r.items() if k != "findings"} for r in all_results]
-            all_results = tool_metadata + [
-                {"tool": "miesc-intelligence", "status": "success", "findings": non_suppressed}
-            ]
-            if suppressed_count > 0:
-                info(f"Intelligence engine: suppressed {suppressed_count} likely false positives")
-            deduped = len(all_findings_flat) - len(enhanced)
-            if deduped > 0:
-                info(f"Intelligence engine: merged {deduped} duplicate findings across tools")
-    except Exception:
-        pass  # graceful degradation
+    # LLM↔static cross-validation, severity calibration. Recall-safe for a
+    # directory target: findings are enhanced per source file (see
+    # `_enhance_all_results`), never against a concatenated multi-file blob.
+    all_results = _enhance_all_results(all_results, contract)
 
     summary = summarize_findings(all_results)
     total = sum(summary.values())

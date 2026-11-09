@@ -26,7 +26,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple, cast
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, cast
 
 from miesc.core.finding_taxonomy import CanonicalCategory, normalize_finding_type
 from miesc.core.rule_classes import class_max_severity, finding_rule_class, rule_ids
@@ -1330,6 +1330,70 @@ def enhance_findings(
     )
 
     return results
+
+
+def enhance_findings_by_file(
+    findings: List[Dict[str, Any]],
+    source_for: Callable[[str], Tuple[str, str]],
+    scope_files: Sequence[Tuple[str, str]] = (),
+    default_path: str = "",
+) -> List[Dict[str, Any]]:
+    """Recall-safe, multi-file variant of :func:`enhance_findings`.
+
+    Groups findings by their own resolved source file and runs
+    :func:`enhance_findings` once per file against ONLY that file's source. A
+    concatenated multi-file blob is never used, so a guard/import/pragma in one
+    file cannot suppress a true positive in another — ``context_aware_fp_check``
+    matches whole-text — and ``function_at_line`` derivation reads the correct
+    file. For a single-file target, prefer :func:`enhance_findings` directly;
+    this helper is for directory targets (``audit full/quick/profile <dir>``).
+
+    Args:
+        findings: all findings across tools (each may carry ``location.file``).
+        source_for: ``callable(raw_file) -> (canonical_path, source_text)``. An
+            unresolved file returns ``("", "")`` so its group runs with no source
+            — recall-safe, since suppression is gated on a non-empty source.
+        scope_files: ``(canonical_path, source_text)`` pairs for in-scope files
+            that may have NO findings; each is enhanced with an empty finding
+            list so zero-recall detection still covers it (coverage parity with
+            the concatenated path, but with correct per-file locations).
+        default_path: ``file_path`` used for the unresolved ("") group.
+
+    Returns:
+        The merged, globally re-sorted enhanced findings.
+    """
+    groups: Dict[str, List[Dict[str, Any]]] = {}
+    group_source: Dict[str, str] = {}
+    for f in findings:
+        loc = f.get("location")
+        raw = (loc.get("file") if isinstance(loc, dict) else "") or ""
+        canon, src = source_for(raw)
+        key = canon or ""
+        groups.setdefault(key, []).append(f)
+        group_source[key] = src
+    # In-scope files with no tool findings: keep zero-recall coverage over them.
+    for canon, src in scope_files:
+        if canon and canon not in groups:
+            groups[canon] = []
+            group_source[canon] = src
+    out: List[Dict[str, Any]] = []
+    for key, group in groups.items():
+        out.extend(
+            enhance_findings(
+                group,
+                source_code=group_source.get(key, ""),
+                file_path=key or default_path,
+            )
+        )
+    # Re-apply enhance_findings' global order across the per-file groups.
+    out.sort(
+        key=lambda f: (
+            f.get("fp_suppressed", False),
+            -_severity_rank(f.get("severity", "")),
+            -f.get("confidence", 0),
+        )
+    )
+    return out
 
 
 # =============================================================================
