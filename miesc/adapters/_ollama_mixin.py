@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import time
 import urllib.error
 import urllib.request
@@ -60,7 +61,18 @@ class OllamaCallMixin:
         On a final timeout failure (after exhausting ``max_attempts``) sets
         ``self._timed_out = True``. A timeout on an attempt that a later retry
         recovers from does NOT flag the run.
+
+        The per-call ``timeout`` can be raised (never lowered) via the
+        ``MIESC_OLLAMA_TIMEOUT`` environment variable, for slow local models on
+        modest hardware.
         """
+        _env_timeout = os.environ.get("MIESC_OLLAMA_TIMEOUT")
+        if _env_timeout:
+            try:
+                timeout = max(timeout, int(_env_timeout))
+            except ValueError:
+                pass
+
         payload = json.dumps(
             {
                 "model": model,
