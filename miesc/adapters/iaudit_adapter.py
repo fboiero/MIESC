@@ -279,6 +279,42 @@ from miesc.adapters.iaudit_prompts import (  # noqa: E402
     REVIEWER_PROMPT,
 )
 
+# Lower-bound version constraint of a `pragma solidity` expression. The first
+# version token in the expression is the lower bound for the common forms
+# (`^0.8.0`, `~0.8.1`, `=0.8.30`, `0.8.30`, `>=0.8.0 <0.9.0`).
+_PRAGMA_RE = re.compile(r"pragma\s+solidity\s+([^;]+);", re.IGNORECASE)
+_VERSION_RE = re.compile(r"(\^|~|>=|<=|>|<|=)?\s*(\d+)\.(\d+)(?:\.(\d+))?")
+
+
+def _pragma_guarantees_checked_arithmetic(code: str) -> bool:
+    """True iff every ``pragma solidity`` in ``code`` guarantees compiler >= 0.8.0.
+
+    Solidity 0.8.0 made arithmetic overflow/underflow a revert by default, so an
+    SWC-101 "integer overflow" pattern finding is *provably wrong* there. This gates
+    the pattern-fallback emission so a 0.8.x contract is not flagged.
+
+    Recall-safe by construction — the guarantee holds only when it is certain:
+      * no pragma, or an unparseable one -> False (keep the finding);
+      * any pragma whose lower bound is < 0.8 -> False;
+      * an exclusive ``>`` or an upper-bound-only (``<`` / ``<=``) first token ->
+        False (we do not reason about the implied next version);
+      * only ``^`` / ``~`` / ``>=`` / ``=`` / bare lower bounds >= 0.8 count.
+    A flattened file with several pragmas must have *every* one >= 0.8.
+    """
+    exprs = _PRAGMA_RE.findall(code)
+    if not exprs:
+        return False
+    for expr in exprs:
+        m = _VERSION_RE.search(expr)
+        if not m:
+            return False
+        op, major, minor = m.group(1), int(m.group(2)), int(m.group(3))
+        if op in (">", "<", "<="):
+            return False  # exclusive / upper-bound-only: do not infer a >=0.8 floor
+        if (major, minor) < (0, 8):
+            return False
+    return True
+
 
 class IAuditAdapter(OllamaCallMixin, LLMCacheMixin, ToolAdapter):
     """
@@ -1289,6 +1325,15 @@ class IAuditAdapter(OllamaCallMixin, LLMCacheMixin, ToolAdapter):
             if vuln_type == "reentrancy":
                 if not self._check_reentrancy_pattern(contract_code):
                     continue
+
+            # SWC-101 overflow/underflow is checked by the compiler from Solidity
+            # 0.8.0 on, so emitting it for a >=0.8 contract is a demonstrably false
+            # finding (observed on a solc 0.8.30 target). Suppress it there; keep it
+            # when the floor is below 0.8 or unknown (recall-safe).
+            if vuln_type == "integer_overflow" and _pragma_guarantees_checked_arithmetic(
+                contract_code
+            ):
+                continue
 
             # Adjust severity and confidence based on mitigations
             severity = vuln_info["severity"]
