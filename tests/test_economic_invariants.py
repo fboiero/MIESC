@@ -64,6 +64,87 @@ contract MToken {
 }
 """
 
+# Stock Compound V2: cash is read from the raw underlying balance -> OPEN surface.
+STOCK_CTOKEN_BALANCEOF = """
+pragma solidity ^0.8.0;
+interface IERC20 { function balanceOf(address) external view returns (uint256); }
+contract CErc20 {
+    uint256 public totalSupply;
+    IERC20 public underlying;
+    function getCashPrior() internal view returns (uint256) {
+        return underlying.balanceOf(address(this));
+    }
+    function exchangeRateStored() public view returns (uint256) {}
+    function mint(uint256 amount) public returns (uint256) {}
+    function redeem(uint256 cTokens) public returns (uint256) {}
+}
+"""
+
+# Malda-style: cash is an internal accumulator never reset from balance -> CLOSED.
+TRACKED_CASH_MTOKEN = """
+pragma solidity ^0.8.0;
+interface IERC20 { function balanceOf(address) external view returns (uint256); }
+contract mErc20 {
+    uint256 public totalSupply;
+    uint256 public totalUnderlying;
+    IERC20 public underlying;
+    function _getCashPrior() internal view returns (uint256) {
+        return totalUnderlying;
+    }
+    function _doTransferIn(uint256 a) internal { totalUnderlying += a; }
+    function exchangeRateStored() public view returns (uint256) {}
+    function mint(uint256 amount) public returns (uint256) {}
+    function redeem(uint256 cTokens) public returns (uint256) {}
+}
+"""
+
+# Reopener: tracked accumulator that a sync() resets from balanceOf -> OPEN again.
+REOPENER_SYNC_MTOKEN = """
+pragma solidity ^0.8.0;
+interface IERC20 { function balanceOf(address) external view returns (uint256); }
+contract mErc20Sync {
+    uint256 public totalSupply;
+    uint256 public totalUnderlying;
+    IERC20 public underlying;
+    function _getCashPrior() internal view returns (uint256) {
+        return totalUnderlying;
+    }
+    function sync() external { totalUnderlying = underlying.balanceOf(address(this)); }
+    function exchangeRateStored() public view returns (uint256) {}
+    function mint(uint256 amount) public returns (uint256) {}
+    function redeem(uint256 cTokens) public returns (uint256) {}
+}
+"""
+
+# Flattened layout: the ABSTRACT _getCashPrior declaration appears above the
+# concrete override. The classifier must read the override (tracked), not stop at
+# the abstract decl and mis-read a later getCash wrapper.
+FLATTENED_ABSTRACT_ABOVE_OVERRIDE = """
+pragma solidity ^0.8.0;
+interface IERC20 { function balanceOf(address) external view returns (uint256); }
+abstract contract mTokenStorage {
+    uint256 public totalSupply;
+    uint256 public totalUnderlying;
+    function _getCashPrior() internal view virtual returns (uint256);
+    function exchangeRateStored() public view returns (uint256) {}
+}
+abstract contract mToken is mTokenStorage {
+    function getCash() external view returns (uint256) { return _getCashPrior(); }
+    function mint(uint256 amount) public returns (uint256) {}
+    function redeem(uint256 cTokens) public returns (uint256) {}
+}
+contract mErc20 is mToken {
+    IERC20 public underlying;
+    function _getCashPrior() internal view override returns (uint256) {
+        return totalUnderlying;
+    }
+    function _doTransferIn(address f, uint256 a) internal returns (uint256) {
+        uint256 b = underlying.balanceOf(address(this));
+        return b;
+    }
+}
+"""
+
 
 class TestTemplateLibrary:
     def test_expected_templates_present(self):
@@ -126,6 +207,70 @@ class TestDetection:
         results = detect_economic_invariants(ERC4626_VAULT)
         names = [i["name"] for i in results]
         assert len(names) == len(set(names))
+
+
+class TestCashSourceDiscriminator:
+    """The static discriminator that separates open from closed inflation surfaces."""
+
+    def _compound_dicts(self, source):
+        return {
+            i["name"]: i
+            for i in detect_economic_invariants(source)
+            if i["name"].startswith("compound_")
+        }
+
+    def test_stock_balanceof_is_open_surface(self):
+        got = self._compound_dicts(STOCK_CTOKEN_BALANCEOF)
+        assert got, "stock cToken must still emit the compound templates"
+        for d in got.values():
+            assert d["cash_source"] == "balanceof"
+            assert d["inflation_surface"] == "open"
+
+    def test_tracked_cash_is_closed_surface(self):
+        # Malda-style: templates are ANNOTATED closed, never suppressed.
+        got = self._compound_dicts(TRACKED_CASH_MTOKEN)
+        assert "compound_no_inflation_theft" in got
+        assert "compound_mint_nonzero" in got
+        for d in got.values():
+            assert d["cash_source"] == "tracked"
+            assert d["inflation_surface"] == "closed"
+
+    def test_sync_reopener_is_open_again(self):
+        # A tracked var reset from balanceOf() re-exposes the donation vector.
+        got = self._compound_dicts(REOPENER_SYNC_MTOKEN)
+        assert got
+        for d in got.values():
+            assert d["cash_source"] == "balanceof"
+            assert d["inflation_surface"] == "open"
+
+    def test_flattened_abstract_decl_does_not_shadow_override(self):
+        # The abstract _getCashPrior above must not win over the concrete override;
+        # the fee-on-transfer balanceOf in _doTransferIn must not flip it to open.
+        got = self._compound_dicts(FLATTENED_ABSTRACT_ABOVE_OVERRIDE)
+        assert got
+        for d in got.values():
+            assert d["cash_source"] == "tracked"
+            assert d["inflation_surface"] == "closed"
+
+    def test_unknown_shape_is_annotated_unknown(self):
+        # No recognisable getCash shape -> classification withheld, still emitted.
+        got = self._compound_dicts(COMPOUND_CTOKEN)
+        assert got
+        for d in got.values():
+            assert d["cash_source"] == "unknown"
+            assert d["inflation_surface"] == "unknown"
+
+    def test_non_compound_dicts_carry_no_cash_source(self):
+        # The annotation is compound-only; ERC-4626 templates must not grow the field.
+        erc = [
+            i
+            for i in detect_economic_invariants(ERC4626_VAULT)
+            if not i["name"].startswith("compound_")
+        ]
+        assert erc
+        for d in erc:
+            assert "cash_source" not in d
+            assert "inflation_surface" not in d
 
 
 class TestHonesty:
