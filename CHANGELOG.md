@@ -24,6 +24,25 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Governance lifecycle hypotheses — SDD Phase 2.** `mine_privileged_governance_lifecycle` now
+  derives three deterministic, advisory **`lifecycle_hypotheses`** on top of the Phase-1 authority
+  graph: `unprotected_initializer`, `unsafe_upgrade_authority` and `pause_recovery_gap`. Each is a
+  guard-gap — emitted only when the guard that would disprove it is not visible in the function
+  (an `only<Role>` or in-file/inherited access modifier, an inline `msg.sender`/`hasRole`/`_check*`
+  check, an initializer-family guard) or, for pause, a recovery entrypoint in the same `contract`
+  block. They are **advisory** (`promotion.state` stays `hypothesis`, never a `Finding`) and are the
+  more precise view over the existing regex detector `ProxyUpgradeDetector` in `advanced_detectors`:
+  that detector false-positives on a modifier-guarded `_authorizeUpgrade(...) onlyOwner {}` and on an
+  `initialize() initializer {}` (it recognizes only `initialized = true`), which this phase
+  suppresses by reading the guard. `pause_recovery_gap` has no existing detector. Non-canonical
+  measurement (not a benchmark): OpenZeppelin `AccessControl`/`ERC20`/`ReentrancyGuard`, Aave v3
+  `Pool`/`BorrowLogic` and Compound III `CometCore` reference contracts produce **0** hypotheses; an
+  intentionally flawed fixture produces `unprotected_initializer`. The plan is now also emitted when
+  its only signal is a hypothesis (e.g. an unguarded `_authorizeUpgrade` in a contract with no other
+  privileged actor). The remaining nine SDD categories stay proposed — `role_admin_self_grant` needs
+  a delay/timelock model, `missing_timelock`/`timelock_bypass` and economic/cross-chain categories
+  are owned by other detectors and plans, and the rest wait for the LLM reasoning agent.
+
 - **Caracal adapter — experimental Cairo/Starknet support.** MIESC can now analyze Cairo
   contracts (loose `.cairo` files and Scarb projects) by running **Caracal** (Trail of Bits'
   Sierra-level Starknet analyzer, AGPL-3.0) as a first-class `ToolAdapter`, pinned to a fork that
