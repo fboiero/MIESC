@@ -1,0 +1,9 @@
+[
+  {
+    "detector": "unused-events",
+    "impact": "Medium",
+    "confidence": "Medium",
+    "message": "Event MyUnusedEvent defined in unused_events::unused_events::UnusedEvents is never emitted",
+    "locations": []
+  }
+]
