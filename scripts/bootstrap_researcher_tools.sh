@@ -130,6 +130,48 @@ check_solc() {
   log "solc not found. Install solc or solc-select before running formal verification."
 }
 
+# Caracal — experimental Cairo/Starknet analyzer. Pinned to the adrienlacombe
+# fork (Cairo 2.20) at the exact commit recorded in the PoC ADR. Optional: skips
+# gracefully when the Rust toolchain is missing or too old (MIESC degrades, and
+# Cairo analysis simply stays unavailable). Swap the source for fboiero/caracal
+# once that fork is published.
+CARACAL_FORK_URL="${CARACAL_FORK_URL:-https://github.com/adrienlacombe/caracal}"
+CARACAL_FORK_REV="${CARACAL_FORK_REV:-db75d06bbf3f1872755ed615b095039e7db457ea}"
+
+install_caracal() {
+  if have caracal; then
+    log "Caracal already installed: $(caracal --version 2>/dev/null | head -1)"
+    return
+  fi
+  if ! have cargo; then
+    log "Caracal (Cairo) skipped: cargo/Rust not found. Install Rust >= 1.94, then rerun (see docs/guides/CAIRO.md)."
+    return
+  fi
+  local rv
+  rv="$(rustc --version 2>/dev/null | awk '{print $2}')"
+  if [ -n "$rv" ] && [ "$(printf '%s\n1.94.0\n' "$rv" | sort -V | head -1)" != "1.94.0" ]; then
+    log "Caracal (Cairo) skipped: rustc $rv < 1.94 (Cairo 2.20 front-end needs >= 1.94). Update Rust, then rerun."
+    return
+  fi
+  log "Installing Caracal (Cairo/Starknet, experimental) from ${CARACAL_FORK_URL}@${CARACAL_FORK_REV:0:7}"
+  if cargo install --git "$CARACAL_FORK_URL" --rev "$CARACAL_FORK_REV" --profile release --force; then
+    caracal --version | head -1 || true
+  else
+    log "Caracal install failed (optional); Cairo analysis will be unavailable."
+  fi
+}
+
+check_scarb() {
+  # Optional: only needed to analyze Scarb PROJECTS (Caracal reads `scarb
+  # metadata`; its own bundled compiler does the compiling, so any Scarb 2.x
+  # works — loose .cairo files need no Scarb at all).
+  if have scarb; then
+    log "scarb detected: $(scarb --version 2>/dev/null | head -1)"
+  else
+    log "scarb not found (optional). Needed only for Cairo Scarb projects; install via asdf or https://docs.swmansion.com/scarb/."
+  fi
+}
+
 main() {
   ensure_python_311
   ensure_main_venv
@@ -141,6 +183,8 @@ main() {
   install_wake
   install_semgrep
   check_solc
+  install_caracal
+  check_scarb
 
   if [ -f apik.sh ]; then
     # shellcheck disable=SC1091

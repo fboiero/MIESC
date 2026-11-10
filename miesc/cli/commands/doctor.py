@@ -84,6 +84,68 @@ def _provider_status(row: dict) -> tuple[str, str]:
     )
 
 
+def _cairo_tool_rows() -> list[tuple[str, bool, str, str]]:
+    """Status rows for the Cairo/Starknet tools: (name, available, version, note).
+
+    Additive section — these tools live in ADAPTER_MAP but not in LAYERS (so they
+    never alter EVM audit enumeration). Caracal is the external semantic analyzer;
+    Scarb only supplies project metadata; the pattern adapter is the built-in
+    correlation pair.
+    """
+    rows: list[tuple[str, bool, str, str]] = []
+
+    # Caracal (external binary). is_available via the adapter (respects
+    # CARACAL_BIN / ~/.cargo/bin / PATH); version via its version_command.
+    caracal_status = AdapterLoader.check_tool_status("caracal")
+    caracal_version = ""
+    adapter = AdapterLoader.get_adapter("caracal")
+    vcmd = getattr(adapter, "version_command", lambda: None)() if adapter else None
+    if vcmd:
+        try:
+            res = subprocess.run(vcmd, capture_output=True, text=True, timeout=5)
+            if res.returncode == 0:
+                caracal_version = (res.stdout or res.stderr).strip().split("\n")[0][:40]
+        except Exception:
+            caracal_version = ""
+    rows.append(
+        (
+            "caracal",
+            bool(caracal_status.get("available")),
+            caracal_version or "—",
+            "Cairo 2.x (bundled compiler 2.20); install: fork adrienlacombe/caracal",
+        )
+    )
+
+    # Scarb — only needed to supply `scarb metadata` for Scarb projects; the
+    # bundled Caracal compiler does the actual compiling, so any 2.x works.
+    scarb_version = ""
+    try:
+        res = subprocess.run(["scarb", "--version"], capture_output=True, text=True, timeout=5)
+        if res.returncode == 0:
+            scarb_version = res.stdout.strip().split("\n")[0][:40]
+    except Exception:
+        scarb_version = ""
+    rows.append(
+        (
+            "scarb",
+            bool(scarb_version),
+            scarb_version or "—",
+            "Optional: supplies `scarb metadata` for Scarb projects (any 2.x)",
+        )
+    )
+
+    # Built-in pattern adapter (always available).
+    rows.append(
+        (
+            "cairo (patterns)",
+            True,
+            "built-in",
+            "Experimental; low-confidence correlation pair for Caracal",
+        )
+    )
+    return rows
+
+
 # =============================================================================
 # Doctor Command
 # =============================================================================
@@ -168,6 +230,22 @@ def doctor(verbose: bool) -> None:
             )
             for tool, cmd in missing_installable:
                 console.print(f"  [yellow]{tool:<22}[/yellow] [cyan]{cmd}[/cyan]")
+
+        # Cairo / Starknet section (experimental; separate from the EVM layers)
+        console.print("")
+        cairo_table = Table(title="Cairo / Starknet (experimental)", box=box.ROUNDED)
+        cairo_table.add_column("Tool", style="bold", width=18)
+        cairo_table.add_column("Status", width=16)
+        cairo_table.add_column("Version", width=18)
+        cairo_table.add_column("Notes", width=44)
+        for name, available, version, note in _cairo_tool_rows():
+            status_cell = "[green]available[/green]" if available else "[yellow]not installed[/yellow]"
+            cairo_table.add_row(name, status_cell, version, note)
+        console.print(cairo_table)
+        console.print(
+            "[dim]Cairo support is experimental. Run: "
+            "miesc scan path/to/contract.cairo  (or a Scarb project directory)[/dim]"
+        )
 
         # LLM Providers section
         console.print("")
@@ -254,3 +332,8 @@ def doctor(verbose: bool) -> None:
 
         print(f"\n{total_available}/{total_tools} tools available")  # noqa: T201
         print("Missing tools are optional; MIESC degrades gracefully.")  # noqa: T201
+
+        print("\n=== Cairo / Starknet (experimental) ===")  # noqa: T201
+        for name, available, version, note in _cairo_tool_rows():
+            mark = "OK" if available else "MISSING"
+            print(f"  [{mark}] {name} ({version}) - {note}")  # noqa: T201
