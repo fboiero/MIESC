@@ -9,6 +9,24 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Echidna can generate and fuzz an economic-invariant harness (P1-3a, opt-in).** The economic
+  harness generator (`economic_harness`, which binds an **ERC-4626 vault** or **Compound-V2 market**
+  and emits runnable `echidna_*` properties) was reachable only through `miesc verify`. The Echidna
+  adapter can now use it directly: with `generate_harness` enabled it detects the target's class, has
+  `economic_harness` generate a harness, and fuzzes its named invariants — so echidna evaluates real
+  economic properties (vault solvency, share-price monotonicity, first-deposit / inflation guards)
+  instead of a bare run that finds nothing. It tries each class in turn and uses the first that binds;
+  a target that is neither a vault nor a market falls through to the bare run (reported honestly by
+  the inconclusive verdict). A `clean` result means **those named invariants held under fuzzing** (the
+  list is in `metadata.economic_properties`), not that the contract is safe.
+
+  **Off by default** — it writes a harness next to the target and runs a full campaign, so it must not
+  fire on the `doctor --smoke` probe or a bare `scan`; enable it where that cost is wanted. The
+  recursion guard lives inside `run_economic_fuzz` (it forces its inner adapter to `generate_harness =
+  False`), so the loop is impossible by construction regardless of the adapter passed. Verified
+  end-to-end against real echidna: a minimal ERC-4626 vault → harness generated, 4 invariants fuzzed
+  and held (`clean`, `campaign_exercised: true`).
+
 - **Medusa actually fuzzes now: harness detection + 1.3.x compatibility (P1-3a).** The Medusa adapter
   was effectively a no-op on medusa 1.3.x — it passed the removed `--assertion-mode` flag (medusa
   exited 1 before fuzzing), ran with no `targetContracts` (medusa aborts with "specify target

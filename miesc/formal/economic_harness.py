@@ -206,6 +206,14 @@ def supported_invariants() -> set[str]:
     return set(_RUNNABLE_ERC4626.keys()) | set(_RUNNABLE_COMPOUND.keys())
 
 
+def invariant_classes() -> Dict[str, List[str]]:
+    """Supported invariant names grouped by harness class (``erc4626`` /
+    ``compound``). A single harness binds one class, so a caller that wants to
+    auto-detect tries each class's invariants in turn rather than passing the
+    union (whose first-match-wins resolution would pick the wrong class)."""
+    return {cls: sorted(cfg.runnable.keys()) for cls, cfg in _CLASSES.items()}
+
+
 # ---------------------------------------------------------------------------
 # Harness generation
 # ---------------------------------------------------------------------------
@@ -733,6 +741,12 @@ def run_economic_fuzz(
     if adapter is None:
         adapter = EchidnaAdapter(config={"test_limit": test_limit, "timeout": timeout})
 
+    # Recursion guard: this helper drives the adapter on a GENERATED harness, so
+    # the adapter must never try to generate another harness from it — whoever
+    # the caller passed. Forced here (not only on the default-created adapter) so
+    # recursion is impossible by construction.
+    adapter.generate_harness = False
+
     if adapter.is_available() != ToolStatus.AVAILABLE:
         return {
             "status": "skipped",
@@ -867,4 +881,5 @@ __all__ = [
     "RunnableProperty",
     "run_economic_fuzz",
     "supported_invariants",
+    "invariant_classes",
 ]
