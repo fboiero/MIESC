@@ -9,6 +9,30 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Medusa actually fuzzes now: harness detection + 1.3.x compatibility (P1-3a).** The Medusa adapter
+  was effectively a no-op on medusa 1.3.x — it passed the removed `--assertion-mode` flag (medusa
+  exited 1 before fuzzing), ran with no `targetContracts` (medusa aborts with "specify target
+  contract(s)" on a multi-contract project), and parsed a `"coverage: N%"` line that 1.3.x does not
+  print (so even a genuine campaign read as `inconclusive`). The adapter now:
+  - **drops the dead flag** and runs medusa through a generated `medusa.json`;
+  - **detects a fuzzing harness** — a new `miesc/adapters/_medusa_harness.py` scans first-party
+    Solidity (excluding `lib/`, `node_modules/`, and Foundry `*.t.sol` unit tests) for
+    `property_* / invariant_* / echidna_*` functions and targets the contracts that declare them,
+    enabling all three prefixes; this is detection, never invention — it points medusa at a harness the
+    project already ships;
+  - **falls back to the first-party concrete contracts** (`src/` / `contracts/`, skipping interfaces /
+    libraries / `abstract`) when no harness exists;
+  - **parses the real medusa 1.3.x output** (`calls` / `branches hit` / `corpus` / `Test summary`,
+    ANSI-stripped; `[FAILED] … Test:` becomes a finding), so a run that actually fuzzed is reported
+    `functional`, and one that never fuzzed (no harness, a non-deployable target) is `inconclusive`
+    with a named reason ("no fuzzable property/invariant/echidna harness found"), never a bare error.
+
+  Verified end-to-end against real medusa 1.3.1: a synthetic harness project fuzzed (139k calls, 81
+  branches, exercised) → `functional`; the Uniswap-v4-hook target with no harness → `inconclusive` with
+  the reason, not a false clean. Auto-synthesising invariants for arbitrary targets is unsound and
+  stays out of scope; wiring the economic-invariant harness generator into the **echidna** adapter
+  (property-native) is a follow-up.
+
 - **`miesc doctor --smoke` / `--smoke-all`: a functional probe that reports whether a tool *runs*,
   not just whether it is *installed*.** `doctor` has always reported tool *availability*
   (`is_available`), which overstates reality — a tool can be present yet fail on a real target (wrong
