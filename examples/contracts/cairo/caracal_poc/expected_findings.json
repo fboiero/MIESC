@@ -166,6 +166,15 @@
       "primary_detector_fires": null
     }
   },
+  "scarb_project": {
+    "scarb_project/": {
+      "primary_detector": "unused-arguments",
+      "all_detectors": ["unused-arguments"],
+      "finding_count": 1,
+      "exit_code": 0,
+      "note": "Scarb PROJECT mode: caracal compiles the project in-process with its bundled 2.20 compiler; local scarb 2.9.2 only supplies `scarb metadata` (no Scarb 2.20 install needed). `miesc scan` routes the Scarb.toml directory to caracal + the pattern adapter."
+    }
+  },
   "error_cases": {
     "error_cases/uncompilable.cairo": {
       "exit_code": 2,

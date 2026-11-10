@@ -1,0 +1,15 @@
+[
+  {
+    "detector": "unused-arguments",
+    "impact": "Low",
+    "confidence": "Medium",
+    "message": "The 3rd argument in scarb_fixture::ScarbFixture::set_value (src/lib.cairo:13) is never used",
+    "locations": [
+      {
+        "file": "src/lib.cairo",
+        "line": 13,
+        "col": 5
+      }
+    ]
+  }
+]
