@@ -383,3 +383,39 @@ and report.
 ### Sources
 
 - `adrienlacombe/caracal` CHANGELOG, Cargo.toml, Actions runs/workflows — GitHub API.
+
+---
+
+## 10. Corrections from the fork's own docs (2026-11-10, pre-gate)
+
+Inspecting `adrienlacombe/caracal`'s `AGENTS.md` + `README.md` corrects two
+assumptions carried from upstream v0.2.3 (all documented upstream-of-run; the
+gate run confirms them):
+
+- **Structured output EXISTS in the fork.** `caracal detect --format json|sarif`
+  (`src/output/mod.rs`, snapshot-tested in `tests/output_formats.rs`) writes a
+  JSON (or SARIF 2.1.0) document to stdout; compilation progress goes to stderr.
+  So **F2 parses JSON, not text**, and F3 can map the fork's native SARIF
+  (incl. `partialFingerprints["caracalFingerprint/v1"]`) onto MIESC's SARIF.
+  The earlier "text-only" note held only for upstream v0.2.3's default `human`.
+- **Honest-error signal is built in.** `--fail-on <impact>` exits 1 on findings
+  at/above the threshold; **exit code 2 means caracal itself failed** → maps
+  directly to MIESC's `status: "error"` (never success-with-0-findings).
+- **Detector set ≈ 18, not 13.** The fork restores the detector families that
+  went inert on Cairo ≥2.6 codegen (reentrancy family, tx-origin,
+  use-after-pop-front, unused-return/events/arguments, unchecked-l1-handler-from)
+  and adds 5 (controlled-replace-class, controlled-deploy, controlled-l1-message,
+  unprotected-replace-class, unchecked-transfer). `dead_code` stays inert by
+  design (compiler drops unreachable fns from SIERRA).
+- **No corelib setup needed** (embedded in the binary); two Scarb paths
+  (in-process + artifact fallback), standalone-file and cairo-project flows.
+
+Gate plan (once the build finishes): `caracal detect --format json
+tests/detectors/reentrancy.cairo` → confirm the reentrancy detector fires with a
+non-empty JSON document and exit code reflects findings; capture stdout/exit for
+the F2 parser and F5 error-path tests.
+
+### Sources
+
+- `adrienlacombe/caracal` `AGENTS.md` §§ output/format, fail-on, detectors,
+  compilation; `README.md` fork notice. (Documented; pending the gate run.)
