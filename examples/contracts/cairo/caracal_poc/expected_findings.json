@@ -1,0 +1,21 @@
+{
+  "_comment": "Ground truth for the Cairo/Caracal PoC fixtures. Captured with the adrienlacombe/caracal fork v0.3.0 (Cairo compiler 2.20.0) via `caracal detect --format json <file>`. 'primary_detector' is the vulnerability each fixture targets; 'all_detectors' lists every detector that fired (every function is run through every detector, so incidental findings are expected). Raw per-fixture JSON lives in tests/fixtures/caracal/.",
+  "tool": "caracal",
+  "tool_version": "0.3.0-fork-adrienlacombe",
+  "cairo_compiler": "2.20.0",
+  "fixtures": {
+    "vulnerable/reentrancy.cairo":            { "primary_detector": "reentrancy",                "all_detectors": ["reentrancy", "reentrancy-benign"],            "finding_count": 11, "exit_code": 0 },
+    "vulnerable/controlled_library_call.cairo":{ "primary_detector": "controlled-library-call",   "all_detectors": ["controlled-library-call"],                    "finding_count": 2,  "exit_code": 0 },
+    "vulnerable/tx_origin.cairo":             { "primary_detector": "tx-origin",                  "all_detectors": ["tx-origin"],                                  "finding_count": 2,  "exit_code": 0 },
+    "vulnerable/unchecked_l1_handler_from.cairo":{ "primary_detector": "unchecked-l1-handler-from","all_detectors": ["unchecked-l1-handler-from", "felt252-unsafe-arithmetic"], "finding_count": 4, "exit_code": 0 },
+    "vulnerable/felt252_overflow.cairo":      { "primary_detector": "felt252-unsafe-arithmetic",  "all_detectors": ["felt252-unsafe-arithmetic", "unused-return"], "finding_count": 12, "exit_code": 0 },
+    "vulnerable/unchecked_transfer.cairo":    { "primary_detector": "unchecked-transfer",         "all_detectors": ["unchecked-transfer", "unused-return"],        "finding_count": 6,  "exit_code": 0 },
+    "vulnerable/unprotected_replace_class.cairo":{ "primary_detector": "unprotected-replace-class","all_detectors": ["unprotected-replace-class"],                 "finding_count": 2,  "exit_code": 0 },
+    "vulnerable/controlled_deploy.cairo":     { "primary_detector": "controlled-deploy",          "all_detectors": ["controlled-deploy"],                          "finding_count": 2,  "exit_code": 0 },
+    "vulnerable/use_after_pop_front.cairo":   { "primary_detector": "use-after-pop-front",        "all_detectors": ["use-after-pop-front"],                        "finding_count": 14, "exit_code": 0 },
+    "clean/counter_clean.cairo":              { "primary_detector": null,                         "all_detectors": [],                                             "finding_count": 0,  "exit_code": 0 }
+  },
+  "error_cases": {
+    "error_cases/uncompilable.cairo": { "exit_code": 2, "stdout": "empty", "stderr_contains": "Error: Contract not found.", "note": "Honest-error path: a non-zero exit (here 2) with no JSON on stdout MUST map to status:'error' in the CaracalAdapter, never success-with-0-findings." }
+  }
+}

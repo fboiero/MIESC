@@ -1,0 +1,200 @@
+[
+  {
+    "detector": "reentrancy",
+    "impact": "Medium",
+    "confidence": "Medium",
+    "message": "Reentrancy in reentrancy::reentrancy::TestContract::__wrapper__bad1\n\tExternal call to reentrancy::reentrancy::IAnotherContractDispatcherImpl::foo (reentrancy.cairo:36) done in reentrancy::reentrancy::TestContract::bad1\n\tStorage variable #0 of reentrancy::reentrancy::TestContract written after the call by core::starknet::storage::StorablePointerWriteAccessImpl::write (reentrancy.cairo:37) in reentrancy::reentrancy::TestContract::bad1.",
+    "locations": [
+      {
+        "file": "reentrancy.cairo",
+        "line": 36,
+        "col": 9
+      },
+      {
+        "file": "reentrancy.cairo",
+        "line": 37,
+        "col": 9
+      }
+    ]
+  },
+  {
+    "detector": "reentrancy",
+    "impact": "Medium",
+    "confidence": "Medium",
+    "message": "Reentrancy in reentrancy::reentrancy::TestContract::__wrapper__bad2\n\tExternal call to reentrancy::reentrancy::IAnotherContractDispatcherImpl::foo (1st occurrence) (reentrancy.cairo:47) done in reentrancy::reentrancy::TestContract::bad2\n\tStorage variable #1 of reentrancy::reentrancy::TestContract written after the call by core::starknet::storage::StorablePointerWriteAccessImpl::write (2nd occurrence) (reentrancy.cairo:50) in reentrancy::reentrancy::TestContract::bad2.",
+    "locations": [
+      {
+        "file": "reentrancy.cairo",
+        "line": 47,
+        "col": 13
+      },
+      {
+        "file": "reentrancy.cairo",
+        "line": 50,
+        "col": 9
+      }
+    ]
+  },
+  {
+    "detector": "reentrancy",
+    "impact": "Medium",
+    "confidence": "Medium",
+    "message": "Reentrancy in reentrancy::reentrancy::TestContract::__wrapper__bad2\n\tExternal call to reentrancy::reentrancy::IAnotherContractDispatcherImpl::foo (2nd occurrence) (reentrancy.cairo:44) done in reentrancy::reentrancy::TestContract::bad2\n\tStorage variable #0 of reentrancy::reentrancy::TestContract written after the call by core::starknet::storage::StorablePointerWriteAccessImpl::write (1st occurrence) (reentrancy.cairo:49) in reentrancy::reentrancy::TestContract::bad2.",
+    "locations": [
+      {
+        "file": "reentrancy.cairo",
+        "line": 44,
+        "col": 13
+      },
+      {
+        "file": "reentrancy.cairo",
+        "line": 49,
+        "col": 9
+      }
+    ]
+  },
+  {
+    "detector": "reentrancy",
+    "impact": "Medium",
+    "confidence": "Medium",
+    "message": "Reentrancy in reentrancy::reentrancy::TestContract::__wrapper__bad2\n\tExternal call to reentrancy::reentrancy::IAnotherContractDispatcherImpl::foo (2nd occurrence) (reentrancy.cairo:44) done in reentrancy::reentrancy::TestContract::bad2\n\tStorage variable #1 of reentrancy::reentrancy::TestContract written after the call by core::starknet::storage::StorablePointerWriteAccessImpl::write (2nd occurrence) (reentrancy.cairo:50) in reentrancy::reentrancy::TestContract::bad2.",
+    "locations": [
+      {
+        "file": "reentrancy.cairo",
+        "line": 44,
+        "col": 13
+      },
+      {
+        "file": "reentrancy.cairo",
+        "line": 50,
+        "col": 9
+      }
+    ]
+  },
+  {
+    "detector": "reentrancy",
+    "impact": "Medium",
+    "confidence": "Medium",
+    "message": "Reentrancy in reentrancy::reentrancy::TestContract::__wrapper__bad3\n\tExternal call to reentrancy::reentrancy::IAnotherContractDispatcherImpl::foo (reentrancy.cairo:61) done in reentrancy::reentrancy::TestContract::internal_ext_call\n\tStorage variable #0 of reentrancy::reentrancy::TestContract written after the call by core::starknet::storage::StorablePointerWriteAccessImpl::write (reentrancy.cairo:57) in reentrancy::reentrancy::TestContract::bad3.",
+    "locations": [
+      {
+        "file": "reentrancy.cairo",
+        "line": 61,
+        "col": 9
+      },
+      {
+        "file": "reentrancy.cairo",
+        "line": 57,
+        "col": 9
+      }
+    ]
+  },
+  {
+    "detector": "reentrancy",
+    "impact": "Medium",
+    "confidence": "Medium",
+    "message": "Reentrancy in reentrancy::reentrancy::TestContract::__wrapper__bad4\n\tExternal call to reentrancy::reentrancy::IAnotherContractDispatcherImpl::foo (reentrancy.cairo:82) done in reentrancy::reentrancy::TestContract::internal_ext_call2\n\tStorage variable #0 of reentrancy::reentrancy::TestContract written after the call by core::starknet::storage::StorablePointerWriteAccessImpl::write (reentrancy.cairo:67) in reentrancy::reentrancy::TestContract::bad4.",
+    "locations": [
+      {
+        "file": "reentrancy.cairo",
+        "line": 82,
+        "col": 9
+      },
+      {
+        "file": "reentrancy.cairo",
+        "line": 67,
+        "col": 9
+      }
+    ]
+  },
+  {
+    "detector": "reentrancy",
+    "impact": "Medium",
+    "confidence": "Medium",
+    "message": "Reentrancy in reentrancy::reentrancy::TestContract::__wrapper__bad5\n\tExternal call to reentrancy::reentrancy::IAnotherContractDispatcherImpl::foo (reentrancy.cairo:74) done in reentrancy::reentrancy::TestContract::bad5[117-237]\n\tStorage variable #0 of reentrancy::reentrancy::TestContract written after the call by core::starknet::storage::StorablePointerWriteAccessImpl::write (reentrancy.cairo:77) in reentrancy::reentrancy::TestContract::bad5.",
+    "locations": [
+      {
+        "file": "reentrancy.cairo",
+        "line": 74,
+        "col": 13
+      },
+      {
+        "file": "reentrancy.cairo",
+        "line": 77,
+        "col": 9
+      }
+    ]
+  },
+  {
+    "detector": "reentrancy",
+    "impact": "Medium",
+    "confidence": "Medium",
+    "message": "Reentrancy in reentrancy::reentrancy::TestContract::__wrapper__bad6_write_between_calls\n\tExternal call to reentrancy::reentrancy::IAnotherContractDispatcherImpl::foo (1st occurrence) (reentrancy.cairo:101) done in reentrancy::reentrancy::TestContract::bad6_write_between_calls\n\tStorage variable #0 of reentrancy::reentrancy::TestContract written after the call by core::starknet::storage::StorablePointerWriteAccessImpl::write (reentrancy.cairo:102) in reentrancy::reentrancy::TestContract::bad6_write_between_calls.",
+    "locations": [
+      {
+        "file": "reentrancy.cairo",
+        "line": 101,
+        "col": 9
+      },
+      {
+        "file": "reentrancy.cairo",
+        "line": 102,
+        "col": 9
+      }
+    ]
+  },
+  {
+    "detector": "reentrancy",
+    "impact": "Medium",
+    "confidence": "Medium",
+    "message": "Reentrancy in reentrancy::reentrancy::TestContract::__wrapper__good2\n\tExternal call to reentrancy::reentrancy::IAnotherContractDispatcherImpl::safe_foo (reentrancy.cairo:29) done in reentrancy::reentrancy::TestContract::good2\n\tStorage variable #0 of reentrancy::reentrancy::TestContract written after the call by core::starknet::storage::StorablePointerWriteAccessImpl::write (reentrancy.cairo:30) in reentrancy::reentrancy::TestContract::good2.",
+    "locations": [
+      {
+        "file": "reentrancy.cairo",
+        "line": 29,
+        "col": 9
+      },
+      {
+        "file": "reentrancy.cairo",
+        "line": 30,
+        "col": 9
+      }
+    ]
+  },
+  {
+    "detector": "reentrancy-benign",
+    "impact": "Low",
+    "confidence": "Medium",
+    "message": "Reentrancy in reentrancy::reentrancy::TestContract::__wrapper__bad2\n\tExternal call to reentrancy::reentrancy::IAnotherContractDispatcherImpl::foo (1st occurrence) (reentrancy.cairo:47) done in reentrancy::reentrancy::TestContract::bad2\n\tStorage variable #0 of reentrancy::reentrancy::TestContract written after the call by core::starknet::storage::StorablePointerWriteAccessImpl::write (1st occurrence) (reentrancy.cairo:49) in reentrancy::reentrancy::TestContract::bad2.",
+    "locations": [
+      {
+        "file": "reentrancy.cairo",
+        "line": 47,
+        "col": 13
+      },
+      {
+        "file": "reentrancy.cairo",
+        "line": 49,
+        "col": 9
+      }
+    ]
+  },
+  {
+    "detector": "reentrancy-benign",
+    "impact": "Low",
+    "confidence": "Medium",
+    "message": "Reentrancy in reentrancy::reentrancy::TestContract::__wrapper__benign1\n\tExternal call to reentrancy::reentrancy::IAnotherContractDispatcherImpl::foo (reentrancy.cairo:90) done in reentrancy::reentrancy::TestContract::benign1\n\tStorage variable #1 of reentrancy::reentrancy::TestContract written after the call by core::starknet::storage::StorablePointerWriteAccessImpl::write (reentrancy.cairo:91) in reentrancy::reentrancy::TestContract::benign1.",
+    "locations": [
+      {
+        "file": "reentrancy.cairo",
+        "line": 90,
+        "col": 9
+      },
+      {
+        "file": "reentrancy.cairo",
+        "line": 91,
+        "col": 9
+      }
+    ]
+  }
+]
