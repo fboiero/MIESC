@@ -97,6 +97,7 @@ ADAPTER_MAP: Dict[str, str] = {
     "semgrep": "SemgrepAdapter",
     "fouranalyzer": "FourAnalyzerAdapter",
     "vyper": "VyperAdapter",
+    "caracal": "CaracalAdapter",  # Cairo / Starknet static analysis (Sierra-level)
     # Layer 2: Dynamic Testing
     "echidna": "EchidnaAdapter",
     "medusa": "MedusaAdapter",
