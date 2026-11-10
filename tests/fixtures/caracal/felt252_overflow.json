@@ -1,0 +1,158 @@
+[
+  {
+    "detector": "felt252-unsafe-arithmetic",
+    "impact": "Medium",
+    "confidence": "Medium",
+    "message": "The function felt252_overflow::felt252_overflow::Felt252Overflow::bad_add uses the felt252 operation core::Felt252Add::add (felt252_overflow.cairo:39) with the user-controlled operands: 1st,2nd, which is not overflow/underflow safe",
+    "locations": [
+      {
+        "file": "felt252_overflow.cairo",
+        "line": 39,
+        "col": 9
+      }
+    ]
+  },
+  {
+    "detector": "felt252-unsafe-arithmetic",
+    "impact": "Medium",
+    "confidence": "Medium",
+    "message": "The function felt252_overflow::felt252_overflow::Felt252Overflow::bad_add_controlled uses the felt252 operation core::Felt252Add::add (1st occurrence) (felt252_overflow.cairo:22) with the user-controlled operands: 2nd, which is not overflow/underflow safe",
+    "locations": [
+      {
+        "file": "felt252_overflow.cairo",
+        "line": 22,
+        "col": 22
+      }
+    ]
+  },
+  {
+    "detector": "felt252-unsafe-arithmetic",
+    "impact": "Medium",
+    "confidence": "Medium",
+    "message": "The function felt252_overflow::felt252_overflow::Felt252Overflow::bad_add_controlled uses the felt252 operation core::Felt252Add::add (2nd occurrence) (felt252_overflow.cairo:22) with the user-controlled operands: 1st,2nd, which is not overflow/underflow safe",
+    "locations": [
+      {
+        "file": "felt252_overflow.cairo",
+        "line": 22,
+        "col": 22
+      }
+    ]
+  },
+  {
+    "detector": "felt252-unsafe-arithmetic",
+    "impact": "Medium",
+    "confidence": "Medium",
+    "message": "The function felt252_overflow::felt252_overflow::Felt252Overflow::bad_add_uncontrolled uses the felt252 operation core::Felt252Sub::sub (felt252_overflow.cairo:33), which is not overflow/underflow safe",
+    "locations": [
+      {
+        "file": "felt252_overflow.cairo",
+        "line": 33,
+        "col": 28
+      }
+    ]
+  },
+  {
+    "detector": "felt252-unsafe-arithmetic",
+    "impact": "Medium",
+    "confidence": "Medium",
+    "message": "The function felt252_overflow::felt252_overflow::Felt252Overflow::bad_mul_controlled uses the felt252 operation core::Felt252Mul::mul (1st occurrence) (felt252_overflow.cairo:12) with the user-controlled operands: 1st,2nd, which is not overflow/underflow safe",
+    "locations": [
+      {
+        "file": "felt252_overflow.cairo",
+        "line": 12,
+        "col": 28
+      }
+    ]
+  },
+  {
+    "detector": "felt252-unsafe-arithmetic",
+    "impact": "Medium",
+    "confidence": "Medium",
+    "message": "The function felt252_overflow::felt252_overflow::Felt252Overflow::bad_mul_controlled uses the felt252 operation core::Felt252Mul::mul (2nd occurrence) (felt252_overflow.cairo:13) with the user-controlled operands: 1st,2nd, which is not overflow/underflow safe",
+    "locations": [
+      {
+        "file": "felt252_overflow.cairo",
+        "line": 13,
+        "col": 27
+      }
+    ]
+  },
+  {
+    "detector": "felt252-unsafe-arithmetic",
+    "impact": "Medium",
+    "confidence": "Medium",
+    "message": "The function felt252_overflow::felt252_overflow::Felt252Overflow::bad_mul_controlled uses the felt252 operation core::Felt252Mul::mul (3rd occurrence) (felt252_overflow.cairo:14) with the user-controlled operands: 1st,2nd, which is not overflow/underflow safe",
+    "locations": [
+      {
+        "file": "felt252_overflow.cairo",
+        "line": 14,
+        "col": 22
+      }
+    ]
+  },
+  {
+    "detector": "felt252-unsafe-arithmetic",
+    "impact": "Medium",
+    "confidence": "Medium",
+    "message": "The function felt252_overflow::felt252_overflow::Felt252Overflow::bad_mul_controlled uses the felt252 operation core::Felt252Mul::mul (4th occurrence) (felt252_overflow.cairo:14) with the user-controlled operands: 1st,2nd, which is not overflow/underflow safe",
+    "locations": [
+      {
+        "file": "felt252_overflow.cairo",
+        "line": 14,
+        "col": 22
+      }
+    ]
+  },
+  {
+    "detector": "felt252-unsafe-arithmetic",
+    "impact": "Medium",
+    "confidence": "Medium",
+    "message": "The function felt252_overflow::felt252_overflow::Felt252Overflow::bad_sub_controlled uses the felt252 operation core::Felt252Sub::sub (felt252_overflow.cairo:45) with the user-controlled operands: 2nd, which is not overflow/underflow safe",
+    "locations": [
+      {
+        "file": "felt252_overflow.cairo",
+        "line": 45,
+        "col": 22
+      }
+    ]
+  },
+  {
+    "detector": "felt252-unsafe-arithmetic",
+    "impact": "Medium",
+    "confidence": "Medium",
+    "message": "The function felt252_overflow::felt252_overflow::Felt252Overflow::bad_sub_uncontrolled uses the felt252 operation core::Felt252Sub::sub (felt252_overflow.cairo:28), which is not overflow/underflow safe",
+    "locations": [
+      {
+        "file": "felt252_overflow.cairo",
+        "line": 28,
+        "col": 22
+      }
+    ]
+  },
+  {
+    "detector": "felt252-unsafe-arithmetic",
+    "impact": "Medium",
+    "confidence": "Medium",
+    "message": "The function felt252_overflow::felt252_overflow::Felt252Overflow::test_sub_assert uses the felt252 operation core::Felt252Sub::sub (felt252_overflow.cairo:54) with the user-controlled operands: 1st, which is not overflow/underflow safe",
+    "locations": [
+      {
+        "file": "felt252_overflow.cairo",
+        "line": 54,
+        "col": 13
+      }
+    ]
+  },
+  {
+    "detector": "unused-return",
+    "impact": "Medium",
+    "confidence": "Medium",
+    "message": "Return value unused for the function call to felt252_overflow::felt252_overflow::Felt252Overflow::bad_add (felt252_overflow.cairo:21) in felt252_overflow::felt252_overflow::Felt252Overflow::bad_add_controlled",
+    "locations": [
+      {
+        "file": "felt252_overflow.cairo",
+        "line": 21,
+        "col": 27
+      }
+    ]
+  }
+]

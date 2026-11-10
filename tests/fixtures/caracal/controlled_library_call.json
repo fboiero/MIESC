@@ -1,0 +1,28 @@
+[
+  {
+    "detector": "controlled-library-call",
+    "impact": "High",
+    "confidence": "Medium",
+    "message": "Library call to user controlled class hash in controlled_library_call::controlled_library_call::TestContract::bad1\n controlled_library_call::controlled_library_call::IAnotherContractLibraryDispatcherImpl::foo (controlled_library_call.cairo:17)",
+    "locations": [
+      {
+        "file": "controlled_library_call.cairo",
+        "line": 17,
+        "col": 8
+      }
+    ]
+  },
+  {
+    "detector": "controlled-library-call",
+    "impact": "High",
+    "confidence": "Medium",
+    "message": "Library call to user controlled class hash in controlled_library_call::controlled_library_call::TestContract::internal_lib_call\n controlled_library_call::controlled_library_call::IAnotherContractLibraryDispatcherImpl::foo (controlled_library_call.cairo:27)",
+    "locations": [
+      {
+        "file": "controlled_library_call.cairo",
+        "line": 27,
+        "col": 9
+      }
+    ]
+  }
+]

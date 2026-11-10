@@ -24,6 +24,21 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Caracal adapter — experimental Cairo/Starknet support.** MIESC can now analyze Cairo
+  contracts (loose `.cairo` files and Scarb projects) by running **Caracal** (Trail of Bits'
+  Sierra-level Starknet analyzer, AGPL-3.0) as a first-class `ToolAdapter`, pinned to a fork that
+  upgrades its front-end to Cairo 2.20. `miesc scan` routes `.cairo` files and Scarb-project
+  directories to Caracal plus the built-in pattern analyzer (`cairo`, registered as a
+  low-confidence correlation pair); the EVM path is unchanged (a mixed `.sol`+`.cairo` directory
+  stays on the EVM path). Findings normalize to the MIESC schema with per-detector
+  severity/CWE/OWASP/recommendation mapping and export to JSON and SARIF 2.1.0. When Caracal and
+  the pattern analyzer agree on a finding class in a file, the finding is flagged
+  `cross_tool_corroborated` and its confidence is raised. Honest errors: a Caracal
+  compile/run failure is reported as `status: "error"`, never a silent "0 findings". `miesc doctor`
+  gains a "Cairo / Starknet (experimental)" section; `scripts/bootstrap_researcher_tools.sh` and
+  an opt-in Docker layer install Caracal (gated on rustc ≥ 1.94). Experimental: no recall/precision
+  numbers for Cairo yet (benchmark is future work). See `docs/guides/CAIRO.md` and `docs/MULTICHAIN.md`.
+
 - **Lending solvency hypotheses — SDD Phase 2 (deterministic, advisory).** The lending
   solvency/liquidation miner (`miesc/llm/lending_solvency_liquidation.py`) now adds
   `solvency_hypotheses` to the market model it already builds. A hypothesis is a **guard-gap**:

@@ -87,6 +87,12 @@ LAYERS: Dict[int, Dict[str, Any]] = {
 # Use `miesc audit full` if you need symbolic execution (Mythril, Halmos, Manticore).
 QUICK_TOOLS: List[str] = ["slither", "aderyn", "solhint"]
 
+# Cairo / Starknet tools: the Caracal external analyzer (semantic, Sierra-level)
+# plus the built-in pattern analyzer as its correlation pair. Used when `miesc
+# scan` is pointed at a .cairo file or a Cairo/Scarb project (EVM tools do not
+# apply to Cairo and are skipped by can_analyze).
+CAIRO_TOOLS: List[str] = ["caracal", "cairo"]
+
 # Adapter class mapping (tool name -> adapter class name)
 ADAPTER_MAP: Dict[str, str] = {
     # Layer 1: Static Analysis
@@ -97,6 +103,8 @@ ADAPTER_MAP: Dict[str, str] = {
     "semgrep": "SemgrepAdapter",
     "fouranalyzer": "FourAnalyzerAdapter",
     "vyper": "VyperAdapter",
+    "caracal": "CaracalAdapter",  # Cairo / Starknet static analysis (Sierra-level)
+    "cairo": "CairoPatternAdapter",  # Cairo / Starknet pattern analyzer (correlation pair)
     # Layer 2: Dynamic Testing
     "echidna": "EchidnaAdapter",
     "medusa": "MedusaAdapter",

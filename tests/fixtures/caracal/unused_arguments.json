@@ -1,0 +1,87 @@
+[
+  {
+    "detector": "felt252-unsafe-arithmetic",
+    "impact": "Medium",
+    "confidence": "Medium",
+    "message": "The function unused_arguments::unused_arguments::UnusedArguments::comp_helper uses the felt252 operation core::Felt252Add::add (unused_arguments.cairo:108), which is not overflow/underflow safe",
+    "locations": [
+      {
+        "file": "unused_arguments.cairo",
+        "line": 108,
+        "col": 9
+      }
+    ]
+  },
+  {
+    "detector": "felt252-unsafe-arithmetic",
+    "impact": "Medium",
+    "confidence": "Medium",
+    "message": "The function unused_arguments::unused_arguments::UnusedArguments::helper uses the felt252 operation core::Felt252Add::add (unused_arguments.cairo:77), which is not overflow/underflow safe",
+    "locations": [
+      {
+        "file": "unused_arguments.cairo",
+        "line": 77,
+        "col": 9
+      }
+    ]
+  },
+  {
+    "detector": "felt252-unsafe-arithmetic",
+    "impact": "Medium",
+    "confidence": "Medium",
+    "message": "The function unused_arguments::unused_arguments::generic_unused::<core::integer::u128, core::integer::u128Drop> uses the felt252 operation core::Felt252Add::add (unused_arguments.cairo:7), which is not overflow/underflow safe",
+    "locations": [
+      {
+        "file": "unused_arguments.cairo",
+        "line": 7,
+        "col": 5
+      }
+    ]
+  },
+  {
+    "detector": "unused-events",
+    "impact": "Medium",
+    "confidence": "Medium",
+    "message": "Event Event defined in unused_arguments::unused_arguments::testcomp is never emitted",
+    "locations": []
+  },
+  {
+    "detector": "unused-arguments",
+    "impact": "Low",
+    "confidence": "Medium",
+    "message": "The 2nd argument in unused_arguments::unused_arguments::UnusedArguments::unused_2 (unused_arguments.cairo:62) is never used",
+    "locations": [
+      {
+        "file": "unused_arguments.cairo",
+        "line": 62,
+        "col": 5
+      }
+    ]
+  },
+  {
+    "detector": "unused-arguments",
+    "impact": "Low",
+    "confidence": "Medium",
+    "message": "The 3rd argument in unused_arguments::unused_arguments::UnusedArguments::unused_1 (unused_arguments.cairo:57) is never used",
+    "locations": [
+      {
+        "file": "unused_arguments.cairo",
+        "line": 57,
+        "col": 5
+      }
+    ]
+  },
+  {
+    "detector": "unused-arguments",
+    "impact": "Low",
+    "confidence": "Medium",
+    "message": "The 3rd argument in unused_arguments::unused_arguments::UnusedArguments::unused_2 (unused_arguments.cairo:62) is never used",
+    "locations": [
+      {
+        "file": "unused_arguments.cairo",
+        "line": 62,
+        "col": 5
+      }
+    ]
+  }
+]

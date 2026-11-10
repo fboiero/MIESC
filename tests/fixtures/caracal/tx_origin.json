@@ -1,0 +1,28 @@
+[
+  {
+    "detector": "tx-origin",
+    "impact": "Medium",
+    "confidence": "Medium",
+    "message": "The transaction origin contract address is used in an access control check in the function tx_origin::tx_origin::TxOrigin::bad (tx_origin.cairo:10)",
+    "locations": [
+      {
+        "file": "tx_origin.cairo",
+        "line": 10,
+        "col": 5
+      }
+    ]
+  },
+  {
+    "detector": "tx-origin",
+    "impact": "Medium",
+    "confidence": "Medium",
+    "message": "The transaction origin contract address is used in an access control check in the function tx_origin::tx_origin::TxOrigin::bad_indirect (tx_origin.cairo:18)",
+    "locations": [
+      {
+        "file": "tx_origin.cairo",
+        "line": 18,
+        "col": 5
+      }
+    ]
+  }
+]

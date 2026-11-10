@@ -16,7 +16,7 @@ from typing import Any, Optional
 import click
 
 from miesc import __version__ as VERSION
-from miesc.cli.constants import QUICK_TOOLS
+from miesc.cli.constants import CAIRO_TOOLS, QUICK_TOOLS
 from miesc.cli.utils import (
     RICH_AVAILABLE,
     console,
@@ -378,6 +378,34 @@ def scan(
         return
 
     contract_path = Path(contract)
+
+    # -------------------------------------------------------------------------
+    # Cairo / Starknet routing: a .cairo file or a Cairo/Scarb project goes to
+    # the Caracal + pattern adapters instead of the Solidity path. Detected
+    # before the EVM branches so the .sol glob and single-file flow are left
+    # exactly as they were for Solidity inputs.
+    # -------------------------------------------------------------------------
+    if _is_cairo_target(contract_path):
+        _run_cairo_scan(
+            contract,
+            output=output,
+            quiet=quiet,
+            verbose=verbose,
+            ci=ci,
+            min_confidence=min_confidence,
+            fail_on_confidence=fail_on_confidence,
+            verify_fp=verify_fp,
+            verify_model=verify_model,
+            rank=rank,
+            acceptance_provider=acceptance_provider,
+            baseline_path=baseline_path,
+            fail_on_new=fail_on_new,
+            annotate=annotate,
+            notify_url=notify_url,
+            slack_url=slack_url,
+            notify_min_severity=notify_min_severity,
+        )
+        return
 
     if profile_config and _profile_uses_agentic_path(profile_config):
         if contract_path.is_dir():
@@ -963,6 +991,213 @@ def _profile_tools(profile: dict[str, Any] | None) -> list[str]:
     return list(QUICK_TOOLS)
 
 
+def _is_cairo_target(path: Path) -> bool:
+    """True when the scan target is Cairo/Starknet rather than Solidity.
+
+    A single ``.cairo`` file, a directory with a ``Scarb.toml``, or a directory
+    that holds ``.cairo`` sources and no ``.sol`` (a mixed directory stays on the
+    EVM path so Solidity scanning is never hijacked).
+    """
+    if path.is_file():
+        return path.suffix == ".cairo"
+    if path.is_dir():
+        if (path / "Scarb.toml").is_file():
+            return True
+        # Check .sol first and short-circuit: on a Solidity repo `any(**/*.sol)`
+        # stops at the first match, so the common EVM directory scan does NOT
+        # walk the whole tree looking for .cairo (a mixed tree also stays EVM).
+        if any(path.glob("**/*.sol")):
+            return False
+        return any(path.glob("**/*.cairo"))
+    return False
+
+
+def _cairo_corroborate(all_results: list[dict[str, Any]]) -> int:
+    """Raise confidence on Cairo findings corroborated by BOTH tools.
+
+    Keys on (file, canonical category) rather than exact location: Caracal and
+    the pattern adapter classify a shared class to the same canonical category
+    but seldom to the same line, so file+category is the reliable agreement
+    signal for Cairo. For each such finding, records ``cross_tool_corroborated``
+    (the agreeing tools) and bumps ``confidence`` by +0.15 (capped at 0.99).
+    Returns how many findings were boosted. Operates only on the Cairo scan's
+    own results, so EVM findings are never touched.
+    """
+    from miesc.core.finding_taxonomy import normalize_finding_type
+
+    def _file_of(finding: dict[str, Any]) -> str:
+        # Key on the basename: Caracal emits a relative filename
+        # ("Contract.cairo") while the pattern adapter carries the full path, so
+        # only the basename reliably matches between the two tools.
+        loc = finding.get("location")
+        raw = ""
+        if isinstance(loc, dict) and loc.get("file"):
+            raw = str(loc["file"])
+        else:
+            raw = str(finding.get("file", ""))
+        return Path(raw).name if raw else ""
+
+    tools_by_key: dict[tuple[str, str], set[str]] = {}
+    for result in all_results:
+        for finding in result.get("findings", []):
+            canon = normalize_finding_type(finding)
+            if canon is None:
+                continue
+            key = (_file_of(finding), canon.value)
+            tools_by_key.setdefault(key, set()).add(str(finding.get("tool", "?")))
+
+    boosted = 0
+    for result in all_results:
+        for finding in result.get("findings", []):
+            canon = normalize_finding_type(finding)
+            if canon is None:
+                continue
+            key = (_file_of(finding), canon.value)
+            tools = tools_by_key.get(key, set())
+            if {"caracal", "cairo"} <= tools:
+                finding["cross_tool_corroborated"] = sorted(tools)
+                conf = finding.get("confidence")
+                if isinstance(conf, (int, float)):
+                    finding["confidence"] = round(min(0.99, float(conf) + 0.15), 4)
+                boosted += 1
+    return boosted
+
+
+def _run_cairo_scan(
+    contract: str,
+    *,
+    output: str | None,
+    quiet: bool,
+    verbose: bool,
+    ci: bool,
+    min_confidence: float,
+    fail_on_confidence: float,
+    verify_fp: bool,
+    verify_model: str | None,
+    rank: bool,
+    acceptance_provider: str,
+    baseline_path: str | None,
+    fail_on_new: bool,
+    annotate: str | None,
+    notify_url: str | None,
+    slack_url: str | None,
+    notify_min_severity: str,
+) -> None:
+    """Scan a Cairo/Starknet target with the Caracal + pattern adapters.
+
+    Runs ``CAIRO_TOOLS`` (caracal + the built-in cairo pattern analyzer), then
+    reconciles their findings through the same intelligence engine the EVM path
+    uses (cross-tool dedup + FP suppression; a class flagged by both tools gains
+    cross-tool confidence), and reports via the shared ``_display_and_save``.
+    """
+    path = Path(contract)
+
+    # Caracal analyzes a single file or a whole Scarb project; a loose directory
+    # of .cairo files is analyzed file by file.
+    if path.is_file() or (path / "Scarb.toml").is_file():
+        targets = [path]
+    else:
+        targets = sorted(path.glob("**/*.cairo"))
+
+    if not targets:
+        error(f"No Cairo sources found in {contract}")
+        sys.exit(1)
+
+    if not quiet:
+        print_banner()
+        info(f"Scanning Cairo/Starknet target: {contract}")
+        info(f"Tools: {', '.join(CAIRO_TOOLS)}")
+
+    all_results: list[dict[str, Any]] = []
+    for target in targets:
+        if not quiet and len(targets) > 1:
+            info(f"  → {target}")
+        for tool in CAIRO_TOOLS:
+            result = run_tool(tool, str(target), 300)
+            result.setdefault("contract", str(target))
+            all_results.append(result)
+
+    # Honest-error surfacing: Caracal is the primary (semantic) Cairo analyzer;
+    # the pattern adapter always "succeeds". If Caracal errored or was skipped
+    # (not installed, compile failure, panic), say so loudly — a "0 findings"
+    # result from the pattern adapter alone must NOT be read as "clean".
+    caracal_records = [r for r in all_results if r.get("tool") == "caracal"]
+    caracal_ok = any(r.get("status") == "success" for r in caracal_records)
+    if not caracal_ok and not quiet:
+        reasons = (
+            "; ".join(
+                f"{r.get('status')}: {r.get('error') or r.get('reason') or '?'}"
+                for r in caracal_records
+            )
+            or "caracal produced no result"
+        )
+        warning(
+            f"Caracal (primary Cairo analyzer) did not run successfully ({reasons}). "
+            "Findings below are from the pattern adapter only — a '0 findings' result "
+            "does NOT mean the contract is clean. Run 'miesc doctor' or set CARACAL_BIN."
+        )
+
+    # Tag each finding with its source file.
+    for result in all_results:
+        for finding in result.get("findings", []):
+            finding.setdefault("file", result.get("contract", str(contract)))
+
+    # Intelligence engine: cross-tool dedup/correlation (Caracal <-> pattern).
+    # Cairo sources are not concatenated for source_code (the EVM FP heuristics
+    # are Solidity-specific); dedup keys off the shared canonical category.
+    try:
+        from miesc.core.intelligence import enhance_findings
+
+        all_flat: list[dict[str, Any]] = []
+        for result in all_results:
+            for finding in result.get("findings", []):
+                finding.setdefault("tool", result.get("tool", "unknown"))
+                all_flat.append(finding)
+        if all_flat:
+            enhanced = enhance_findings(all_flat, source_code="", file_path=str(contract))
+            non_suppressed = [f for f in enhanced if not f.get("fp_suppressed")]
+            suppressed_count = sum(1 for f in enhanced if f.get("fp_suppressed"))
+            tool_metadata = [{k: v for k, v in r.items() if k != "findings"} for r in all_results]
+            all_results = tool_metadata + [
+                {"tool": "miesc-intelligence", "status": "success", "findings": non_suppressed}
+            ]
+            if not quiet and suppressed_count > 0:
+                info(f"Intelligence engine: suppressed {suppressed_count} likely false positives")
+            if not quiet and len(enhanced) < len(all_flat):
+                info(
+                    f"Intelligence engine: merged {len(all_flat) - len(enhanced)} "
+                    "duplicate finding(s) across tools"
+                )
+    except Exception as exc:  # noqa: BLE001 - never break the scan on the enhancer
+        if not quiet:
+            info(f"Intelligence engine skipped: {exc}")
+
+    # Cairo cross-tool corroboration runs inside _display_and_save, AFTER its
+    # confidence annotation (which would otherwise overwrite the boost).
+
+    _display_and_save(
+        all_results,
+        contract=str(contract),
+        llm_used=False,
+        output=output,
+        quiet=quiet,
+        verbose=verbose,
+        ci=ci,
+        min_confidence=min_confidence,
+        fail_on_confidence=fail_on_confidence,
+        verify_fp=verify_fp,
+        verify_model=verify_model,
+        rank=rank,
+        acceptance_provider=acceptance_provider,
+        baseline_path=baseline_path,
+        fail_on_new=fail_on_new,
+        annotate=annotate,
+        notify_url=notify_url,
+        slack_url=slack_url,
+        notify_min_severity=notify_min_severity,
+    )
+
+
 def _run_agentic_scan_profile(
     profile_name: str,
     profile: dict[str, Any],
@@ -1306,6 +1541,22 @@ def _display_and_save(
     except Exception as e:  # noqa: BLE001
         if not quiet:
             info(f"confidence annotation skipped: {e}")
+
+    # Cairo cross-tool corroboration (DoD: "confidence rises when Caracal and the
+    # pattern adapter coincide"). Runs AFTER the confidence annotation above so the
+    # boost is not overwritten. No-op unless both 'caracal' and 'cairo' flagged the
+    # same class in the same file, which only happens on Cairo scans — EVM findings
+    # are never touched.
+    try:
+        boosted = _cairo_corroborate(all_results)
+        if not quiet and boosted:
+            info(
+                f"Cairo correlation: {boosted} finding(s) corroborated by both "
+                "Caracal and the pattern adapter (confidence raised)"
+            )
+    except Exception as e:  # noqa: BLE001
+        if not quiet:
+            info(f"Cairo corroboration skipped: {e}")
 
     # Label reentrancy findings REVIEW vs NOISE — after all filtering, so the
     # annotation and its summary match exactly what is written to the output.

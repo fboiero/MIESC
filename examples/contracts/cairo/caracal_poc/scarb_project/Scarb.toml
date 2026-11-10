@@ -1,0 +1,15 @@
+# Fixture for tests/scarb_inprocess.rs: a minimal, proc-macro-free Scarb
+# package that caracal must compile in-process (bundled compiler, source
+# locations). `starknet` resolves to the std package bundled with scarb, so
+# no network is needed; the loose bound keeps it resolvable across scarb
+# versions (the bundled compiler pinned in Cargo.toml does the compiling,
+# not scarb).
+[package]
+name = "scarb_fixture"
+version = "0.1.0"
+edition = "2024_07"
+
+[dependencies]
+starknet = ">=2.0.0"
+
+[[target.starknet-contract]]
