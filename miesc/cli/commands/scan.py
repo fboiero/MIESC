@@ -1124,10 +1124,13 @@ def _run_cairo_scan(
     caracal_records = [r for r in all_results if r.get("tool") == "caracal"]
     caracal_ok = any(r.get("status") == "success" for r in caracal_records)
     if not caracal_ok and not quiet:
-        reasons = "; ".join(
-            f"{r.get('status')}: {r.get('error') or r.get('reason') or '?'}"
-            for r in caracal_records
-        ) or "caracal produced no result"
+        reasons = (
+            "; ".join(
+                f"{r.get('status')}: {r.get('error') or r.get('reason') or '?'}"
+                for r in caracal_records
+            )
+            or "caracal produced no result"
+        )
         warning(
             f"Caracal (primary Cairo analyzer) did not run successfully ({reasons}). "
             "Findings below are from the pattern adapter only — a '0 findings' result "

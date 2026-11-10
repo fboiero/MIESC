@@ -366,7 +366,9 @@ def doctor(verbose: bool, smoke: bool, smoke_all: bool) -> None:
         cairo_table.add_column("Version", width=18)
         cairo_table.add_column("Notes", width=44)
         for name, available, version, note in _cairo_tool_rows():
-            status_cell = "[green]available[/green]" if available else "[yellow]not installed[/yellow]"
+            status_cell = (
+                "[green]available[/green]" if available else "[yellow]not installed[/yellow]"
+            )
             cairo_table.add_row(name, status_cell, version, note)
         console.print(cairo_table)
         console.print(

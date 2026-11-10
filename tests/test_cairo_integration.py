@@ -32,15 +32,19 @@ pytestmark = pytest.mark.skipif(
 
 @pytest.mark.parametrize(
     "rel,expected",
-    [(rel, meta) for rel, meta in EXPECTED["fixtures"].items() if meta.get("primary_detector_fires")],
+    [
+        (rel, meta)
+        for rel, meta in EXPECTED["fixtures"].items()
+        if meta.get("primary_detector_fires")
+    ],
 )
 def test_primary_detector_fires(rel: str, expected: dict) -> None:
     result = CaracalAdapter().analyze(str(POC / rel))
     assert result["status"] == "success"
     detectors = {f["type"] for f in result["findings"]}
-    assert expected["primary_detector"] in detectors, (
-        f"{rel}: expected {expected['primary_detector']} in {sorted(detectors)}"
-    )
+    assert (
+        expected["primary_detector"] in detectors
+    ), f"{rel}: expected {expected['primary_detector']} in {sorted(detectors)}"
 
 
 def test_clean_contract_zero_findings() -> None:
@@ -107,7 +111,14 @@ def test_e2e_cli_sarif_export(tmp_path: Path) -> None:
     runner = CliRunner()
     scan_res = runner.invoke(
         scan,
-        [str(POC / "vulnerable" / "reentrancy.cairo"), "-o", str(report), "--quiet", "--fp-strictness", "off"],
+        [
+            str(POC / "vulnerable" / "reentrancy.cairo"),
+            "-o",
+            str(report),
+            "--quiet",
+            "--fp-strictness",
+            "off",
+        ],
         catch_exceptions=False,
     )
     assert scan_res.exit_code == 0, scan_res.output

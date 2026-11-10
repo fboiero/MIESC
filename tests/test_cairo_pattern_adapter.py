@@ -12,8 +12,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 from miesc.adapters.cairo_adapter import CairoAnalyzer, CairoPatternAdapter
 from miesc.core.tool_protocol import ToolStatus
 
@@ -71,8 +69,12 @@ def test_can_analyze_cairo_only() -> None:
 
 
 def test_analyze_directory_aggregates(tmp_path: Path) -> None:
-    (tmp_path / "a.cairo").write_text("#[starknet::contract]\nmod A { #[storage] struct Storage {} }\n")
-    (tmp_path / "b.cairo").write_text("#[starknet::contract]\nmod B { #[storage] struct Storage {} }\n")
+    (tmp_path / "a.cairo").write_text(
+        "#[starknet::contract]\nmod A { #[storage] struct Storage {} }\n"
+    )
+    (tmp_path / "b.cairo").write_text(
+        "#[starknet::contract]\nmod B { #[storage] struct Storage {} }\n"
+    )
     result = CairoPatternAdapter().analyze(str(tmp_path))
     assert result["status"] == "success"
     assert result["metadata"]["files_scanned"] == 2

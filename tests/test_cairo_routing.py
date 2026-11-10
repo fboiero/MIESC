@@ -19,7 +19,6 @@ from pathlib import Path
 from miesc.cli.commands.scan import _cairo_corroborate, _is_cairo_target
 from miesc.core.finding_taxonomy import CanonicalCategory, normalize_finding_type
 
-
 # --------------------------------------------------------------------------- #
 # _is_cairo_target                                                            #
 # --------------------------------------------------------------------------- #
@@ -76,8 +75,14 @@ def test_corroboration_boosts_when_both_agree() -> None:
     # Caracal uses a relative filename, the pattern adapter a full path:
     # corroboration keys on the basename, so they must still match.
     results = [
-        {"tool": "caracal", "findings": [_finding("caracal", "unprotected-replace-class", "up.cairo", 0.4)]},
-        {"tool": "cairo", "findings": [_finding("cairo", "proxy_upgrade", "/abs/path/up.cairo", 0.4)]},
+        {
+            "tool": "caracal",
+            "findings": [_finding("caracal", "unprotected-replace-class", "up.cairo", 0.4)],
+        },
+        {
+            "tool": "cairo",
+            "findings": [_finding("cairo", "proxy_upgrade", "/abs/path/up.cairo", 0.4)],
+        },
     ]
     boosted = _cairo_corroborate(results)
     assert boosted == 2
@@ -126,9 +131,8 @@ def test_cairo_slugs_map_to_canonical() -> None:
 def test_caracal_and_pattern_share_proxy_upgrade() -> None:
     # The real corroboration case: Caracal's slug and the pattern value collapse
     # to the same canonical category.
-    assert (
-        normalize_finding_type("unprotected-replace-class")
-        is normalize_finding_type("proxy_upgrade")
+    assert normalize_finding_type("unprotected-replace-class") is normalize_finding_type(
+        "proxy_upgrade"
     )
 
 

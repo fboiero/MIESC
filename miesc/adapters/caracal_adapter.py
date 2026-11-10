@@ -66,103 +66,153 @@ class CaracalAdapter(ToolAdapter):
     DETECTOR_MAP: Dict[str, Dict[str, Optional[str]]] = {
         # --- Reentrancy family (SC01) ---
         "reentrancy": {
-            "severity": None, "cwe": "CWE-841", "owasp": "SC01: Reentrancy",
+            "severity": None,
+            "cwe": "CWE-841",
+            "owasp": "SC01: Reentrancy",
             "rec": "Apply the checks-effects-interactions pattern: update storage before external calls, or add a reentrancy guard.",
         },
         "read-only-reentrancy": {
-            "severity": None, "cwe": "CWE-841", "owasp": "SC01: Reentrancy",
+            "severity": None,
+            "cwe": "CWE-841",
+            "owasp": "SC01: Reentrancy",
             "rec": "A view read during a reentrant call can observe inconsistent state; guard the state-changing path.",
         },
         "reentrancy-events": {
-            "severity": "Low", "cwe": "CWE-841", "owasp": "SC01: Reentrancy",
+            "severity": "Low",
+            "cwe": "CWE-841",
+            "owasp": "SC01: Reentrancy",
             "rec": "Emit events before external calls so off-chain consumers see a consistent ordering.",
         },
         "reentrancy-benign": {
-            "severity": "Low", "cwe": "CWE-841", "owasp": "SC01: Reentrancy",
+            "severity": "Low",
+            "cwe": "CWE-841",
+            "owasp": "SC01: Reentrancy",
             "rec": "State is written after an external call but without an obvious exploit; still prefer checks-effects-interactions.",
         },
         # --- Access control / class-hash & upgrade safety (SC02) ---
         "tx-origin": {
-            "severity": None, "cwe": "CWE-477", "owasp": "SC02: Access Control",
+            "severity": None,
+            "cwe": "CWE-477",
+            "owasp": "SC02: Access Control",
             "rec": "Do not authorize with get_caller_address() compared against tx origin; use explicit owner/role checks.",
         },
         "controlled-library-call": {
-            "severity": None, "cwe": "CWE-829", "owasp": "SC02: Access Control",
+            "severity": None,
+            "cwe": "CWE-829",
+            "owasp": "SC02: Access Control",
             "rec": "Never library_call_syscall a user-controlled class hash; restrict the class hash to a vetted allowlist.",
         },
         "controlled-replace-class": {
-            "severity": None, "cwe": "CWE-829", "owasp": "SC02: Access Control",
+            "severity": None,
+            "cwe": "CWE-829",
+            "owasp": "SC02: Access Control",
             "rec": "replace_class_syscall with a user-controlled class hash is an arbitrary upgrade; gate it behind strict access control.",
         },
         "unprotected-replace-class": {
-            "severity": None, "cwe": "CWE-284", "owasp": "SC02: Access Control",
+            "severity": None,
+            "cwe": "CWE-284",
+            "owasp": "SC02: Access Control",
             "rec": "replace_class_syscall must be protected by an owner/admin check; an unprotected upgrade bricks or hijacks the contract.",
         },
         "controlled-deploy": {
-            "severity": None, "cwe": "CWE-829", "owasp": "SC02: Access Control",
+            "severity": None,
+            "cwe": "CWE-829",
+            "owasp": "SC02: Access Control",
             "rec": "deploy_syscall with a user-controlled class hash deploys arbitrary code; constrain the class hash.",
         },
         "unchecked-zero-owner": {
-            "severity": None, "cwe": "CWE-284", "owasp": "SC02: Access Control",
+            "severity": None,
+            "cwe": "CWE-284",
+            "owasp": "SC02: Access Control",
             "rec": "Reject the zero address when setting an owner/admin to avoid an unrecoverable or unowned contract.",
         },
         "privileged-write-no-event": {
-            "severity": "Low", "cwe": "CWE-778", "owasp": "SC02: Access Control",
+            "severity": "Low",
+            "cwe": "CWE-778",
+            "owasp": "SC02: Access Control",
             "rec": "Emit an event on privileged storage writes so admin actions are auditable off-chain.",
         },
         # --- L1 <-> L2 messaging (Starknet-specific) ---
         "unchecked-l1-handler-from": {
-            "severity": None, "cwe": "CWE-346", "owasp": "Starknet: L1<->L2 Messaging",
+            "severity": None,
+            "cwe": "CWE-346",
+            "owasp": "Starknet: L1<->L2 Messaging",
             "rec": "Validate the `from_address` of an #[l1_handler] against the expected L1 sender before trusting the payload.",
         },
         "controlled-l1-message": {
-            "severity": None, "cwe": "CWE-346", "owasp": "Starknet: L1<->L2 Messaging",
+            "severity": None,
+            "cwe": "CWE-346",
+            "owasp": "Starknet: L1<->L2 Messaging",
             "rec": "Do not send_message_to_l1_syscall to a user-controlled to_address; pin the L1 recipient.",
         },
         "unchecked-l1-message": {
-            "severity": None, "cwe": "CWE-346", "owasp": "Starknet: L1<->L2 Messaging",
+            "severity": None,
+            "cwe": "CWE-346",
+            "owasp": "Starknet: L1<->L2 Messaging",
             "rec": "Validate L1 message parameters before acting on them.",
         },
         # --- Arithmetic (SC03) ---
         "felt252-unsafe-arithmetic": {
-            "severity": None, "cwe": "CWE-190", "owasp": "SC03: Arithmetic",
+            "severity": None,
+            "cwe": "CWE-190",
+            "owasp": "SC03: Arithmetic",
             "rec": "felt252 arithmetic wraps modulo the field prime with no overflow check; use bounded integer types (u256/u128) or explicit range checks.",
         },
         # --- Unchecked return values (SC04) ---
         "unchecked-transfer": {
-            "severity": None, "cwe": "CWE-252", "owasp": "SC04: Unchecked Return Values",
+            "severity": None,
+            "cwe": "CWE-252",
+            "owasp": "SC04: Unchecked Return Values",
             "rec": "Check the boolean result of ERC-20 transfer/transferFrom, or use a safe-transfer wrapper that reverts on failure.",
         },
         "unused-return": {
-            "severity": "Low", "cwe": "CWE-252", "owasp": "SC04: Unchecked Return Values",
+            "severity": "Low",
+            "cwe": "CWE-252",
+            "owasp": "SC04: Unchecked Return Values",
             "rec": "Handle or explicitly discard the return value of called functions.",
         },
         # --- Randomness ---
         "block-values-for-randomness": {
-            "severity": None, "cwe": "CWE-330", "owasp": "SC06: Bad Randomness",
+            "severity": None,
+            "cwe": "CWE-330",
+            "owasp": "SC06: Bad Randomness",
             "rec": "Block timestamp/number are predictable/manipulable; use a VRF or commit-reveal for randomness.",
         },
         # --- Array / span misuse ---
         "use-after-pop-front": {
-            "severity": None, "cwe": "CWE-125", "owasp": "Starknet: Array/Span misuse",
+            "severity": None,
+            "cwe": "CWE-125",
+            "owasp": "Starknet: Array/Span misuse",
             "rec": "Do not reuse an array/span after pop_front removed elements; re-read length or hold a fresh snapshot.",
         },
         "deploy-from-zero": {
-            "severity": None, "cwe": "CWE-665", "owasp": "SC02: Access Control",
+            "severity": None,
+            "cwe": "CWE-665",
+            "owasp": "SC02: Access Control",
             "rec": "deploy_syscall with deploy_from_zero=true makes the deployed address independent of the deployer; confirm that is intended.",
         },
         # --- Code quality / informational ---
-        "unused-events": {"severity": "Info", "cwe": "CWE-561", "owasp": None,
-                          "rec": "Remove the declared-but-never-emitted event, or emit it."},
-        "unused-arguments": {"severity": "Info", "cwe": "CWE-561", "owasp": None,
-                             "rec": "Remove the unused argument or use it."},
-        "dead-code": {"severity": "Info", "cwe": "CWE-561", "owasp": None,
-                      "rec": "Remove unreachable/unused code to reduce attack surface."},
+        "unused-events": {
+            "severity": "Info",
+            "cwe": "CWE-561",
+            "owasp": None,
+            "rec": "Remove the declared-but-never-emitted event, or emit it.",
+        },
+        "unused-arguments": {
+            "severity": "Info",
+            "cwe": "CWE-561",
+            "owasp": None,
+            "rec": "Remove the unused argument or use it.",
+        },
+        "dead-code": {
+            "severity": "Info",
+            "cwe": "CWE-561",
+            "owasp": None,
+            "rec": "Remove unreachable/unused code to reduce attack surface.",
+        },
     }
 
-    DEFAULT_RECOMMENDATION = (
-        "Review the finding against Starknet/Cairo security best practices."
-    )
+    DEFAULT_RECOMMENDATION = "Review the finding against Starknet/Cairo security best practices."
 
     # ------------------------------------------------------------------ binary
     def _binary(self) -> str:
@@ -294,7 +344,9 @@ class CaracalAdapter(ToolAdapter):
             err_tail = (stderr or stdout or "").strip()[-800:]
             logger.error(
                 "Caracal failed (exit %s) on %s: %s",
-                returncode, contract_path, err_tail or "(no output)",
+                returncode,
+                contract_path,
+                err_tail or "(no output)",
             )
             return self.create_result(
                 status="error",
@@ -329,7 +381,8 @@ class CaracalAdapter(ToolAdapter):
         findings = self.normalize_findings(raw)
         logger.info(
             "Caracal analysis completed: %d findings in %.2fs",
-            len(findings), execution_time,
+            len(findings),
+            execution_time,
         )
         return self.create_result(
             status="success",

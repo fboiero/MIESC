@@ -64,8 +64,18 @@ def test_function_parsed_from_message() -> None:
     [
         ("felt252_overflow.json", "felt252-unsafe-arithmetic", "CWE-190", "SC03: Arithmetic"),
         ("tx_origin.json", "tx-origin", "CWE-477", "SC02: Access Control"),
-        ("controlled_library_call.json", "controlled-library-call", "CWE-829", "SC02: Access Control"),
-        ("unchecked_transfer.json", "unchecked-transfer", "CWE-252", "SC04: Unchecked Return Values"),
+        (
+            "controlled_library_call.json",
+            "controlled-library-call",
+            "CWE-829",
+            "SC02: Access Control",
+        ),
+        (
+            "unchecked_transfer.json",
+            "unchecked-transfer",
+            "CWE-252",
+            "SC04: Unchecked Return Values",
+        ),
     ],
 )
 def test_detector_mapping(fixture: str, detector: str, cwe: str, owasp: str) -> None:
@@ -87,8 +97,15 @@ def test_normalize_non_list_is_safe() -> None:
 
 def test_confidence_mapping() -> None:
     adapter = CaracalAdapter()
-    raw = [{"detector": "reentrancy", "impact": "Medium", "confidence": "High",
-            "message": "Reentrancy in a::b::C::foo", "locations": [{"file": "a.cairo", "line": 1, "col": 1}]}]
+    raw = [
+        {
+            "detector": "reentrancy",
+            "impact": "Medium",
+            "confidence": "High",
+            "message": "Reentrancy in a::b::C::foo",
+            "locations": [{"file": "a.cairo", "line": 1, "col": 1}],
+        }
+    ]
     assert adapter.normalize_findings(raw)[0]["confidence"] == 0.9
 
 
@@ -106,7 +123,9 @@ def _available(adapter: CaracalAdapter, monkeypatch: pytest.MonkeyPatch) -> None
 def test_analyze_exit2_is_error(monkeypatch: pytest.MonkeyPatch) -> None:
     adapter = CaracalAdapter()
     _available(adapter, monkeypatch)
-    monkeypatch.setattr(adapter, "run_subprocess", lambda *a, **k: (2, "", "Error: Contract not found."))
+    monkeypatch.setattr(
+        adapter, "run_subprocess", lambda *a, **k: (2, "", "Error: Contract not found.")
+    )
     r = adapter.analyze(_EXISTING)
     assert r["status"] == "error"
     assert r["findings"] == []
@@ -116,7 +135,9 @@ def test_analyze_exit2_is_error(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_analyze_panic_exit101_is_error(monkeypatch: pytest.MonkeyPatch) -> None:
     adapter = CaracalAdapter()
     _available(adapter, monkeypatch)
-    monkeypatch.setattr(adapter, "run_subprocess", lambda *a, **k: (101, "", "thread 'main' panicked"))
+    monkeypatch.setattr(
+        adapter, "run_subprocess", lambda *a, **k: (101, "", "thread 'main' panicked")
+    )
     r = adapter.analyze(_EXISTING)
     assert r["status"] == "error"
     assert r["findings"] == []

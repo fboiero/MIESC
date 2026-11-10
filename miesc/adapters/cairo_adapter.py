@@ -463,7 +463,11 @@ class CairoPatternAdapter(ToolAdapter):
     # Pattern-based findings are heuristic (e.g. the access-control rule fires on
     # any #[external] fn); keep confidence low so Caracal's semantic findings win.
     CONFIDENCE_BY_SEVERITY = {
-        "Critical": 0.60, "High": 0.55, "Medium": 0.45, "Low": 0.40, "Info": 0.35,
+        "Critical": 0.60,
+        "High": 0.55,
+        "Medium": 0.45,
+        "Low": 0.40,
+        "Info": 0.35,
     }
 
     # CairoVulnType.value -> (CWE, OWASP/Starknet label)
