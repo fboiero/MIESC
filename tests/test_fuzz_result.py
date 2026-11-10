@@ -109,22 +109,25 @@ class TestApplyFuzzVerdict:
 
 
 class TestMedusaHonestStatus:
-    """MedusaAdapter against the real `unknown flag` output."""
+    """MedusaAdapter honest verdict on real medusa 1.3.x output."""
 
     def _adapter(self):
         from miesc.adapters.medusa_adapter import MedusaAdapter
 
         return MedusaAdapter()
 
-    def test_unknown_flag_run_is_inconclusive_not_success(self, tmp_path):
+    def test_run_that_never_fuzzed_is_inconclusive_not_success(self, tmp_path):
         contract = tmp_path / "C.sol"
         contract.write_text("pragma solidity ^0.8.0; contract C {}")
         adapter = self._adapter()
 
+        # medusa aborted before fuzzing (no deployable target): no calls.
+        abort = "error Failed to initialize the test chain\nspecify target contract(s)\n"
+
         def fake_run(cmd, **kwargs):
             if "--version" in cmd:
                 return MagicMock(returncode=0, stdout="medusa 1.3.1", stderr="")
-            return MagicMock(returncode=1, stdout=MEDUSA_UNKNOWN_FLAG_STDOUT, stderr="")
+            return MagicMock(returncode=6, stdout=abort, stderr="")
 
         with patch("subprocess.run", side_effect=fake_run):
             result = adapter.analyze(str(contract))
@@ -132,7 +135,6 @@ class TestMedusaHonestStatus:
         assert result["status"] == FUZZ_INCONCLUSIVE
         assert result["findings"] == []
         assert result["metadata"]["campaign_exercised"] is False
-        assert "unknown flag" in result["metadata"]["campaign_diagnostic"]
 
     def test_real_coverage_run_is_success(self, tmp_path):
         contract = tmp_path / "C.sol"
@@ -142,10 +144,14 @@ class TestMedusaHonestStatus:
         def fake_run(cmd, **kwargs):
             if "--version" in cmd:
                 return MagicMock(returncode=0, stdout="medusa 1.3.1", stderr="")
-            # Format the adapter's coverage parser understands: "coverage: N%".
+            # Real medusa 1.3.x progress + summary format (calls / branches / corpus).
             return MagicMock(
                 returncode=0,
-                stdout="elapsed 5s\ncoverage: 73%\nsequences: 10000\n",
+                stdout=(
+                    "fuzz: elapsed: 3s, calls: 140003 (46667/sec), seq/s: 466, "
+                    "branches hit: 81, corpus: 2, failures: 0/1399\n"
+                    "Test summary: 1 test(s) passed, 0 test(s) failed\n"
+                ),
                 stderr="",
             )
 
