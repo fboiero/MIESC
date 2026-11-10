@@ -419,3 +419,47 @@ the F2 parser and F5 error-path tests.
 
 - `adrienlacombe/caracal` `AGENTS.md` §§ output/format, fail-on, detectors,
   compilation; `README.md` fork notice. (Documented; pending the gate run.)
+
+---
+
+## 11. F0 GATE — PASSED ✅ (2026-11-10)
+
+**Decision: ACCEPTED — Option B★ (adrienlacombe/caracal fork @ Cairo v2.20.0).**
+The blocking F0 gate is verified end-to-end on this host.
+
+### Evidence (all run locally)
+
+- **Builds green.** `cargo +1.95.0 build --release` on the cloned fork → exit 0,
+  binary `caracal 0.3.0` (28 MB). rustc 1.95.0 via a per-dir `rustup override`
+  (no global toolchain change). Build authorized by a local `Bash(cargo:*)` rule
+  the owner added in-session (never bypassed the `[Code from External]` wall).
+- **Runs on current Cairo.** `caracal detect --format json
+  tests/detectors/reentrancy.cairo` → exit 0, valid JSON array; the `reentrancy`
+  detector fires with full findings (message, impact=Medium, confidence=Medium,
+  locations `{file,line,col}`). Compiled with the bundled compiler **2.20.0** +
+  embedded corelib (no `--corelib` setup). `reentrancy-benign` also present.
+- **22 detectors registered** (`caracal detectors`).
+- **Honest-error contract confirmed** (from `detect --help` + runs):
+  - `0` = analysis ran (JSON array, possibly empty)
+  - `1` = ≥1 finding at/above `--fail-on` (values lowercase: high|medium|low|informational)
+  - `2` = caracal failed to run (compile error, invalid target, invalid CLI arg)
+  - `101` = Rust panic (seen on a malformed-but-parseable contract)
+  - → **F2 maps any exit ∉ {0,1} to `status: "error"`** (never success-with-0-findings).
+    Simplest adapter contract: run WITHOUT `--fail-on`, parse the JSON array on
+    exit 0, treat every other exit as error and surface stderr.
+- **Output formats:** `--format text|json` confirmed; SARIF per docs
+  (`tests/output_formats.rs`) — to be exercised in F3.
+
+### Robustness note for F1/F5
+
+A malformed (but parseable) contract triggered a Rust panic (exit 101,
+`src/core/compilation_unit.rs:345`, index-out-of-bounds on a 0-entry-point
+unit). Not a blocker — a well-formed clean contract is the right no-findings
+fixture — but F5 should include a panic/garbage-input case to prove the honest
+error path.
+
+### Next
+
+Proceed to F1 (fixtures), reusing the fork's `tests/detectors/*.cairo` as
+ground truth + a minimal Scarb/Cairo 2.20 project. Fork push to the owner's
+GitHub is a separate step pending the owner/repo name (attribution / grant M3).
