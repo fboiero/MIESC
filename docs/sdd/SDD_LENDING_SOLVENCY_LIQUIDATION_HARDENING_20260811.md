@@ -2,7 +2,7 @@
 
 Date: 2026-08-11
 Owner/Lane: Codex
-Status: Phase 1 implemented (deterministic market model) — see `miesc/llm/lending_solvency_liquidation.py`. Later phases (solvency hypotheses, liquidation oracles, execution plans, LLM reasoning agent) remain proposed. No benchmark claim.
+Status: Phases 1-2 implemented (deterministic market model + advisory solvency hypotheses) — see `miesc/llm/lending_solvency_liquidation.py`. Phase 2 emits guard-gap `solvency_hypotheses` for six categories (insolvent_borrow, unsafe_withdraw, liquidation_bypass, liquidation_over_seizure, interest_accrual_gap, stale_price_solvency) over state-changing entrypoints whose disproving guard is not visible in-body; it suppresses on in-body checks and on delegated controllers / `*Logic` libraries, and every hypothesis carries a negative check. The remaining categories, solvency oracles, execution plans and the LLM reasoning agent remain proposed. Advisory only (`promotion.state = hypothesis`); no benchmark claim.
 
 ## Signal
 

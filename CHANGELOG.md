@@ -24,6 +24,29 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Lending solvency hypotheses — SDD Phase 2 (deterministic, advisory).** The lending
+  solvency/liquidation miner (`miesc/llm/lending_solvency_liquidation.py`) now adds
+  `solvency_hypotheses` to the market model it already builds. A hypothesis is a **guard-gap**:
+  for a state-changing entrypoint (`borrow`, `withdraw`/`redeem`, `liquidate`/`seize`) it is emitted
+  only when the guard that would disprove it is **not visible in that function's body**, mirroring
+  `GuardGapHypothesis` in `revert_invariant_mining`. Six categories ship — insolvent_borrow,
+  unsafe_withdraw, liquidation_bypass, liquidation_over_seizure, interest_accrual_gap,
+  stale_price_solvency; the other six SDD categories wait for the LLM reasoning agent. Suppression
+  is what keeps it from echoing the Phase-1 inventory: an in-body collateral/health/threshold check,
+  a delegated check (`*Allowed` / `check*` / `isSolvent` / `*Collateralized` / `validate*`), or
+  delegation of the whole operation to a `*Logic` library all silence the hypothesis; `view`/`pure`
+  getters and `internal`/`private` helpers never trigger one. Every hypothesis carries at least one
+  `negative_check` (the condition that rejects it), and the last check always cedes to a delegated
+  controller or the oracle-feed plan that may already own the guard.
+
+  **Advisory, never a Finding** — `promotion.state` stays `hypothesis`; only replay, fuzzing,
+  symbolic execution or human review promotes it. Non-canonical guard-gap counts (a sanity check,
+  not a benchmark): the **real Aave v3 `Pool.sol` → 0** (every entrypoint delegates to a `*Logic`
+  library, which suppresses), and a **simplified Compound III reference model → 1** (unsafe_withdraw,
+  where the collateral check sits in an internal helper the intra-function heuristic does not
+  follow). The parser round-trips the hypotheses and also accepts the SDD's singular
+  `solvency_hypothesis` key, dropping any entry with an unknown category or no negative check.
+
 - **Echidna can generate and fuzz an economic-invariant harness (P1-3a, opt-in).** The economic
   harness generator (`economic_harness`, which binds an **ERC-4626 vault** or **Compound-V2 market**
   and emits runnable `echidna_*` properties) was reachable only through `miesc verify`. The Echidna
