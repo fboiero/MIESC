@@ -1,8 +1,12 @@
 """
-Unit tests for the deterministic privileged-governance authority miner (SDD Phase 1).
+Unit tests for the deterministic privileged-governance authority miner (SDD Phases 1 & 2).
 
-Covers actor detection per kind, AccessControl role + grant/revoke extraction, edges, source
-anchoring, the provider-neutral parser round-trip, and the advisory contract (plans, not Findings).
+Phase 1 covers actor detection per kind, AccessControl role + grant/revoke extraction, edges,
+source anchoring, the provider-neutral parser round-trip, and the advisory contract (plans, not
+Findings). Phase 2 covers the three deterministic lifecycle guard-gap hypotheses
+(unprotected_initializer, unsafe_upgrade_authority, pause_recovery_gap): safe/unsafe fixture pairs
+(the safe variant emits nothing — the precision delta over the regex detectors), the regex-trap
+regressions, the gate change, and the hypothesis parser round-trip.
 """
 
 from __future__ import annotations
@@ -10,7 +14,9 @@ from __future__ import annotations
 from pathlib import Path
 
 from miesc.llm.privileged_governance_lifecycle import (
+    _HYPOTHESIS_CATEGORIES,
     GovernanceActor,
+    LifecycleHypothesis,
     PrivilegedGovernanceLifecyclePlan,
     mine_privileged_governance_lifecycle,
     parse_privileged_governance_plans,
@@ -125,3 +131,195 @@ class TestParserRoundTrip:
         )
         parsed = parse_privileged_governance_plans({"plans": [good.to_dict(), {"objective": ""}]})
         assert len(parsed) == 1
+
+
+# ======================================================================================
+# Phase 2 — lifecycle guard-gap hypotheses
+# ======================================================================================
+def _cats(src) -> list:
+    plans = mine_privileged_governance_lifecycle(src)
+    return sorted(h.category for h in plans[0].lifecycle_hypotheses) if plans else []
+
+
+class TestUnprotectedInitializer:
+    # SDD fixture 44: unprotected initializer grants owner.
+    def test_unguarded_initializer_fires(self):
+        src = "contract C { function initialize() external { owner = msg.sender; } }"
+        assert _cats(src) == ["unprotected_initializer"]
+
+    # SDD fixture 45: safe initializer guard rejects second call -> nothing.
+    def test_initializer_modifier_suppresses(self):
+        src = "contract C { function initialize() external initializer { owner = msg.sender; } }"
+        assert "unprotected_initializer" not in _cats(src)
+
+    def test_reinitializer_and_disable_suppress(self):
+        a = "contract C { function initialize() public reinitializer(2) { x = 1; } }"
+        b = "contract C { function initialize() public { require(!initialized); initialized = true; } }"
+        assert "unprotected_initializer" not in _cats(a)
+        assert "unprotected_initializer" not in _cats(b)
+
+    def test_bare_assignment_is_not_a_guard(self):
+        # `initialized = true` with no require/if check does not stop re-initialization.
+        src = "contract C { function initialize() external { initialized = true; owner = msg.sender; } }"
+        assert _cats(src) == ["unprotected_initializer"]
+
+    def test_init_name_trap(self):
+        # initiateWithdrawal / initialDeposit are not initializers.
+        assert _cats("contract C { function initiateWithdrawal() external { x = 1; } }") == []
+        assert _cats("contract C { function initialDeposit() external { x = 1; } }") == []
+
+    def test_internal_initializer_not_entrypoint(self):
+        src = "contract C { function initialize() internal { owner = msg.sender; } }"
+        assert "unprotected_initializer" not in _cats(src)
+
+
+class TestUnsafeUpgradeAuthority:
+    def test_empty_authorize_upgrade_fires(self):
+        src = "contract C is UUPSUpgradeable { function _authorizeUpgrade(address) internal override {} }"
+        assert _cats(src) == ["unsafe_upgrade_authority"]
+
+    def test_authorize_upgrade_onlyowner_suppressed(self):
+        # The existing regex detector false-positives here; Phase 2 reads the guard and stays silent.
+        src = (
+            "contract C is UUPSUpgradeable "
+            "{ function _authorizeUpgrade(address) internal override onlyOwner {} }"
+        )
+        assert "unsafe_upgrade_authority" not in _cats(src)
+
+    def test_public_upgrade_without_guard_fires(self):
+        src = "contract C { function upgradeTo(address impl) external { _impl = impl; } }"
+        assert _cats(src) == ["unsafe_upgrade_authority"]
+
+    def test_public_upgrade_delegating_to_hook_suppressed(self):
+        src = (
+            "contract C is UUPSUpgradeable {"
+            " function upgradeTo(address i) external { _authorizeUpgrade(i); _impl = i; }"
+            " function _authorizeUpgrade(address) internal onlyOwner {} }"
+        )
+        assert "unsafe_upgrade_authority" not in _cats(src)
+
+    def test_onlyproxy_is_not_an_access_guard(self):
+        # onlyProxy / onlyDelegateCall gate on call context, not on the caller's identity.
+        src = "contract C { function _authorizeUpgrade(address) internal onlyProxy {} }"
+        assert _cats(src) == ["unsafe_upgrade_authority"]
+
+    def test_inline_sender_check_suppresses(self):
+        src = (
+            "contract C { address admin;"
+            " function upgradeTo(address i) external { require(msg.sender == admin); _impl = i; } }"
+        )
+        assert "unsafe_upgrade_authority" not in _cats(src)
+
+
+class TestPauseRecoveryGap:
+    # SDD fixture 48: pause without recovery bricks withdrawal.
+    def test_pause_without_recovery_fires(self):
+        src = "contract C { function pause() external onlyOwner { _pause(); } }"
+        assert _cats(src) == ["pause_recovery_gap"]
+
+    # SDD fixture 49: safe guardian pause with governor unpause -> nothing.
+    def test_pause_with_unpause_suppressed(self):
+        src = (
+            "contract C {"
+            " function pause() external onlyGuardian { _pause(); }"
+            " function unpause() external onlyGovernor { _unpause(); } }"
+        )
+        assert "pause_recovery_gap" not in _cats(src)
+
+    def test_boolean_toggle_is_its_own_recovery(self):
+        src = (
+            "contract C { bool paused; function pause(bool v) external onlyOwner { paused = v; } }"
+        )
+        assert "pause_recovery_gap" not in _cats(src)
+
+    def test_unpause_alone_does_not_count_as_pause(self):
+        # `unpause` contains the substring `pause` but is not a pause entrypoint.
+        src = "contract C { function unpause() external onlyOwner { _unpause(); } }"
+        assert _cats(src) == []
+
+    def test_scoped_per_contract(self):
+        # A paused contract and a separate recovery contract in one file must not cancel out.
+        src = (
+            "contract Frozen { function pause() external onlyOwner { _pause(); } }\n"
+            "contract Other { function unpause() external onlyOwner { _unpause(); } }"
+        )
+        assert _cats(src) == ["pause_recovery_gap"]
+
+
+class TestGateChange:
+    def test_unguarded_upgrade_only_still_emits_plan(self):
+        # No actor/role, but an unguarded _authorizeUpgrade is exactly the case worth surfacing.
+        src = "contract C { function _authorizeUpgrade(address) internal override {} }"
+        plans = mine_privileged_governance_lifecycle(src)
+        assert len(plans) == 1
+        assert plans[0].actors == [] and plans[0].roles == []
+        assert [h.category for h in plans[0].lifecycle_hypotheses] == ["unsafe_upgrade_authority"]
+
+    def test_clean_contract_still_empty(self):
+        assert mine_privileged_governance_lifecycle("contract C { function f() public {} }") == []
+
+
+class TestHypothesisAdvisoryAndParser:
+    SRC = (
+        "contract C {"
+        " function initialize() external { owner = msg.sender; }"
+        " function pause() external onlyOwner { _pause(); } }"
+    )
+
+    def test_every_hypothesis_has_a_negative_check(self):
+        plan = mine_privileged_governance_lifecycle(self.SRC)[0]
+        assert plan.lifecycle_hypotheses
+        for h in plan.lifecycle_hypotheses:
+            assert h.negative_checks, f"{h.category} has no negative check"
+
+    def test_hypotheses_are_advisory_not_findings(self):
+        d = mine_privileged_governance_lifecycle(self.SRC)[0].to_dict()
+        assert d["promotion"]["state"] == "hypothesis"
+        for h in d["lifecycle_hypotheses"]:
+            assert "severity" not in h
+            assert h["category"] in _HYPOTHESIS_CATEGORIES
+
+    def test_round_trip_preserves_hypotheses(self):
+        plan = mine_privileged_governance_lifecycle(self.SRC)[0]
+        parsed = parse_privileged_governance_plans(
+            {"privileged_governance_lifecycle_plans": [plan.to_dict()]}
+        )
+        assert len(parsed) == 1
+        assert {h.category for h in parsed[0].lifecycle_hypotheses} == {
+            h.category for h in plan.lifecycle_hypotheses
+        }
+
+    def test_parser_accepts_sdd_singular_key(self):
+        raw = {
+            "plans": [
+                {
+                    "objective": "o",
+                    "lifecycle_hypothesis": {
+                        "category": "pause_recovery_gap",
+                        "negative_checks": ["an unpause entrypoint exists"],
+                    },
+                }
+            ]
+        }
+        parsed = parse_privileged_governance_plans(raw)
+        assert len(parsed) == 1
+        assert [h.category for h in parsed[0].lifecycle_hypotheses] == ["pause_recovery_gap"]
+
+    def test_parser_drops_unknown_category_and_empty_checks(self):
+        raw = {
+            "plans": [
+                {
+                    "objective": "o",
+                    "lifecycle_hypotheses": [
+                        {"category": "made_up", "negative_checks": ["x"]},
+                        {"category": "pause_recovery_gap", "negative_checks": []},
+                    ],
+                }
+            ]
+        }
+        parsed = parse_privileged_governance_plans(raw)
+        assert parsed[0].lifecycle_hypotheses == []
+
+    def test_to_dict_normalizes_unknown_category(self):
+        h = LifecycleHypothesis(category="not_a_category", negative_checks=["x"])
+        assert h.to_dict()["category"] == "unclassified"
