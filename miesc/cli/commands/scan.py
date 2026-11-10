@@ -1003,10 +1003,64 @@ def _is_cairo_target(path: Path) -> bool:
     if path.is_dir():
         if (path / "Scarb.toml").is_file():
             return True
-        has_cairo = any(path.glob("**/*.cairo"))
-        has_sol = any(path.glob("**/*.sol"))
-        return has_cairo and not has_sol
+        # Check .sol first and short-circuit: on a Solidity repo `any(**/*.sol)`
+        # stops at the first match, so the common EVM directory scan does NOT
+        # walk the whole tree looking for .cairo (a mixed tree also stays EVM).
+        if any(path.glob("**/*.sol")):
+            return False
+        return any(path.glob("**/*.cairo"))
     return False
+
+
+def _cairo_corroborate(all_results: list[dict[str, Any]]) -> int:
+    """Raise confidence on Cairo findings corroborated by BOTH tools.
+
+    Keys on (file, canonical category) rather than exact location: Caracal and
+    the pattern adapter classify a shared class to the same canonical category
+    but seldom to the same line, so file+category is the reliable agreement
+    signal for Cairo. For each such finding, records ``cross_tool_corroborated``
+    (the agreeing tools) and bumps ``confidence`` by +0.15 (capped at 0.99).
+    Returns how many findings were boosted. Operates only on the Cairo scan's
+    own results, so EVM findings are never touched.
+    """
+    from miesc.core.finding_taxonomy import normalize_finding_type
+
+    def _file_of(finding: dict[str, Any]) -> str:
+        # Key on the basename: Caracal emits a relative filename
+        # ("Contract.cairo") while the pattern adapter carries the full path, so
+        # only the basename reliably matches between the two tools.
+        loc = finding.get("location")
+        raw = ""
+        if isinstance(loc, dict) and loc.get("file"):
+            raw = str(loc["file"])
+        else:
+            raw = str(finding.get("file", ""))
+        return Path(raw).name if raw else ""
+
+    tools_by_key: dict[tuple[str, str], set[str]] = {}
+    for result in all_results:
+        for finding in result.get("findings", []):
+            canon = normalize_finding_type(finding)
+            if canon is None:
+                continue
+            key = (_file_of(finding), canon.value)
+            tools_by_key.setdefault(key, set()).add(str(finding.get("tool", "?")))
+
+    boosted = 0
+    for result in all_results:
+        for finding in result.get("findings", []):
+            canon = normalize_finding_type(finding)
+            if canon is None:
+                continue
+            key = (_file_of(finding), canon.value)
+            tools = tools_by_key.get(key, set())
+            if {"caracal", "cairo"} <= tools:
+                finding["cross_tool_corroborated"] = sorted(tools)
+                conf = finding.get("confidence")
+                if isinstance(conf, (int, float)):
+                    finding["confidence"] = round(min(0.99, float(conf) + 0.15), 4)
+                boosted += 1
+    return boosted
 
 
 def _run_cairo_scan(
@@ -1114,6 +1168,9 @@ def _run_cairo_scan(
     except Exception as exc:  # noqa: BLE001 - never break the scan on the enhancer
         if not quiet:
             info(f"Intelligence engine skipped: {exc}")
+
+    # Cairo cross-tool corroboration runs inside _display_and_save, AFTER its
+    # confidence annotation (which would otherwise overwrite the boost).
 
     _display_and_save(
         all_results,
@@ -1481,6 +1538,22 @@ def _display_and_save(
     except Exception as e:  # noqa: BLE001
         if not quiet:
             info(f"confidence annotation skipped: {e}")
+
+    # Cairo cross-tool corroboration (DoD: "confidence rises when Caracal and the
+    # pattern adapter coincide"). Runs AFTER the confidence annotation above so the
+    # boost is not overwritten. No-op unless both 'caracal' and 'cairo' flagged the
+    # same class in the same file, which only happens on Cairo scans — EVM findings
+    # are never touched.
+    try:
+        boosted = _cairo_corroborate(all_results)
+        if not quiet and boosted:
+            info(
+                f"Cairo correlation: {boosted} finding(s) corroborated by both "
+                "Caracal and the pattern adapter (confidence raised)"
+            )
+    except Exception as e:  # noqa: BLE001
+        if not quiet:
+            info(f"Cairo corroboration skipped: {e}")
 
     # Label reentrancy findings REVIEW vs NOISE — after all filtering, so the
     # annotation and its summary match exactly what is written to the output.
