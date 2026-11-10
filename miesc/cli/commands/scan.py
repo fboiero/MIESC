@@ -16,7 +16,7 @@ from typing import Any, Optional
 import click
 
 from miesc import __version__ as VERSION
-from miesc.cli.constants import QUICK_TOOLS
+from miesc.cli.constants import CAIRO_TOOLS, QUICK_TOOLS
 from miesc.cli.utils import (
     RICH_AVAILABLE,
     console,
@@ -378,6 +378,34 @@ def scan(
         return
 
     contract_path = Path(contract)
+
+    # -------------------------------------------------------------------------
+    # Cairo / Starknet routing: a .cairo file or a Cairo/Scarb project goes to
+    # the Caracal + pattern adapters instead of the Solidity path. Detected
+    # before the EVM branches so the .sol glob and single-file flow are left
+    # exactly as they were for Solidity inputs.
+    # -------------------------------------------------------------------------
+    if _is_cairo_target(contract_path):
+        _run_cairo_scan(
+            contract,
+            output=output,
+            quiet=quiet,
+            verbose=verbose,
+            ci=ci,
+            min_confidence=min_confidence,
+            fail_on_confidence=fail_on_confidence,
+            verify_fp=verify_fp,
+            verify_model=verify_model,
+            rank=rank,
+            acceptance_provider=acceptance_provider,
+            baseline_path=baseline_path,
+            fail_on_new=fail_on_new,
+            annotate=annotate,
+            notify_url=notify_url,
+            slack_url=slack_url,
+            notify_min_severity=notify_min_severity,
+        )
+        return
 
     if profile_config and _profile_uses_agentic_path(profile_config):
         if contract_path.is_dir():
@@ -961,6 +989,136 @@ def _profile_tools(profile: dict[str, Any] | None) -> list[str]:
     if isinstance(tools, list) and tools:
         return [str(tool) for tool in tools]
     return list(QUICK_TOOLS)
+
+
+def _is_cairo_target(path: Path) -> bool:
+    """True when the scan target is Cairo/Starknet rather than Solidity.
+
+    A single ``.cairo`` file, a directory with a ``Scarb.toml``, or a directory
+    that holds ``.cairo`` sources and no ``.sol`` (a mixed directory stays on the
+    EVM path so Solidity scanning is never hijacked).
+    """
+    if path.is_file():
+        return path.suffix == ".cairo"
+    if path.is_dir():
+        if (path / "Scarb.toml").is_file():
+            return True
+        has_cairo = any(path.glob("**/*.cairo"))
+        has_sol = any(path.glob("**/*.sol"))
+        return has_cairo and not has_sol
+    return False
+
+
+def _run_cairo_scan(
+    contract: str,
+    *,
+    output: str | None,
+    quiet: bool,
+    verbose: bool,
+    ci: bool,
+    min_confidence: float,
+    fail_on_confidence: float,
+    verify_fp: bool,
+    verify_model: str | None,
+    rank: bool,
+    acceptance_provider: str,
+    baseline_path: str | None,
+    fail_on_new: bool,
+    annotate: str | None,
+    notify_url: str | None,
+    slack_url: str | None,
+    notify_min_severity: str,
+) -> None:
+    """Scan a Cairo/Starknet target with the Caracal + pattern adapters.
+
+    Runs ``CAIRO_TOOLS`` (caracal + the built-in cairo pattern analyzer), then
+    reconciles their findings through the same intelligence engine the EVM path
+    uses (cross-tool dedup + FP suppression; a class flagged by both tools gains
+    cross-tool confidence), and reports via the shared ``_display_and_save``.
+    """
+    path = Path(contract)
+
+    # Caracal analyzes a single file or a whole Scarb project; a loose directory
+    # of .cairo files is analyzed file by file.
+    if path.is_file() or (path / "Scarb.toml").is_file():
+        targets = [path]
+    else:
+        targets = sorted(path.glob("**/*.cairo"))
+
+    if not targets:
+        error(f"No Cairo sources found in {contract}")
+        sys.exit(1)
+
+    if not quiet:
+        print_banner()
+        info(f"Scanning Cairo/Starknet target: {contract}")
+        info(f"Tools: {', '.join(CAIRO_TOOLS)}")
+
+    all_results: list[dict[str, Any]] = []
+    for target in targets:
+        if not quiet and len(targets) > 1:
+            info(f"  → {target}")
+        for tool in CAIRO_TOOLS:
+            result = run_tool(tool, str(target), 300)
+            result.setdefault("contract", str(target))
+            all_results.append(result)
+
+    # Tag each finding with its source file.
+    for result in all_results:
+        for finding in result.get("findings", []):
+            finding.setdefault("file", result.get("contract", str(contract)))
+
+    # Intelligence engine: cross-tool dedup/correlation (Caracal <-> pattern).
+    # Cairo sources are not concatenated for source_code (the EVM FP heuristics
+    # are Solidity-specific); dedup keys off the shared canonical category.
+    try:
+        from miesc.core.intelligence import enhance_findings
+
+        all_flat: list[dict[str, Any]] = []
+        for result in all_results:
+            for finding in result.get("findings", []):
+                finding.setdefault("tool", result.get("tool", "unknown"))
+                all_flat.append(finding)
+        if all_flat:
+            enhanced = enhance_findings(all_flat, source_code="", file_path=str(contract))
+            non_suppressed = [f for f in enhanced if not f.get("fp_suppressed")]
+            suppressed_count = sum(1 for f in enhanced if f.get("fp_suppressed"))
+            tool_metadata = [{k: v for k, v in r.items() if k != "findings"} for r in all_results]
+            all_results = tool_metadata + [
+                {"tool": "miesc-intelligence", "status": "success", "findings": non_suppressed}
+            ]
+            if not quiet and suppressed_count > 0:
+                info(f"Intelligence engine: suppressed {suppressed_count} likely false positives")
+            if not quiet and len(enhanced) < len(all_flat):
+                info(
+                    f"Intelligence engine: merged {len(all_flat) - len(enhanced)} "
+                    "duplicate finding(s) across tools"
+                )
+    except Exception as exc:  # noqa: BLE001 - never break the scan on the enhancer
+        if not quiet:
+            info(f"Intelligence engine skipped: {exc}")
+
+    _display_and_save(
+        all_results,
+        contract=str(contract),
+        llm_used=False,
+        output=output,
+        quiet=quiet,
+        verbose=verbose,
+        ci=ci,
+        min_confidence=min_confidence,
+        fail_on_confidence=fail_on_confidence,
+        verify_fp=verify_fp,
+        verify_model=verify_model,
+        rank=rank,
+        acceptance_provider=acceptance_provider,
+        baseline_path=baseline_path,
+        fail_on_new=fail_on_new,
+        annotate=annotate,
+        notify_url=notify_url,
+        slack_url=slack_url,
+        notify_min_severity=notify_min_severity,
+    )
 
 
 def _run_agentic_scan_profile(
