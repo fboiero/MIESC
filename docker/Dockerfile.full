@@ -204,13 +204,34 @@ RUN ARCH="$(dpkg --print-architecture)" && \
         echo "WARNING: Semgrep native build skipped for $ARCH. Use amd64 full image or local bootstrap for Semgrep."; \
     fi
 
+# Install Caracal + Scarb (experimental Cairo/Starknet analysis), OPT-IN.
+# Caracal's Cairo 2.20 front-end compiles from source (rustc >= 1.94, several
+# minutes), so it is gated behind MIESC_BUILD_CARACAL to keep the default full
+# image lean. Caracal is pinned to the exact fork commit in the PoC ADR; Scarb is
+# only needed to read `scarb metadata` for Scarb projects (the bundled compiler
+# does the compiling), so any 2.x works — pinned here for reproducibility.
+ARG MIESC_BUILD_CARACAL="false"
+ARG CARACAL_FORK_URL="https://github.com/adrienlacombe/caracal"
+ARG CARACAL_FORK_REV="db75d06bbf3f1872755ed615b095039e7db457ea"
+ARG SCARB_VERSION="2.9.2"
+RUN if [ "$MIESC_BUILD_CARACAL" = "true" ]; then \
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain 1.95.0 --profile minimal && \
+        . "$HOME/.cargo/env" && \
+        cargo install --git "$CARACAL_FORK_URL" --rev "$CARACAL_FORK_REV" --profile release --force --root /app/.tools/caracal && \
+        /app/.tools/caracal/bin/caracal --version && \
+        curl --proto '=https' --tlsv1.2 -sSf https://docs.swmansion.com/scarb/install.sh | sh -s -- -v "$SCARB_VERSION" && \
+        echo "Caracal + Scarb ${SCARB_VERSION} installed"; \
+    else \
+        echo "Caracal (Cairo) skipped — build with --build-arg MIESC_BUILD_CARACAL=true (heavy Rust build) to include it."; \
+    fi
+
 # ==========================================
 # ENVIRONMENT CONFIGURATION
 # ==========================================
 
 ENV MIESC_VERSION="6.0.0-full"
 ENV MIESC_ENV="docker-full"
-ENV PATH="/app/.tools/mythril/bin:/app/.tools/manticore39/bin:/app/.tools/wake/bin:/app/.tools/certora/bin:/app/.tools/semgrep/bin:/home/miesc/.local/bin:${PATH}"
+ENV PATH="/app/.tools/mythril/bin:/app/.tools/manticore39/bin:/app/.tools/wake/bin:/app/.tools/certora/bin:/app/.tools/semgrep/bin:/app/.tools/caracal/bin:/home/miesc/.local/bin:${PATH}"
 ENV PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION="python"
 ENV MPLCONFIGDIR="/tmp/miesc-matplotlib"
 
