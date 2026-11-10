@@ -245,3 +245,80 @@ gh api 'repos/crytic/caracal/git/trees/v0.2.3?recursive=1' --jq '.tree[].path'
 gh api repos/crytic/caracal/contents/src/detectors/mod.rs -f ref=v0.2.3 --jq '.content' | base64 -d
 # output format: tests/snapshots/integration_tests__detectors@<detector>.cairo.snap
 ```
+
+---
+
+## 8. Landscape update — 2026-11-10 (owner rejected Option A)
+
+The owner **rejected Option A** (pin Caracal v0.2.3 ⇄ Cairo 2.5.0): shipping an
+adapter capped at a 2-year-old, unmaintained Cairo is too weak for the paper /
+grant context. The gate stands — no external tool has yet run end-to-end here —
+so this section only re-scouts the alternatives (B / C). **Every detector-count
+and capability claim below is a repository/README claim relayed via web search,
+NOT yet verified by running the tool.** The F0 gate (one authorized run on a
+fixture compiled by the Scarb we pin, before F2) is unchanged.
+
+### Hard evidence (verified via GitHub API, read-only)
+
+- **Upstream Caracal crashes on current Cairo.** `crytic/caracal` issue **#62**
+  (OPEN): `UnsupportedId("Const")` panic on **Cairo 2.9.4** contracts — the exact
+  local toolchain band. Confirms upstream v0.2.3 cannot analyze 2.9.x.
+- **Option B is no longer a from-scratch port — a recent fork already did it.**
+  `adrienlacombe/caracal` (fork of `crytic/caracal`, default branch `master`,
+  pushed **2026-08-29**, v**0.3.0**) pins **all** `cairo-lang-*` crates to git
+  tag **v2.20.0** (ahead of local 2.9.2). PR #1 `upgrade-cairo` merged; adds
+  native fmt/clippy CI, preserves the `insta` snapshots, fixes the baseline
+  e2e test. Single author, **0 stars**, one PR — transparent but not
+  community-validated. Still **unbuilt/unrun here** (building cairo-lang 2.20 +
+  one authorized `detect` run required); output format almost certainly still
+  **text** (the fork is a compiler bump, not a reporting change) — confirm on
+  the one authorized run. Detectors: the same 13 (crytic lineage).
+
+### Plan-B candidates (Option C)
+
+- **shadowhare** (`Shadowhare/shadow-hare`, crates.io `shadowhare` v0.9.0, owner
+  `br0wnD3v`, MIT/Apache-2.0). *Claims* **71** security detectors, **JSON (schema
+  1.0.0) + SARIF 2.1.0** output, `scarb shadowhare detect` subcommand, `detect-diff`.
+  Pins `cairo-lang-sierra 2.16.0`; support tiers T1 `~2.16` / T2 `~2.15` / T3
+  `≤2.14 best-effort` (local 2.9.2 ⇒ **tier-3 best-effort**). **Provenance is the
+  problem**: repo created 2026-02-21, last push **2026-03-11** (18-day lifespan,
+  now ~8 months stale and already behind Scarb 2.19.1), **0 stars**, single
+  author, unaudited. Same staleness trajectory as Caracal, one stage earlier.
+- **cairo-lint / `scarb lint`** (software-mansion, versioned in lockstep with the
+  compiler, `--json` via Scarb): maintained and current, structured output, uses
+  the installed `scarb` (**no external-binary permission wall**) — but **lint-grade**
+  (style/correctness), not security-grade detectors. Viable only as a low-value
+  enricher, not the primary security tool.
+- **Amarna** (crytic): **archived**, Cairo-0.x only. Dead end for Cairo 1/2.
+
+### Assessment (recommendation, owner decides)
+
+| Option | Current Cairo? | Provenance | Detectors | Output | Cost to first run | Permission wall |
+|---|---|---|---|---|---|---|
+| A (rejected) | ❌ ≤2.5.0 | crytic, but unmaintained 2yr | 13 | text | low | binary-exec denied |
+| **B★ adrienlacombe fork** | ✅ v2.20.0 | crytic-derived, 1-author fork | 13 | text (confirm) | **low–med** (build + 1 run) | binary-exec |
+| C shadowhare | ⚠️ ≤2.16 (local=T3) | 0★, 18-day, unaudited | 71 *claimed* | JSON+SARIF | med | binary-exec |
+| C cairo-lint | ✅ lockstep | swmansion, maintained | lint-grade | JSON | low | **none** |
+
+**Recommended: Option B★ (adrienlacombe fork at cairo-lang v2.20.0).** Keeps the
+battle-tested crytic/Trail-of-Bits detector lineage (defensible in a paper),
+tracks current Cairo (fixes A's fatal flaw), and the expensive port is already
+done — so B's original "grant-sized" cost objection no longer holds. shadowhare
+is more capable *on paper* but bets reproducibility on a 0-star, unaudited,
+already-stale crate. Either way: `cairo_adapter.py` stays the correlation pair,
+and the gate (one authorized run on a pinned-Scarb fixture) must pass before F2.
+
+### Common to every option (no decision needed)
+
+Registering/wrapping the existing `miesc/adapters/cairo_adapter.py`
+(`CairoAnalyzer`) as a first-class `ToolAdapter` and routing `.cairo` / `Scarb.toml`
+to it is required under A, B★ **and** C — it is the correlation pair in all three.
+This piece can start independently of the tool choice.
+
+### Sources
+
+- crytic/caracal issue #62, forks, Cargo.toml — GitHub API (read-only).
+- `adrienlacombe/caracal` Cargo.toml + commit log — GitHub API.
+- shadowhare: docs.rs/crate/shadowhare/0.9.0 (README + Cargo.toml), GitHub API
+  `Shadowhare/shadow-hare`.
+- cairo-lint / scarb lint: docs.swmansion.com (cairo-lint, scarb linter + JSON output).
