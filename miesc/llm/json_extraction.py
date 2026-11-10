@@ -36,6 +36,7 @@ import json
 import logging
 import os
 import re
+import threading
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
@@ -107,6 +108,91 @@ def _maybe_dump(text: Optional[str], log_prefix: str) -> None:
             target.write_text(text, encoding="utf-8")
     except OSError:  # pragma: no cover - never let diagnostics break a scan
         pass
+
+
+# --- LLM extraction diagnostics sink (P2-7) ---------------------------------
+# Every extract_llm_json call records a small diagnostic summary in a
+# thread-local sink, keyed by a normalized log prefix. `run_tool` clears the
+# sink before an adapter runs and reads it after, so a tool result can carry
+# whether the LLM response parsed — distinguishing "the model found nothing"
+# (parsed, empty) from "the response could not be parsed". Thread-local because
+# tool-level parallelism is one thread per tool, so entries never cross tools.
+# Known gap: an adapter that makes its LLM calls in its OWN worker threads
+# records into those threads' sinks, so run_tool attaches nothing for it —
+# never a sibling's result.
+_extraction_sink = threading.local()
+_EMPTY_KEYS_DEFAULT: Tuple[str, ...] = ("findings", "vulnerabilities")
+
+
+def _norm_prefix(name: str) -> str:
+    """Normalize a log prefix / tool name for matching: lowercase, no separators."""
+    return re.sub(r"[^a-z0-9]+", "", (name or "").lower())
+
+
+def _payload_is_empty(data: Any, empty_keys: Sequence[str]) -> bool:
+    """True when a parsed payload carries no findings — an empty result, not a
+    parse failure. Handles both a bare list and a dict holding a findings list."""
+    if isinstance(data, list):
+        return len(data) == 0
+    if isinstance(data, dict):
+        for key in empty_keys:
+            value = data.get(key)
+            if isinstance(value, list) and value:
+                return False
+        return True
+    return True
+
+
+def _record_extraction(
+    log_prefix: str, result: "ExtractionResult", empty_keys: Sequence[str]
+) -> None:
+    store = getattr(_extraction_sink, "store", None)
+    if store is None:
+        store = {}
+        _extraction_sink.store = store
+    empty = _payload_is_empty(result.data, empty_keys) if result.ok else False
+    store[_norm_prefix(log_prefix)] = {
+        "parsed": result.ok,
+        "strategy": result.strategy,
+        "error": result.error,
+        "empty": empty,
+        # Keep the raw excerpt when it is diagnostic: a parse failure, or a
+        # parsed-but-empty result (so a "0 findings" answer can be inspected).
+        "raw_excerpt": result.raw_excerpt if (not result.ok or empty) else "",
+    }
+
+
+def clear_extraction_records() -> None:
+    """Forget this thread's recorded LLM extraction diagnostics."""
+    _extraction_sink.store = {}
+
+
+def pop_extraction_records() -> Dict[str, Dict[str, Any]]:
+    """Return and clear this thread's recorded LLM extraction diagnostics,
+    keyed by normalized log prefix (e.g. ``"gptscan"``)."""
+    store = getattr(_extraction_sink, "store", None)
+    _extraction_sink.store = {}
+    return dict(store or {})
+
+
+def take_extraction_record(name: str) -> Optional[Dict[str, Any]]:
+    """Pop this thread's records and return the one matching ``name`` (a tool
+    name or log prefix, matched by normalized form), or ``None``. Clears the
+    sink, so it also resets state for the next run on this thread.
+
+    Matches the exact normalized key first, then tolerates a trailing tag such
+    as a ``[model]`` suffix on the log prefix (e.g. ``LLMBugScanner[qwen]``).
+    The real guard against grabbing another tool's record is the caller
+    (``run_tool``) clearing the sink before each tool, so when this runs the
+    sink only holds the current tool's entries — not the uniqueness of prefixes."""
+    records = pop_extraction_records()
+    key = _norm_prefix(name)
+    if key in records:
+        return records[key]
+    for recorded_key, entry in records.items():
+        if recorded_key.startswith(key):
+            return entry
+    return None
 
 
 def _clean(text: str) -> str:
@@ -212,7 +298,7 @@ def _candidates(text: str, want: str, anchor_keys: Sequence[str]) -> Iterable[Tu
                 yield "outermost", text[m.start() : last + 1]
 
 
-def extract_llm_json(
+def _extract_llm_json_core(
     text: Optional[str],
     *,
     want: str = "auto",
@@ -324,6 +410,33 @@ def extract_llm_json(
         _RAW_EXCERPT,
         result.raw_excerpt,
     )
+    return result
+
+
+def extract_llm_json(
+    text: Optional[str],
+    *,
+    want: str = "auto",
+    required_keys: Sequence[str] = (),
+    anchor_keys: Sequence[str] = DEFAULT_ANCHOR_KEYS,
+    log_prefix: str = "LLM",
+    warn: bool = True,
+    empty_keys: Sequence[str] = _EMPTY_KEYS_DEFAULT,
+) -> ExtractionResult:
+    """Extract the JSON payload from an LLM response (see
+    :func:`_extract_llm_json_core`), and record a diagnostic summary in the
+    thread-local sink so a tool result can later tell "parsed but empty" from
+    "could not parse". ``empty_keys`` names the list fields that make a parsed
+    payload non-empty."""
+    result = _extract_llm_json_core(
+        text,
+        want=want,
+        required_keys=required_keys,
+        anchor_keys=anchor_keys,
+        log_prefix=log_prefix,
+        warn=warn,
+    )
+    _record_extraction(log_prefix, result, empty_keys)
     return result
 
 

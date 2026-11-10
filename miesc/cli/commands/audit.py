@@ -316,7 +316,9 @@ def _to_markdown(results: List[Dict[str, Any]], contract: str) -> str:
         f"{t} (fallback)" if t in buckets["fallback"] else t for t in buckets["success"]
     ]
     skipped_tools = buckets["skipped"]
-    failed_tools = buckets["timeout"] + buckets["error"]
+    # "inconclusive" (e.g. a fuzzer that never exercised the contract) ran but
+    # did not succeed; group it with the non-success tools so it stays visible.
+    failed_tools = buckets["timeout"] + buckets["error"] + buckets["inconclusive"]
 
     md = f"""# MIESC Security Audit Report
 
@@ -1109,7 +1111,7 @@ def _run_full_audit_basic(
             success=buckets["success"],
             fallback=buckets["fallback"],
             skipped=buckets["skipped"],
-            failed=buckets["timeout"] + buckets["error"],
+            failed=buckets["timeout"] + buckets["error"] + buckets["inconclusive"],
         )
         console.print(
             "[yellow]Note: ML filtering disabled. Results may contain false positives.[/yellow]"

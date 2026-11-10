@@ -12,7 +12,9 @@ Version: 1.0.0
 """
 
 import logging
+import re
 import subprocess
+import tempfile
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -27,6 +29,23 @@ from miesc.core.tool_protocol import (
 )
 
 logger = logging.getLogger(__name__)
+
+# medusa colorizes output even when piped; strip ANSI before parsing.
+_ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
+
+# Signatures of a real tool failure (crytic-compile crash, missing binary, a Go
+# panic) — distinct from medusa's own "couldn't fuzz" aborts ("specify target
+# contract(s)", "constructor arguments ... not provided"), which are an honest
+# inconclusive, not an error. Matched case-insensitively on the ANSI-stripped output.
+_TOOL_FAILURE_MARKERS = (
+    "traceback (most recent call last)",
+    "modulenotfounderror",
+    "valueerror:",
+    "command not found",
+    "no such file or directory",
+    "is not a file or directory",
+    "panic:",
+)
 
 
 class MedusaAdapter(ToolAdapter):
@@ -173,40 +192,62 @@ class MedusaAdapter(ToolAdapter):
             timeout = config.get("timeout", 300)
             coverage_target = config.get("coverage_target", 90)
             workers = config.get("workers", 4)
-            corpus_dir = config.get("corpus_dir", ".medusa_corpus")
-            config_file = config.get("config_file", None)
 
-            # Build command
-            cmd = [
-                "medusa",
-                "fuzz",
-                f"--test-limit={test_limit}",
-                f"--timeout={timeout}",
-                f"--workers={workers}",
-                f"--corpus-dir={corpus_dir}",
-                "--compilation-target",
-                contract_path,
-            ]
+            from miesc.adapters._medusa_harness import select_targets, write_medusa_config
 
-            if config_file and Path(config_file).exists():
-                cmd.extend(["--config", config_file])
-
-            if config.get("shrink_corpus", True):
-                cmd.append("--shrink-corpus")
-
-            if config.get("assertion_testing", True):
-                cmd.append("--assertion-mode")
-
-            logger.info(f"Running Medusa fuzzing campaign: {' '.join(cmd)}")
-
-            # Execute Medusa
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=timeout + 30,  # Add buffer to subprocess timeout
-                cwd=Path(contract_path).parent if Path(contract_path).is_file() else contract_path,
+            # Medusa (1.3.x) needs explicit target contracts and a property-test
+            # prefix config: run it via a generated medusa.json rather than the
+            # old `--assertion-mode` flag (removed in 1.3.x) and a bare target,
+            # which exited 1 before fuzzing anything. Prefer a real
+            # property/invariant/echidna harness; fall back to first-party source.
+            path = Path(contract_path)
+            project_dir = (
+                path if path.is_dir() else (path.parent if path.parent != Path("") else Path("."))
             )
+            # Absolute: medusa resolves `compilation.target` relative to the
+            # config file's directory, and the config lives in a temp dir.
+            compilation_target = str(path.resolve())
+            targets, target_source = select_targets(contract_path)
+
+            if not targets:
+                return {
+                    "tool": "medusa",
+                    "version": "0.3.0",
+                    "status": "error",
+                    "findings": [],
+                    "metadata": {"reason": "no_target_contracts", "target_source": target_source},
+                    "execution_time": time.time() - start_time,
+                    "error": "Medusa: no first-party target contracts found to fuzz",
+                }
+
+            harness_reason = (
+                None
+                if target_source == "harness"
+                else "no fuzzable property/invariant/echidna harness found in the project"
+            )
+
+            with tempfile.TemporaryDirectory(prefix="miesc-medusa-") as tmp:
+                config_path = write_medusa_config(
+                    Path(tmp),
+                    targets=targets,
+                    compilation_target=compilation_target,
+                    test_limit=test_limit,
+                    timeout=timeout,
+                    workers=workers,
+                )
+                cmd = ["medusa", "fuzz", "--config", str(config_path)]
+                logger.info(
+                    f"Running Medusa: targets={targets} source={target_source} "
+                    f"compilation_target={compilation_target}"
+                )
+
+                result = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=timeout + 30,  # buffer so medusa's own timeout fires first
+                    cwd=str(project_dir),
+                )
 
             execution_time = time.time() - start_time
 
@@ -218,54 +259,82 @@ class MedusaAdapter(ToolAdapter):
 
             metadata = {
                 "contract_analyzed": contract_path,
+                "target_contracts": targets,
+                "target_source": target_source,
                 "test_sequences": test_limit,
-                "actual_tests_run": coverage_info.get("tests_run", 0),
-                "coverage_achieved": coverage_info.get("coverage_percentage", 0),
-                "coverage_target": coverage_target,
-                "paths_explored": coverage_info.get("paths_explored", 0),
+                "calls_executed": coverage_info.get("calls", 0),
+                "branches_hit": coverage_info.get("branches_hit", 0),
+                "tests_passed": coverage_info.get("tests_passed", 0),
+                "tests_failed": coverage_info.get("tests_failed", 0),
                 "corpus_size": coverage_info.get("corpus_size", 0),
+                "coverage_target": coverage_target,
                 "workers_used": workers,
                 "exit_code": result.returncode,
                 "campaign_completed": result.returncode == 0,
             }
-
-            if result.returncode != 0 and len(findings) == 0:
-                # No findings but non-zero exit code might indicate error
-                logger.warning(f"Medusa completed with exit code {result.returncode}")
+            if harness_reason:
+                metadata["harness_note"] = harness_reason
 
             logger.info(
-                f"Medusa campaign completed: {len(findings)} findings, "
-                f"{coverage_info.get('coverage_percentage', 0)}% coverage in {execution_time:.2f}s"
+                f"Medusa campaign: {len(findings)} findings, "
+                f"{coverage_info.get('calls', 0)} calls / "
+                f"{coverage_info.get('branches_hit', 0)} branches in {execution_time:.2f}s"
             )
 
-            # Did the campaign actually drive the contract? Any positive signal
-            # (coverage, executed tests, explored paths, corpus entries) means
-            # medusa fuzzed; none means it never ran (unsupported CLI flag,
-            # compilation failure, no deployable target) and "0 findings" is
-            # inconclusive, not clean.
+            # The campaign exercised the contract iff medusa executed fuzzing
+            # transactions, grew a corpus, or evaluated tests. Branches-hit alone
+            # (from deployment) is not enough — none of these on a successful exit
+            # means it never actually fuzzed, and "0 findings" is inconclusive.
             exercised = (
-                float(coverage_info.get("coverage_percentage", 0) or 0) > 0
-                or int(coverage_info.get("tests_run", 0) or 0) > 0
-                or int(coverage_info.get("paths_explored", 0) or 0) > 0
+                int(coverage_info.get("calls", 0) or 0) > 0
                 or int(coverage_info.get("corpus_size", 0) or 0) > 0
+                or (
+                    int(coverage_info.get("tests_passed", 0) or 0)
+                    + int(coverage_info.get("tests_failed", 0) or 0)
+                )
+                > 0
             )
+
+            diagnostic_text = (result.stdout or "") + (result.stderr or "")
+
+            # A run that never fuzzed is normally inconclusive — but a genuine
+            # tool failure (crytic-compile crash, missing solc, a Go panic) is an
+            # error the user must see, not a quiet "no coverage". Exit code alone
+            # cannot tell them apart (exit 6 is also the no-harness case); the
+            # output text can.
+            if not exercised and any(
+                marker in _ANSI_RE.sub("", diagnostic_text).lower()
+                for marker in _TOOL_FAILURE_MARKERS
+            ):
+                return {
+                    "tool": "medusa",
+                    "version": "0.3.0",
+                    "status": "error",
+                    "findings": findings,
+                    "metadata": metadata,
+                    "execution_time": execution_time,
+                    "error": _ANSI_RE.sub("", diagnostic_text).strip()[-400:],
+                }
 
             result_dict = {
                 "tool": "medusa",
                 "version": "0.3.0",
-                "status": "success" if result.returncode in [0, 1] else "error",
+                "status": "success",
                 "findings": findings,
                 "metadata": metadata,
                 "execution_time": execution_time,
             }
-            # Only downgrade a non-error exit; a genuine process error stays error.
-            if result_dict["status"] != "error":
-                apply_fuzz_verdict(
-                    result_dict,
-                    tool="medusa",
-                    exercised=exercised,
-                    diagnostic=(result.stdout or "") + (result.stderr or ""),
-                )
+            # The subprocess completed and did not hard-fail, so let the exercise
+            # signal decide: a run that fuzzed is success (findings force it); one
+            # that never fuzzed — no harness, a non-deployable target, a deploy
+            # abort — is inconclusive, with WHY leading the diagnostic.
+            diag_prefix = f"{harness_reason}. " if (harness_reason and not exercised) else ""
+            apply_fuzz_verdict(
+                result_dict,
+                tool="medusa",
+                exercised=exercised,
+                diagnostic=diag_prefix + diagnostic_text,
+            )
             return result_dict
 
         except subprocess.TimeoutExpired:
@@ -307,16 +376,23 @@ class MedusaAdapter(ToolAdapter):
         normalized = []
 
         try:
-            lines = raw_output.split("\n") if isinstance(raw_output, str) else []
+            text = _ANSI_RE.sub("", raw_output) if isinstance(raw_output, str) else ""
+            lines = text.split("\n")
 
-            # Medusa outputs findings in structured format
-            # Look for patterns like:
-            # [FAIL] assertion violated
-            # [FAIL] property violated
-            # [FAIL] integer overflow
+            # medusa 1.3.x reports a falsified test as, e.g.
+            #   [FAILED] Property Test: C.property_x()
+            #   [FAILED] Assertion Test: C.f(uint256)
+            # (older phrasings: "[FAIL]", "FAILURE", "violated"). Never count a
+            # "[PASSED]" line.
 
             for idx, line in enumerate(lines):
-                if "[FAIL]" in line or "FAILURE" in line or "violated" in line.lower():
+                is_failure = (
+                    "[FAILED]" in line
+                    or "[FAIL]" in line
+                    or "FAILURE" in line
+                    or "violated" in line.lower()
+                )
+                if is_failure and "[PASSED]" not in line:
                     # Extract finding details
                     finding_type = self._extract_finding_type(line)
                     location_info = self._extract_location(lines, idx)
@@ -375,31 +451,38 @@ class MedusaAdapter(ToolAdapter):
         return {"file": "unknown", "line": 0, "function": "unknown"}
 
     def _extract_coverage_metrics(self, output: str) -> Dict[str, Any]:
-        """Extract coverage metrics from Medusa output."""
+        """Extract coverage metrics from medusa 1.3.x output (ANSI-stripped).
+
+        medusa reports progress as, e.g.
+        ``fuzz: elapsed: 3s, calls: 140003 (46667/sec), seq/s: 466,
+        branches hit: 81, corpus: 2, failures: 0/1399, gas/s: ...``
+        and a final ``Test summary: N test(s) passed, M test(s) failed``.
+        There is no "coverage: N%" line, so the exercised signal is calls /
+        corpus / tests, not a percentage."""
         metrics: Dict[str, Any] = {
-            "tests_run": 0,
-            "coverage_percentage": 0,
-            "paths_explored": 0,
+            "calls": 0,
+            "branches_hit": 0,
             "corpus_size": 0,
+            "tests_passed": 0,
+            "tests_failed": 0,
         }
 
         try:
-            lines = output.split("\n")
-            for line in lines:
-                if "coverage:" in line.lower():
-                    # Extract percentage
-                    parts = line.split()
-                    for part in parts:
-                        if "%" in part:
-                            metrics["coverage_percentage"] = float(part.replace("%", ""))
-
-                if "tests:" in line.lower() or "sequences:" in line.lower():
-                    parts = line.split()
-                    for _i, part in enumerate(parts):
-                        if part.isdigit():
-                            metrics["tests_run"] = int(part)
-                            break
-
+            text = _ANSI_RE.sub("", output or "")
+            # Successive progress lines overwrite; the last match wins (final count).
+            for m in re.finditer(r"calls:\s*(\d+)", text):
+                metrics["calls"] = int(m.group(1))
+            for m in re.finditer(r"branches hit:\s*(\d+)", text):
+                metrics["branches_hit"] = int(m.group(1))
+            for m in re.finditer(r"corpus:\s*(\d+)", text):
+                metrics["corpus_size"] = int(m.group(1))
+            summary = re.search(
+                r"Test summary:\s*(\d+)\s*test\(s\)\s*passed,\s*(\d+)\s*test\(s\)\s*failed",
+                text,
+            )
+            if summary:
+                metrics["tests_passed"] = int(summary.group(1))
+                metrics["tests_failed"] = int(summary.group(2))
         except Exception as e:
             logger.warning(f"Error extracting coverage metrics: {e}")
 

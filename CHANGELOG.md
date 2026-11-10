@@ -7,6 +7,21 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Documentation
+
+- **Optional tools documented honestly (P2-8): Certora, Vertigo, DA-GNN.** These three adapters are
+  optional (per [ADR-0003](docs/adr/0003-optional-tools-dpga-compliance.md)) but their real setup was
+  undocumented or wrong. `docs/TOOLS.md` now has an **Optional & experimental tools** section and a
+  Vertigo (Layer 2) row; `docs/INSTALLATION.md` and `docs/INSTALLATION_ES.md` carry the corrected
+  rows. Each entry states the exact install and what MIESC reports without the tool
+  (`not_installed` / `configuration_error`), so an absent optional tool reads as expected, not broken.
+  Corrections verified against the adapters and a clean install: **Certora** needs `certora-cli` plus
+  `CERTORAKEY` (the row previously said only "free tier"); **Vertigo** is
+  `pip install eth-vertigo pyyaml` (upstream 1.3.0 omits the PyYAML its CLI imports) and the adapter
+  gates on Foundry (`forge`) while upstream drives Truffle/Hardhat — experimental; **DA-GNN** needs
+  `pip3 install torch torch-geometric scikit-learn networkx` plus Slither, with a heuristic fallback
+  (the row previously said only "Built-in"/"Incluido", which implied zero setup).
+
 ### Added
 
 - **Caracal adapter — experimental Cairo/Starknet support.** MIESC can now analyze Cairo
@@ -23,6 +38,87 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   gains a "Cairo / Starknet (experimental)" section; `scripts/bootstrap_researcher_tools.sh` and
   an opt-in Docker layer install Caracal (gated on rustc ≥ 1.94). Experimental: no recall/precision
   numbers for Cairo yet (benchmark is future work). See `docs/guides/CAIRO.md` and `docs/MULTICHAIN.md`.
+
+- **Lending solvency hypotheses — SDD Phase 2 (deterministic, advisory).** The lending
+  solvency/liquidation miner (`miesc/llm/lending_solvency_liquidation.py`) now adds
+  `solvency_hypotheses` to the market model it already builds. A hypothesis is a **guard-gap**:
+  for a state-changing entrypoint (`borrow`, `withdraw`/`redeem`, `liquidate`/`seize`) it is emitted
+  only when the guard that would disprove it is **not visible in that function's body**, mirroring
+  `GuardGapHypothesis` in `revert_invariant_mining`. Six categories ship — insolvent_borrow,
+  unsafe_withdraw, liquidation_bypass, liquidation_over_seizure, interest_accrual_gap,
+  stale_price_solvency; the other six SDD categories wait for the LLM reasoning agent. Suppression
+  is what keeps it from echoing the Phase-1 inventory: an in-body collateral/health/threshold check,
+  a delegated check (`*Allowed` / `check*` / `isSolvent` / `*Collateralized` / `validate*`), or
+  delegation of the whole operation to a `*Logic` library all silence the hypothesis; `view`/`pure`
+  getters and `internal`/`private` helpers never trigger one. Every hypothesis carries at least one
+  `negative_check` (the condition that rejects it), and the last check always cedes to a delegated
+  controller or the oracle-feed plan that may already own the guard.
+
+  **Advisory, never a Finding** — `promotion.state` stays `hypothesis`; only replay, fuzzing,
+  symbolic execution or human review promotes it. Non-canonical guard-gap counts (a sanity check,
+  not a benchmark): the **real Aave v3 `Pool.sol` → 0** (every entrypoint delegates to a `*Logic`
+  library, which suppresses), and a **simplified Compound III reference model → 1** (unsafe_withdraw,
+  where the collateral check sits in an internal helper the intra-function heuristic does not
+  follow). The parser round-trips the hypotheses and also accepts the SDD's singular
+  `solvency_hypothesis` key, dropping any entry with an unknown category or no negative check.
+
+- **Echidna can generate and fuzz an economic-invariant harness (P1-3a, opt-in).** The economic
+  harness generator (`economic_harness`, which binds an **ERC-4626 vault** or **Compound-V2 market**
+  and emits runnable `echidna_*` properties) was reachable only through `miesc verify`. The Echidna
+  adapter can now use it directly: with `generate_harness` enabled it detects the target's class, has
+  `economic_harness` generate a harness, and fuzzes its named invariants — so echidna evaluates real
+  economic properties (vault solvency, share-price monotonicity, first-deposit / inflation guards)
+  instead of a bare run that finds nothing. It tries each class in turn and uses the first that binds;
+  a target that is neither a vault nor a market falls through to the bare run (reported honestly by
+  the inconclusive verdict). A `clean` result means **those named invariants held under fuzzing** (the
+  list is in `metadata.economic_properties`), not that the contract is safe.
+
+  **Off by default** — it writes a harness next to the target and runs a full campaign, so it must not
+  fire on the `doctor --smoke` probe or a bare `scan`; enable it where that cost is wanted. The
+  recursion guard lives inside `run_economic_fuzz` (it forces its inner adapter to `generate_harness =
+  False`), so the loop is impossible by construction regardless of the adapter passed. Verified
+  end-to-end against real echidna: a minimal ERC-4626 vault → harness generated, 4 invariants fuzzed
+  and held (`clean`, `campaign_exercised: true`).
+
+- **Medusa actually fuzzes now: harness detection + 1.3.x compatibility (P1-3a).** The Medusa adapter
+  was effectively a no-op on medusa 1.3.x — it passed the removed `--assertion-mode` flag (medusa
+  exited 1 before fuzzing), ran with no `targetContracts` (medusa aborts with "specify target
+  contract(s)" on a multi-contract project), and parsed a `"coverage: N%"` line that 1.3.x does not
+  print (so even a genuine campaign read as `inconclusive`). The adapter now:
+  - **drops the dead flag** and runs medusa through a generated `medusa.json`;
+  - **detects a fuzzing harness** — a new `miesc/adapters/_medusa_harness.py` scans first-party
+    Solidity (excluding `lib/`, `node_modules/`, and Foundry `*.t.sol` unit tests) for
+    `property_* / invariant_* / echidna_*` functions and targets the contracts that declare them,
+    enabling all three prefixes; this is detection, never invention — it points medusa at a harness the
+    project already ships;
+  - **falls back to the first-party concrete contracts** (`src/` / `contracts/`, skipping interfaces /
+    libraries / `abstract`) when no harness exists;
+  - **parses the real medusa 1.3.x output** (`calls` / `branches hit` / `corpus` / `Test summary`,
+    ANSI-stripped; `[FAILED] … Test:` becomes a finding), so a run that actually fuzzed is reported
+    `functional`, and one that never fuzzed (no harness, a non-deployable target) is `inconclusive`
+    with a named reason ("no fuzzable property/invariant/echidna harness found"), never a bare error.
+
+  Verified end-to-end against real medusa 1.3.1: a synthetic harness project fuzzed (139k calls, 81
+  branches, exercised) → `functional`; the Uniswap-v4-hook target with no harness → `inconclusive` with
+  the reason, not a false clean. Auto-synthesising invariants for arbitrary targets is unsound and
+  stays out of scope; wiring the economic-invariant harness generator into the **echidna** adapter
+  (property-native) is a follow-up.
+
+- **`miesc doctor --smoke` / `--smoke-all`: a functional probe that reports whether a tool *runs*,
+  not just whether it is *installed*.** `doctor` has always reported tool *availability*
+  (`is_available`), which overstates reality — a tool can be present yet fail on a real target (wrong
+  input type, a dead CLI flag, a missing backend). The new opt-in probe runs each available tool
+  against a tiny self-contained contract, in an isolated subprocess with a hard wall-clock timeout,
+  and reports one of four honest verdicts: **functional** (ran, returned `success`/`inconclusive`),
+  **degraded** (installed but errored/produced nothing on the fixture), **slow** (did not finish in
+  the probe budget — explicitly *not* "broken"), or **needs-backend** (an LLM-backed tool with no
+  reachable Ollama, labelled without spawning a probe). It prints the headline gap
+  `functional X / available Y / total Z`. `--smoke` covers the fast, deterministic layers (static,
+  ML, specialized, cross-chain); `--smoke-all` adds the slow ones (fuzzing, symbolic, formal, AI) with
+  a longer per-probe budget. Cloud LLM keys are stripped from the probe environment so a smoke run
+  never reaches a paid API. A `functional` verdict means the tool runs on a 15-line contract, not that
+  it works on a real multi-file project — the probe catches the crash / wrong-input / dead-flag class
+  of wiring bug.
 
 - **Visual polish + Immunefi submission-readiness for the premium / profesional / profesional-es
   reports.** The three audit templates and the `profesional.css` / `profesional-es.css`
@@ -78,6 +174,31 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   English; localizing those is a follow-up.
 
 ### Fixed
+
+- **LLM adapter results now carry an extraction diagnostic, so "0 findings" is distinguishable from
+  a parse failure.** An AI adapter that returned `0 findings, status: success` gave no way to tell
+  "the model found nothing" from "the model's response could not be parsed" — the raw reasoning was
+  dropped. `extract_llm_json` now records a small diagnostic in a thread-local sink, and `run_tool`
+  attaches it to the tool result as `metadata.llm_extraction`: `{parsed, strategy, error, empty,
+  raw_excerpt}`. The three cases are now tellable apart — parsed-non-empty (no excerpt), parsed-empty
+  (a bounded raw excerpt, so the empty answer can be inspected), and parse-failed (excerpt + error).
+  The mechanism is central (no per-adapter changes; every LLM adapter that funnels through
+  `extract_llm_json` is covered, keyed by a normalized log prefix) and `run_tool` clears the sink
+  before each tool so a non-LLM tool never inherits a stale entry. Known gap: an adapter that makes
+  its LLM calls in its own worker threads records into those threads' sinks, so `run_tool` attaches
+  nothing for it — never a sibling's result. The complementary full-raw capture remains
+  `MIESC_LLM_DUMP_DIR` (writes each raw response to a file). Diagnostics only — no status or
+  behaviour change.
+
+- **`inconclusive` is now a first-class tool status (no longer mislabeled as `error`).** The honest
+  `inconclusive` verdict the fuzzing adapters emit for a campaign that never exercised the contract
+  was not registered in the canonical status vocabulary, so `normalize_tool_status` rewrote it to
+  `error` with a confusing `reason: "unknown_status:inconclusive"` / `adapter returned unknown status
+  'inconclusive'` in the `audit full` summary. `inconclusive` (and the alias `degraded`) is now part
+  of `TOOL_STATUSES`, `summarize_tool_statuses`, and `format_tool_summary` (which prints a dedicated
+  `· inconclusive N` segment and counts it in the total), in both the CLI and the ML orchestrator's
+  copy of the mapping. It stays grouped with the non-success tools in the audit tool list so it
+  remains visible, while the per-tool line keeps its distinct `inconclusive` label and warning.
 
 - **Clear, fail-fast error when `miesc` runs under an unsupported Python.** MIESC targets Python
   >= 3.12, but when the `miesc` console script is installed for an older interpreter, importing the

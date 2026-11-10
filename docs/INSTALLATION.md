@@ -144,7 +144,7 @@ cargo install aderyn
 npm install -g solhint
 ```
 
-### Layer 2: Dynamic Testing (4 tools)
+### Layer 2: Dynamic Testing (5 tools)
 
 | Tool | Installation | Notes |
 |------|--------------|-------|
@@ -152,6 +152,7 @@ npm install -g solhint
 | Medusa | Binary from releases | Coverage-guided fuzzer |
 | Foundry | `curl -L foundry.paradigm.xyz \| bash && foundryup` | Complete toolkit |
 | DogeFuzz | Built-in | No external install |
+| Vertigo | `pip install eth-vertigo pyyaml` + Foundry (`forge`) | Mutation testing, optional/experimental; adapter gates on `forge`, upstream drives Truffle/Hardhat |
 
 ```bash
 # Foundry
@@ -193,7 +194,7 @@ pip install halmos
 
 | Tool | Installation | Notes |
 |------|--------------|-------|
-| Certora | [certora.com](https://docs.certora.com) | Commercial, free tier |
+| Certora | `pip install certora-cli` + `CERTORAKEY` ([certora.com](https://docs.certora.com)) | Commercial/cloud, optional; `not installed` without the CLI, `configuration_error` without a key |
 | SMTChecker | Included with solc | Built-in |
 | Wake | `pip install eth-wake` | Python framework |
 
@@ -225,7 +226,7 @@ ollama pull qwen2.5-coder:32b   # default_model for verification (~20 GB, 24+ GB
 
 | Tool | Installation | Notes |
 |------|--------------|-------|
-| DA-GNN | Built-in | Graph neural network |
+| DA-GNN | Built-in code + `pip3 install torch torch-geometric scikit-learn networkx` | Graph neural network, optional; needs Slither + ML stack, heuristic fallback without a pre-trained model |
 | SmartBugs-ML | Built-in | ML classifier |
 | SmartBugs-Detector | Built-in | SWC-category detection |
 | SmartGuard | Built-in | Pattern matching |

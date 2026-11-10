@@ -137,7 +137,7 @@ cargo install aderyn
 npm install -g solhint
 ```
 
-### Capa 2: Pruebas Dinámicas (4 herramientas)
+### Capa 2: Pruebas Dinámicas (5 herramientas)
 
 | Herramienta | Instalación | Notas |
 |-------------|-------------|-------|
@@ -145,6 +145,7 @@ npm install -g solhint
 | Medusa | Binario de releases | Fuzzer guiado por cobertura |
 | Foundry | `curl -L foundry.paradigm.xyz \| bash && foundryup` | Toolkit completo |
 | DogeFuzz | Incluido | Sin instalación externa |
+| Vertigo | `pip install eth-vertigo pyyaml` + Foundry (`forge`) | Mutation testing, opcional/experimental; el adapter exige `forge`, upstream opera sobre Truffle/Hardhat |
 
 ```bash
 # Foundry
@@ -186,7 +187,7 @@ pip install halmos
 
 | Herramienta | Instalación | Notas |
 |-------------|-------------|-------|
-| Certora | [certora.com](https://docs.certora.com) | Comercial, tier gratuito |
+| Certora | `pip install certora-cli` + `CERTORAKEY` ([certora.com](https://docs.certora.com)) | Comercial/cloud, opcional; `not installed` sin el CLI, `configuration_error` sin clave |
 | SMTChecker | Incluido con solc | Incorporado |
 | Wake | `pip install eth-wake` | Framework Python |
 
@@ -218,7 +219,7 @@ ollama pull qwen2.5-coder:32b   # verificación (~20 GB, 24+ GB de RAM)
 
 | Herramienta | Instalación | Notas |
 |-------------|-------------|-------|
-| DA-GNN | Incluido | Red neuronal de grafos |
+| DA-GNN | Código incluido + `pip3 install torch torch-geometric scikit-learn networkx` | Red neuronal de grafos, opcional; requiere Slither + stack ML, heurística de respaldo sin modelo preentrenado |
 | SmartBugs-ML | Incluido | Clasificador ML |
 | SmartBugs-Detector | Incluido | Detección de categorías SWC |
 | SmartGuard | Incluido | Coincidencia de patrones |

@@ -18,6 +18,7 @@ Complete list of security tools integrated across 9 defense layers. MIESC provid
 | [Medusa](https://github.com/crytic/medusa) | 0.1.x | AGPL-3.0 | Coverage-guided fuzzer |
 | [Foundry](https://github.com/foundry-rs/foundry) | nightly | MIT | Testing toolkit |
 | [DogeFuzz](https://github.com/AdrienC21/dogefuzz) | - | Research | AFL-style fuzzing |
+| [Vertigo](https://github.com/JoranHonig/vertigo) | 1.3.0 | MIT | Mutation testing (experimental) |
 
 ## Layer 3: Symbolic Execution
 
@@ -106,6 +107,37 @@ docker run --rm -v $(pwd):/contracts ghcr.io/fboiero/miesc:latest audit full /co
 docker build -t miesc:latest .
 docker run --rm -v $(pwd):/contracts miesc:latest audit full /contracts/
 ```
+
+## Optional & experimental tools
+
+Every MIESC tool is optional (see [ADR-0003](adr/0003-optional-tools-dpga-compliance.md)): the core
+runs with zero external tools and degrades gracefully. When a tool is absent, MIESC reports it as
+`not installed` — or `configuration_error` when it is present but unconfigured — and keeps going.
+That status is expected, not a failure. The tools below need setup beyond `pip install miesc`:
+
+| Tool | Layer | Install | Without it, MIESC reports |
+|------|-------|---------|---------------------------|
+| Certora | 4 | `certora-cli` + `CERTORAKEY` ([certora.com](https://www.certora.com/)) | `not installed` (CLI absent) / `configuration_error` (no key) |
+| Vertigo | 2 | `pip install eth-vertigo pyyaml` + Foundry (`forge`) + a Truffle/Hardhat project | `not installed` |
+| DA-GNN | 6 | `pip3 install torch torch-geometric scikit-learn networkx` + Slither | `not installed` |
+
+(Statuses as `miesc doctor` prints them.)
+
+**Certora** (formal verification) is a commercial, cloud-backed prover: the adapter needs the
+`certora-cli` on `PATH` and the `CERTORAKEY` environment variable. Without them it reports
+`not installed` when the CLI is missing, or `configuration_error` when the CLI is present but the key
+is unset or the version check times out. MIESC never requires it.
+
+**Vertigo** (mutation testing, Layer 2) is **experimental**. `pip install eth-vertigo` pulls
+`eth-vertigo` 1.3.0, whose CLI imports `PyYAML` — a dependency upstream does not declare — so install
+`pip install eth-vertigo pyyaml`. The MIESC adapter also gates availability on Foundry (`forge`) being
+on `PATH`, yet upstream 1.3.0 drives **Truffle/Hardhat** projects (Ganache networks) and ships no
+Foundry runner — so the adapter's Foundry assumption is not yet exercised end-to-end.
+
+**DA-GNN** (graph-neural-network detection, Layer 6) ships as MIESC code but needs the ML stack
+`pip3 install torch torch-geometric scikit-learn networkx` plus Slither for graph extraction. No
+pre-trained model ships; without one it falls back to a reduced-accuracy heuristic. The 95.7%
+accuracy figure is the source research's, not a MIESC benchmark result.
 
 ## Custom Tool Integration
 

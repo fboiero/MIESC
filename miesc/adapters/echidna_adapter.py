@@ -168,6 +168,11 @@ class EchidnaAdapter(ToolAdapter):
         self.timeout = self.config.get("timeout", 600)
         self.corpus_dir = self.config.get("corpus_dir", None)
         self.config_file = self.config.get("config_file", None)
+        # Opt-in: generate an economic-invariant harness (ERC4626 / Compound-V2)
+        # and fuzz it. OFF by default — it writes a harness next to the target
+        # and runs a full campaign, so it must not fire on the smoke probe or a
+        # bare `scan`; enable it where that cost is wanted.
+        self.generate_harness = self.config.get("generate_harness", False)
 
         logger.debug(f"Echidna adapter initialized (test_limit={self.test_limit})")
 
@@ -251,6 +256,15 @@ class EchidnaAdapter(ToolAdapter):
                 "execution_time": time.time() - start_time,
                 "error": "Echidna not available",
             }
+
+        # Opt-in economic-invariant harness: generate a harness that binds the
+        # target's ERC4626/Compound-V2 shape and fuzz its `echidna_*` properties.
+        # Returns None (falls through to a bare run) when disabled, when the
+        # target is not a single .sol file, or when nothing binds.
+        if self.generate_harness:
+            harness_result = self._try_economic_harness(contract_path, **kwargs)
+            if harness_result is not None:
+                return harness_result
 
         try:
             # Build echidna command
@@ -483,6 +497,64 @@ class EchidnaAdapter(ToolAdapter):
             return raw_output
         else:
             return []
+
+    def _try_economic_harness(self, contract_path: str, **kwargs: Any) -> Optional[Dict[str, Any]]:
+        """Generate an economic-invariant harness for ``contract_path`` and fuzz
+        it, returning a normalized result — or ``None`` to fall through to a bare
+        run (not a single ``.sol``, nothing binds, echidna/deps missing).
+
+        ``run_economic_fuzz`` forces its inner adapter to ``generate_harness =
+        False``, so this never recurses.
+        """
+        path = Path(contract_path)
+        if not (path.is_file() and path.suffix == ".sol"):
+            return None
+        try:
+            from miesc.formal.economic_harness import invariant_classes, run_economic_fuzz
+
+            # A harness binds one class (ERC-4626 vault or Compound-V2 market);
+            # try each in turn and use the first that binds. A non-binding class
+            # is skipped before echidna runs, so at most one campaign executes.
+            eco = None
+            for inv_names in invariant_classes().values():
+                attempt = run_economic_fuzz(
+                    contract_path,
+                    inv_names,
+                    test_limit=self.test_limit,
+                    timeout=int(kwargs.get("timeout") or self.timeout),
+                )
+                if attempt.get("status") in ("detected", "clean"):
+                    eco = attempt
+                    break
+        except Exception as e:  # never let harness generation break the scan
+            logger.debug(f"Economic harness generation skipped: {e}")
+            return None
+
+        if eco is None:
+            # Nothing bound (not a vault / market), echidna absent, or error ->
+            # fall through to a bare run (reported honestly by #317).
+            return None
+
+        # The harness fuzzed real `echidna_*` invariants, so this is a genuine
+        # (exercised) run: `clean` means those named properties HELD, not that
+        # the contract is safe.
+        echidna_meta = eco.get("echidna") or {}
+        return {
+            "tool": "echidna",
+            "version": "1.0.0",
+            "status": "success",
+            "findings": eco.get("findings", []),
+            "execution_time": echidna_meta.get("execution_time", 0),
+            "tests_run": echidna_meta.get("tests_run", 0),
+            "metadata": {
+                "harness_generated": True,
+                "harness_mode": "economic_invariant",
+                "economic_status": eco.get("status"),
+                "economic_properties": eco.get("properties", []),
+                "target_contract": eco.get("target_contract"),
+                "campaign_exercised": True,
+            },
+        }
 
     def can_analyze(self, contract_path: str) -> bool:
         """Check if file can be analyzed"""
