@@ -322,3 +322,64 @@ This piece can start independently of the tool choice.
 - shadowhare: docs.rs/crate/shadowhare/0.9.0 (README + Cargo.toml), GitHub API
   `Shadowhare/shadow-hare`.
 - cairo-lint / scarb lint: docs.swmansion.com (cairo-lint, scarb linter + JSON output).
+
+---
+
+## 9. Option B ACCEPTED (owner) — fork execution plan
+
+**Status: Option B ACCEPTED** by Fernando (relayed 2026-11-10): fork Caracal and
+run it against recent Cairo. The PoC absorbs the fork as the prerequisite that
+unblocks F1–F6 against current Cairo; the fork is a candidate upstream PR (grant
+milestone M3).
+
+### Material discovery — the port already exists (and is green)
+
+The owner's decision was relayed framing B as a **from-scratch** 2.5.0 → 2.9.x
+bump ("the cairo-lang API changed a lot, may be deep"). That framing crossed in
+flight with this scouting result:
+
+- **`adrienlacombe/caracal` v0.3.0 (2026-08-29) already performed the bump to
+  Cairo `v2.20.0`**, stepping through **every** intermediate release — 2.6.4,
+  2.7.1, 2.8.5, **2.9.4**, 2.10.1 … 2.20.0 — **with per-step `insta` snapshot
+  review** (per its CHANGELOG). All `cairo-lang-*` pinned to tag `v2.20.0`;
+  vendored corelib matches.
+- **Corelib is embedded in the binary** (`src/compilation/corelib.rs`) → no
+  `--corelib` / `CORELIB_PATH` setup; this removes the standalone-mode friction
+  §4 flagged.
+- **CI is green on `master`** (scheduled builds 2026-09-27 / 10-04 / 10-11 all
+  `success`; the only red runs are automated Dependabot dependency PRs, not the
+  mainline build). Workflows: CI, Release, CodeQL.
+- **Build requirement:** Cairo ≥2.19 needs **rustc ≥ 1.94** (local is **1.90** →
+  Rust toolchain must be updated). Still **text output**, same 13 detectors.
+
+This collapses B's cost from "weeks of porting / possibly infeasible" to "base
+off an existing, CI-green v2.20.0 fork, update the local Rust + Scarb toolchain,
+and clear the one authorized `detect` run (gate)."
+
+### Open sub-decisions (owner) — pending before any build/push
+
+1. **Base vs from-scratch:** base the work on `adrienlacombe/caracal` v2.20.0
+   (recommended — the careful per-version port is done and green; attribute it)
+   **vs** redo the 2.5→2.x port from scratch for sole authorship. The latter is
+   weeks of redundant work; the former can still land as an upstream PR /
+   collaboration.
+2. **Target Cairo version:** `v2.20.0` (recommended — newest, and it already
+   covers local 2.9.2) vs pinning down to 2.9.x specifically.
+3. **Fork remote:** the fork lives under **Fernando's GitHub** — the exact
+   owner/repo for the remote is required before any push (do not assume).
+4. **Toolchain bump (local env):** rustc 1.90 → ≥1.94, and Scarb 2.9.2 → match
+   the chosen Cairo tag (asdf; keep the pin local; mind the `~/.local/bin/scarb`
+   PATH trap from §4).
+
+### Gate (unchanged)
+
+Whichever base/version: the fork must **compile and run end-to-end** on a real
+Scarb/Cairo project (known-vulnerable function fires its detector; empty exit 0
+is not a pass) **before F2**. Executing the binary hits the `[Code from External]`
+permission wall — resolve with the owner in-session (permission rule, or owner
+runs the step); do not bypass. If the bump proves infeasible on this host, STOP
+and report.
+
+### Sources
+
+- `adrienlacombe/caracal` CHANGELOG, Cargo.toml, Actions runs/workflows — GitHub API.
