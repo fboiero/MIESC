@@ -139,6 +139,7 @@ from .finding_validator import (
 from .lending_solvency_liquidation import (
     LendingMarket,
     LendingSolvencyLiquidationPlan,
+    SolvencyHypothesis,
     mine_lending_solvency_liquidation,
     parse_lending_solvency_plans,
 )
@@ -359,6 +360,7 @@ __all__ = [
     "parse_sequence_oracle_plans",
     "LendingMarket",
     "LendingSolvencyLiquidationPlan",
+    "SolvencyHypothesis",
     "mine_lending_solvency_liquidation",
     "parse_lending_solvency_plans",
     "GovernanceActor",
