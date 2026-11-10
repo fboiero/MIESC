@@ -7,6 +7,21 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Documentation
+
+- **Optional tools documented honestly (P2-8): Certora, Vertigo, DA-GNN.** These three adapters are
+  optional (per [ADR-0003](docs/adr/0003-optional-tools-dpga-compliance.md)) but their real setup was
+  undocumented or wrong. `docs/TOOLS.md` now has an **Optional & experimental tools** section and a
+  Vertigo (Layer 2) row; `docs/INSTALLATION.md` and `docs/INSTALLATION_ES.md` carry the corrected
+  rows. Each entry states the exact install and what MIESC reports without the tool
+  (`not_installed` / `configuration_error`), so an absent optional tool reads as expected, not broken.
+  Corrections verified against the adapters and a clean install: **Certora** needs `certora-cli` plus
+  `CERTORAKEY` (the row previously said only "free tier"); **Vertigo** is
+  `pip install eth-vertigo pyyaml` (upstream 1.3.0 omits the PyYAML its CLI imports) and the adapter
+  gates on Foundry (`forge`) while upstream drives Truffle/Hardhat — experimental; **DA-GNN** needs
+  `pip3 install torch torch-geometric scikit-learn networkx` plus Slither, with a heuristic fallback
+  (the row previously said only "Built-in"/"Incluido", which implied zero setup).
+
 ### Added
 
 - **Echidna can generate and fuzz an economic-invariant harness (P1-3a, opt-in).** The economic
