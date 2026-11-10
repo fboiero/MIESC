@@ -463,3 +463,41 @@ error path.
 Proceed to F1 (fixtures), reusing the fork's `tests/detectors/*.cairo` as
 ground truth + a minimal Scarb/Cairo 2.20 project. Fork push to the owner's
 GitHub is a separate step pending the owner/repo name (attribution / grant M3).
+
+---
+
+## 12. F2–F3 status + fork pin (2026-11-10)
+
+**Fork build pinned at commit** `db75d06bbf3f1872755ed615b095039e7db457ea`
+(`adrienlacombe/caracal` master, v0.3.0, Cairo 2.20.0). F4 bootstrap/Docker
+should install exactly this: `cargo install --git
+https://github.com/adrienlacombe/caracal --rev db75d06 --profile release`
+(or Fernando's fork once pushed to `fboiero/caracal`). Build needs rustc ≥1.94.
+
+**F2 (commit 5b0a8bf4):** `CaracalAdapter` — JSON parse, per-detector
+severity/CWE/OWASP/recommendation, honest-error (exit ∉{0,1} → status "error"),
+function parsed from the message, registered as `caracal`.
+
+**F3 (commits d0ce57b2, 33352917, bac46842):**
+- Routing: `.cairo` file / Scarb project / loose-`.cairo` dir → `caracal` + the
+  pattern adapter; Solidity path untouched (mixed `.sol`+`.cairo` dir stays EVM;
+  verified, EVM suite green).
+- `CairoPatternAdapter` registered as `cairo` (low-confidence correlation pair);
+  `STORAGE_COLLISION` gated on an upgrade marker (was a universal FP).
+- Taxonomy: Caracal slugs + a few Cairo values mapped; the generic
+  `arithmetic`/`access_control`/`storage_collision` keys deliberately NOT added
+  (EVM/other-chain adapters emit them — additive constraint).
+- Cross-tool corroboration: when Caracal and the pattern adapter agree on
+  (file, canonical category), confidence is raised (+0.15) and the finding is
+  flagged — satisfies the DoD "confidence rises when they coincide" (the shared
+  line-level dedup can't merge them because Caracal is Sierra/function-level).
+- SARIF 2.1.0 export verified for Cairo findings. Clean contract → 0 findings
+  (incl. `--ci`). Honest error surfaced when Caracal (primary) fails.
+- 273 existing tests green across the changed modules (taxonomy, cairo,
+  exporters, intelligence, scan EVM paths).
+
+**Still owed before F4 close:** F1 fixtures currently cover 9 detectors — expand
+to one per Caracal detector (fork ships `tests/detectors/*.cairo` for all;
+`unenforced-view` is Cairo-1-only, document as N/A); and the Scarb-PROJECT scan
+path (DoD) needs a `Scarb.toml` fixture + Scarb 2.20 installed alongside local
+2.9.2 (non-disruptive, invoked by path — mind the `~/.local/bin/scarb` trap).
