@@ -1063,6 +1063,23 @@ def _run_cairo_scan(
             result.setdefault("contract", str(target))
             all_results.append(result)
 
+    # Honest-error surfacing: Caracal is the primary (semantic) Cairo analyzer;
+    # the pattern adapter always "succeeds". If Caracal errored or was skipped
+    # (not installed, compile failure, panic), say so loudly — a "0 findings"
+    # result from the pattern adapter alone must NOT be read as "clean".
+    caracal_records = [r for r in all_results if r.get("tool") == "caracal"]
+    caracal_ok = any(r.get("status") == "success" for r in caracal_records)
+    if not caracal_ok and not quiet:
+        reasons = "; ".join(
+            f"{r.get('status')}: {r.get('error') or r.get('reason') or '?'}"
+            for r in caracal_records
+        ) or "caracal produced no result"
+        warning(
+            f"Caracal (primary Cairo analyzer) did not run successfully ({reasons}). "
+            "Findings below are from the pattern adapter only — a '0 findings' result "
+            "does NOT mean the contract is clean. Run 'miesc doctor' or set CARACAL_BIN."
+        )
+
     # Tag each finding with its source file.
     for result in all_results:
         for finding in result.get("findings", []):

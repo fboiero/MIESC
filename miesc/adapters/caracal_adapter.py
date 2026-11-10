@@ -25,6 +25,7 @@ fuzzing-adapter honest-error fix.
 import json
 import logging
 import os
+import re
 import subprocess
 import time
 from pathlib import Path
@@ -342,6 +343,25 @@ class CaracalAdapter(ToolAdapter):
             },
         )
 
+    # Matches a Cairo fully-qualified path (mod::mod::Contract::func) in a
+    # finding message so distinct findings keep distinct functions (Caracal does
+    # not emit a structured function field, and the intelligence engine's dedup
+    # keys on location.function — without this every finding of one detector in a
+    # file would collapse to a single group).
+    _PATH_RE = re.compile(r"[A-Za-z_]\w*(?:::[A-Za-z_]\w*)+")
+
+    @classmethod
+    def _function_from_message(cls, first_line: str) -> str:
+        """Best-effort function name = last segment of the first Cairo path in
+        the message (e.g. '...::TestContract::__wrapper__bad1' -> 'bad1').
+        Returns '' when no path is present."""
+        match = cls._PATH_RE.search(first_line)
+        if not match:
+            return ""
+        last = match.group(0).split("::")[-1]
+        # Drop Starknet entrypoint wrappers so 'bad1' and '__wrapper__bad1' agree.
+        return last.removeprefix("__wrapper__")
+
     # ------------------------------------------------------------- normalize
     def normalize_findings(self, raw_output: Any) -> List[Dict[str, Any]]:
         """Normalize a parsed Caracal JSON array to MIESC findings.
@@ -385,6 +405,7 @@ class CaracalAdapter(ToolAdapter):
 
             # Short message = first line; full multi-line text -> description.
             short_message = message.split("\n", 1)[0].strip() or detector
+            function = self._function_from_message(short_message)
 
             normalized.append(
                 {
@@ -395,7 +416,7 @@ class CaracalAdapter(ToolAdapter):
                     "location": {
                         "file": file_path,
                         "line": line,
-                        "function": "",
+                        "function": function,
                     },
                     "message": short_message,
                     "description": message or short_message,

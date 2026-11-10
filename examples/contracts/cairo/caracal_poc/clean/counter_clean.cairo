@@ -1,5 +1,5 @@
-// A deliberately clean Starknet contract: storage + a read-only view, no external
-// state changes, no syscalls. Used as the negative fixture (expected: zero findings).
+// A deliberately clean Starknet contract: storage with a read-only view, no
+// external state changes, no syscalls. Negative fixture (expected: zero findings).
 #[starknet::interface]
 trait ICounter<TContractState> {
     fn get(self: @TContractState) -> u128;

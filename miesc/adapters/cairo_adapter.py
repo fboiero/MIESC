@@ -378,7 +378,15 @@ class CairoAnalyzer:
                     return i + 1  # 1-indexed
             return len(lines)
 
+        # STORAGE_COLLISION only matters for UPGRADEABLE contracts (the storage
+        # layout must stay stable across implementations). Its pattern matches
+        # `#[storage] struct Storage`, which every Starknet contract has, so gate
+        # it on an upgrade marker to avoid a finding on every single contract.
+        upgradeable = bool(re.search(r"replace_class", code))
+
         for vuln_type, cfg in CAIRO_PATTERNS.items():
+            if vuln_type == CairoVulnType.STORAGE_COLLISION and not upgradeable:
+                continue
             matched = False
             for pattern in cfg["patterns"]:
                 if matched:
