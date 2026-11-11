@@ -3,7 +3,7 @@
 Detector for Yul / inline-assembly memory and storage safety hazards.
 
 Phase 1 (deterministic, local) of
-``docs/SDD_YUL_ASSEMBLY_MEMORY_SAFETY_HARDENING_20260811.md``. Slither only emits an
+``docs/sdd/SDD_YUL_ASSEMBLY_MEMORY_SAFETY_HARDENING_20260811.md``. Slither only emits an
 *informational* ``assembly`` warning; this detector models a bounded set of assembly
 effects and flags three high-precision hazards. It is intentionally conservative and
 **advisory**: a raw ``assembly`` block is never a finding on its own — promotion requires a
