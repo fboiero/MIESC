@@ -87,12 +87,22 @@ LAYERS: Dict[int, Dict[str, Any]] = {
 # Use `miesc audit full` if you need symbolic execution (Mythril, Halmos, Manticore).
 QUICK_TOOLS: List[str] = ["slither", "aderyn", "solhint"]
 
+# PolkaVM / pallet-revive tools (Solidity compiled via resolc, run on PolkaVM/RISC-V).
+# The Solidity source-level tools apply to the .sol source as-is; the built-in
+# `polkavm_diff` adapter adds the PolkaVM "difference-with-EVM" checks. EVM
+# bytecode/symbolic/fuzzing tools (mythril, manticore, echidna, ...) do NOT apply
+# to a RISC-V target and are deliberately excluded. Used when `miesc scan` is run
+# with `--target polkavm`.
+POLKAVM_TOOLS: List[str] = [*QUICK_TOOLS, "polkavm_diff"]
+
 # Adapter class mapping (tool name -> adapter class name)
 ADAPTER_MAP: Dict[str, str] = {
     # Layer 1: Static Analysis
     "slither": "SlitherAdapter",
     "aderyn": "AderynAdapter",
     "solhint": "SolhintAdapter",
+    # PolkaVM / pallet-revive difference-with-EVM checks (built-in, source-level)
+    "polkavm_diff": "PolkaVMDiffAdapter",
     "wake": "WakeAdapter",
     "semgrep": "SemgrepAdapter",
     "fouranalyzer": "FourAnalyzerAdapter",

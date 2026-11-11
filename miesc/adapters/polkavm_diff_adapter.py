@@ -274,7 +274,7 @@ RULES: List[Rule] = [
 class PolkaVMDiffAdapter(ToolAdapter):
     """Flags PolkaVM/pallet-revive differences in Solidity source (built-in)."""
 
-    NAME = "polkavm-diff"
+    NAME = "polkavm_diff"
     VERSION = "0.1.0"
 
     def get_metadata(self) -> ToolMetadata:

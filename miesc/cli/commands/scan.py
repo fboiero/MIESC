@@ -108,6 +108,15 @@ def _validate_model_option(
     help="Recursively scan subdirectories when CONTRACT is a directory",
 )
 @click.option(
+    "--target",
+    type=click.Choice(["evm", "polkavm"], case_sensitive=False),
+    default="evm",
+    help="Execution target (Experimental). 'polkavm' routes a Solidity contract/dir to the "
+    "PolkaVM / pallet-revive source-level tools plus the difference-with-EVM checks, and "
+    "SKIPS EVM-bytecode/symbolic/fuzzing tools (the target is RISC-V, not EVM). Default "
+    "'evm' keeps the normal EVM path unchanged.",
+)
+@click.option(
     "--diff",
     "diff_ref",
     default=None,
@@ -238,6 +247,7 @@ def scan(
     llm_enhance: bool,
     verbose: bool,
     recursive: bool,
+    target: str,
     diff_ref: str | None,
     frontier_model: str | None,
     llm_timeout: int | None,
@@ -378,6 +388,32 @@ def scan(
         return
 
     contract_path = Path(contract)
+
+    # PolkaVM / pallet-revive routing (Experimental): an explicit --target polkavm
+    # sends a Solidity contract/dir to the source-level + PolkaVM-difference tools
+    # and skips EVM-bytecode tools. Without the flag, the EVM path below is unchanged.
+    if target.lower() == "polkavm":
+        _run_polkavm_scan(
+            contract,
+            output=output,
+            quiet=quiet,
+            verbose=verbose,
+            ci=ci,
+            recursive=recursive,
+            min_confidence=min_confidence,
+            fail_on_confidence=fail_on_confidence,
+            verify_fp=verify_fp,
+            verify_model=verify_model,
+            rank=rank,
+            acceptance_provider=acceptance_provider,
+            baseline_path=baseline_path,
+            fail_on_new=fail_on_new,
+            annotate=annotate,
+            notify_url=notify_url,
+            slack_url=slack_url,
+            notify_min_severity=notify_min_severity,
+        )
+        return
 
     if profile_config and _profile_uses_agentic_path(profile_config):
         if contract_path.is_dir():
@@ -872,6 +908,87 @@ def scan(
         all_results,
         contract=str(contract),
         llm_used=bool(llm_enhance or frontier_model),
+        output=output,
+        quiet=quiet,
+        verbose=verbose,
+        ci=ci,
+        min_confidence=min_confidence,
+        fail_on_confidence=fail_on_confidence,
+        verify_fp=verify_fp,
+        verify_model=verify_model,
+        rank=rank,
+        acceptance_provider=acceptance_provider,
+        baseline_path=baseline_path,
+        fail_on_new=fail_on_new,
+        annotate=annotate,
+        notify_url=notify_url,
+        slack_url=slack_url,
+        notify_min_severity=notify_min_severity,
+    )
+
+
+def _run_polkavm_scan(
+    contract: str,
+    *,
+    output: str | None,
+    quiet: bool,
+    verbose: bool,
+    ci: bool,
+    recursive: bool = False,
+    min_confidence: float = 0.0,
+    fail_on_confidence: float = 0.0,
+    verify_fp: bool = False,
+    verify_model: str | None = None,
+    rank: bool = False,
+    acceptance_provider: str = "none",
+    baseline_path: str | None = None,
+    fail_on_new: bool = False,
+    annotate: str | None = None,
+    notify_url: str | None = None,
+    slack_url: str | None = None,
+    notify_min_severity: str = "low",
+) -> None:
+    """Scan a Solidity contract/dir as a PolkaVM / pallet-revive target.
+
+    Runs POLKAVM_TOOLS (the Solidity source-level tools that apply to the .sol
+    source, plus the built-in ``polkavm_diff`` difference-with-EVM checks). EVM
+    bytecode/symbolic/fuzzing tools are not in that set, so they never run here —
+    the compiled target is PolkaVM (RISC-V), not EVM. Results flow through the
+    shared display/report path (confidence, SARIF-capable exporters, CI gate).
+    """
+    from miesc.cli.constants import POLKAVM_TOOLS
+
+    cpath = Path(contract)
+    if cpath.is_dir():
+        glob_pattern = "**/*.sol" if recursive else "*.sol"
+        sol_files = sorted(cpath.glob(glob_pattern))
+        if not sol_files:
+            error(f"No .sol files found in {contract}" + (" (recursively)" if recursive else ""))
+            sys.exit(1)
+    else:
+        sol_files = [cpath]
+
+    if not quiet:
+        print_banner()
+        info(f"Scanning {contract}")
+        info("Route: PolkaVM / pallet-revive (Experimental) — Solidity source + difference checks")
+        info(f"Tools: {', '.join(POLKAVM_TOOLS)}  (EVM-bytecode/symbolic/fuzzing tools skipped)")
+
+    all_results: list[dict[str, Any]] = []
+    for sol_file in sol_files:
+        if not quiet and cpath.is_dir():
+            info(f"  → {sol_file.name}")
+        for tool in POLKAVM_TOOLS:
+            result = run_tool(tool, str(sol_file), 300)
+            result["contract"] = str(sol_file)
+            for finding in result.get("findings", []):
+                finding.setdefault("file", str(sol_file))
+            all_results.append(result)
+
+    _display_and_save(
+        all_results,
+        contract=str(contract),
+        llm_used=False,
         output=output,
         quiet=quiet,
         verbose=verbose,
