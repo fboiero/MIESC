@@ -53,6 +53,7 @@ authoritative artifact→claim→command mapping.
 | `evaluate_extended_exploits.py` | Extended exploit evaluation (496 contracts). |
 | `correlation_benchmark.py`, `correlation_evaluation.py` | Correlation-engine A/B experiments. |
 | `etherscan_distribution.py` | Etherscan contract-distribution analysis. |
+| `cairo_conformance.py` | Cairo pipeline-conformance check (dedup preservation + clean/uncompilable handling). **Not** a detection-rate benchmark: the fixtures are Caracal's own detector tests, so recall/precision there are true by construction — a real Cairo benchmark needs an independent corpus. |
 
 ## Legacy — predate the camera-ready evaluation
 
