@@ -4,8 +4,9 @@ MIESC can audit Solidity contracts targeting **PolkaVM / `pallet-revive`** — t
 smart-contract engine on Polkadot's Asset Hub, where Solidity is compiled with
 **`resolc`** to PolkaVM (RISC-V) bytecode rather than the EVM.
 
-> **Experimental.** Source-level only, not yet benchmark-validated. Not for
-> production security decisions. See [`../MULTICHAIN.md`](../MULTICHAIN.md).
+> **Experimental.** Source-level heuristics plus compile-level checks (no RISC-V
+> bytecode analysis), not yet benchmark-validated. Not for production security
+> decisions. See [`../MULTICHAIN.md`](../MULTICHAIN.md).
 
 ## The three Polkadot contract models
 
@@ -29,8 +30,9 @@ miesc scan contract.sol --target polkavm -o report.json
 ```
 
 With `--target polkavm`, MIESC runs the Solidity **source-level** tools (Slither,
-Aderyn, Solhint) plus the built-in **`polkavm_diff`** checks, and **skips** EVM
-bytecode / symbolic / fuzzing tools (Mythril, Manticore, Echidna, …) — the
+Aderyn, Solhint) plus two built-in PolkaVM adapters — **`polkavm_diff`** (class-B
+heuristics) and **`polkavm_resolc`** (class-A, runs the compiler) — and **skips**
+EVM bytecode / symbolic / fuzzing tools (Mythril, Manticore, Echidna, …) — the
 compiled target is RISC-V, not EVM, so those do not apply. Without the flag, the
 normal EVM path is used unchanged.
 
@@ -39,9 +41,7 @@ normal EVM path is used unchanged.
 These are **class-(B) "silent runtime differences"** from the
 [revive compiler book](https://paritytech.github.io/revive/user_guide/differences.html):
 code that compiles under `resolc` and is correct on the EVM, but is insecure or
-behaves differently on PolkaVM. (Class-(A) differences — `EXTCODECOPY`, `PC`,
-`BLOBHASH` … — are rejected by `resolc` at compile time, so they are the
-compiler's job, not MIESC's.)
+behaves differently on PolkaVM.
 
 | Check | Difference |
 |---|---|
@@ -51,6 +51,31 @@ compiler's job, not MIESC's.)
 | `polkavm-predictable-prevrandao` | `block.prevrandao` / `difficulty` is a constant on PolkaVM → predictable randomness |
 | `polkavm-constructor-init-order` | Under via-ir, base constructors run before derived state-variable initializers |
 | `polkavm-selfdestruct-semantics` | `selfdestruct` compiles under `resolc` (verified); flagged because its runtime behaviour on `pallet-revive` may differ from the EVM (runtime semantics not independently confirmed) |
+
+## What `polkavm_resolc` checks
+
+The **class-(A)** differences the heuristics above deliberately skip — opcodes
+`resolc` **rejects at compile time**. Measured against resolc 1.5.0, `EXTCODECOPY`
+and `BLOBHASH` are rejected by the LLVM-IR phase ("instruction is not supported")
+and become findings; `PC` is rejected earlier by `solc` itself ("disallowed in
+strict assembly"), so it surfaces as an honest error, not a finding. The
+`polkavm_resolc` adapter runs `resolc` and reports each IR-phase rejection as one
+`polkavm-unsupported-opcode` finding (**High**, confidence 0.99): the compiler is
+the oracle, so this is a confirmed deployability blocker, not a heuristic.
+
+- **Exit 0 → no finding.** The contract compiles for PolkaVM. (This says nothing
+  about class-B; that is `polkavm_diff`'s job.)
+- **A rejection → one finding**, anchored to the opcode in source. `resolc` aborts
+  at the *first* unsupported opcode, so the finding is worded "at least" — more may
+  remain. (`resolc`'s own `L:C` is a compiler-internal offset, not a source line, so
+  it is kept only in metadata.)
+- **Any other compile failure** (a `solc` parse error, a rejected import) is an
+  **honest error**, never a finding and never a false "clean". The `npx` wrapper
+  rejects relative imports, so multi-file contracts are not reliably supported.
+
+`polkavm_resolc` is skipped (never a false "clean") when `resolc` is unresolvable:
+its availability probe checks PATH only (`resolc`, else `node` + `npx` + `solc`)
+and never downloads. The `npx` on-demand path may fetch the compiler on first use.
 
 ## Compiling for PolkaVM (optional, to reproduce the target)
 
@@ -66,7 +91,13 @@ Verified with `resolc 1.5.0` and `solc 0.8.24`.
 
 ## Limitations
 
-- **Source-level only** — no PolkaVM (RISC-V) bytecode analysis.
+- **No PolkaVM (RISC-V) bytecode analysis.** Class-B is source-level heuristics;
+  class-A uses the compiler's own compile-time rejection, not analysis of the
+  produced `.polkavm` blob.
+- **`polkavm_resolc` handles single-file contracts.** The `npx` wrapper rejects
+  relative imports, so a multi-file contract surfaces as an honest error (never a
+  false "clean"); when the rejected opcode is in an imported file the finding
+  reports `line=0`.
 - `pallet-revive` is experimental upstream and changes between releases.
 - No recall/precision benchmark yet.
 - The optional external analyzer **PolkaGuard** can be added as a corroboration

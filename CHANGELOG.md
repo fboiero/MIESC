@@ -24,6 +24,23 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **PolkaVM class-(A) compile-compatibility adapter (`polkavm_resolc`).** New
+  `miesc/adapters/polkavm_resolc_adapter.py` runs the Parity **revive compiler** (`resolc`) on a
+  Solidity contract targeting PolkaVM / `pallet-revive` and surfaces the opcodes `resolc` **rejects
+  at its LLVM-IR phase** (measured: `EXTCODECOPY`, `BLOBHASH`; `PC` is rejected earlier by `solc`, so
+  it is an honest error, not a finding) as `polkavm-unsupported-opcode` findings (High, confidence
+  0.99) — authoritative deployability blockers (the compiler is the oracle), not heuristics. It is
+  the **correlation pair** of the source-level `polkavm_diff` (class-B): a clean compile (exit 0)
+  yields no finding, a rejection yields one finding anchored to the opcode token in source
+  (`resolc`'s `L:C` is a compiler-internal offset, not a source line, so it is kept only in
+  metadata), and any other non-zero exit (a `solc` parse error, a rejected import) is an **honest
+  error** — never a finding and never a false "clean". `resolc` aborts at the first unsupported
+  opcode, so findings are worded "at least". Single-file contracts only (the `npx` wrapper rejects
+  relative imports). Wired into `--target polkavm` (opt-in; not in any `LAYERS` entry, so it never
+  runs on an EVM contract by accident). Availability is **PATH-only and never downloads** (`resolc`,
+  else `node` + `npx` + `solc`); the `npx` on-demand path may fetch the compiler on first compile.
+  Detection is driven by `resolc`'s own message, so a newly-rejected opcode is caught without a code
+  change.
 - **Yul / inline-assembly advisory effect-summary plan.** New `mine_yul_assembly_safety`
   (`miesc/llm/yul_assembly_memory_safety.py`) builds a provider-neutral **`YulAssemblySafetyPlan`**
   per inline-assembly block: a structured `assembly_summary` of what the block does to memory,

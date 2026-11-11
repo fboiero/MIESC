@@ -41,7 +41,7 @@ miesc audit batch ./contracts -p thorough  # Batch audit
 
 ## Polkadot (Experimental)
 
-**Status:** 🧪 Experimental — PolkaVM / `pallet-revive`, via Slither / Aderyn / Solhint plus built-in `polkavm_diff` pattern checks
+**Status:** 🧪 Experimental — PolkaVM / `pallet-revive`, via Slither / Aderyn / Solhint plus built-in `polkavm_diff` (class-B heuristics) and `polkavm_resolc` (class-A, runs the compiler)
 
 Polkadot has three distinct smart-contract models; MIESC covers them as follows:
 
@@ -55,9 +55,10 @@ Polkadot has three distinct smart-contract models; MIESC covers them as follows:
 ### What `--target polkavm` does
 
 Routes a Solidity contract to the Solidity **source-level** tools (Slither, Aderyn, Solhint) plus
-the built-in **`polkavm_diff`** checks, and **skips** EVM bytecode / symbolic / fuzzing tools — the
-compiled target is RISC-V, not EVM, so EVM-bytecode tools do not apply. Without the flag, the EVM
-path is unchanged.
+the two built-in PolkaVM adapters — **`polkavm_diff`** (class-B heuristics) and **`polkavm_resolc`**
+(class-A, runs `resolc`) — and **skips** EVM bytecode / symbolic / fuzzing tools — the compiled
+target is RISC-V, not EVM, so EVM-bytecode tools do not apply. Without the flag, the EVM path is
+unchanged.
 
 ### PolkaVM "difference-with-EVM" checks
 
@@ -71,6 +72,17 @@ differently on PolkaVM (silent runtime differences, per the revive compiler book
 - via-ir constructor init-order — base constructors run before derived state-var initializers
 - `selfdestruct` — compiles under `resolc` (verified); flagged because its runtime behaviour on `pallet-revive` may differ from the EVM (runtime semantics not independently confirmed)
 
+### PolkaVM compile-compatibility checks (class A)
+
+`polkavm_resolc` runs `resolc` and reports opcodes the compiler **rejects** at its LLVM-IR phase
+(measured: `EXTCODECOPY`, `BLOBHASH`; `PC` is rejected earlier by `solc`, so it is an honest error,
+not a finding) as `polkavm-unsupported-opcode` findings (High, confidence 0.99) — authoritative
+deployability blockers, since the compiler itself is the oracle. A clean compile (exit 0) yields no
+finding; any non-rejection compile failure is an honest error, never a false "clean" (and the `npx`
+wrapper rejects relative imports, so multi-file contracts are not reliably supported). The adapter is
+skipped where `resolc` is unresolvable (PATH-only availability probe: `resolc`, else `node` + `npx` +
+`solc`; it never downloads during the probe).
+
 ### Usage
 
 ```bash
@@ -80,7 +92,8 @@ miesc scan contracts/ --target polkavm --recursive
 
 ### Limitations
 
-- **Source-level only** — no PolkaVM (RISC-V) bytecode analysis.
+- **No PolkaVM (RISC-V) bytecode analysis.** Class-B is source-level heuristics; class-A uses the
+  compiler's own rejection (compile-time), not analysis of the produced `.polkavm` blob.
 - `pallet-revive` is itself experimental upstream (breaking changes).
 - No recall/precision benchmark yet — not for production security decisions.
 - See [`docs/guides/POLKADOT.md`](./guides/POLKADOT.md) for setup and details.

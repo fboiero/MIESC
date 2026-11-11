@@ -3,8 +3,9 @@ pragma solidity ^0.8.0;
 
 // Difference class (A): resolc REJECTS EXTCODECOPY at compile time
 // ("LLVM IR generator: The EXTCODECOPY instruction is not supported", exit 1).
-// This file is EXPECTED TO FAIL compilation with resolc — it documents the
-// compiler's job, NOT a MIESC finding. It must NOT be put on the normal scan path.
+// This file is EXPECTED TO FAIL compilation with resolc. The `polkavm_resolc`
+// adapter runs resolc and surfaces that rejection as one authoritative
+// `polkavm-unsupported-opcode` finding (a PolkaVM deployability blocker).
 contract ExtCodeCopyRejected {
     function copy(address a) external view returns (bytes32 h) {
         assembly {

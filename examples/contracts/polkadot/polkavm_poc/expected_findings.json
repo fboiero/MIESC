@@ -103,7 +103,8 @@
       "compiles_with_resolc": false,
       "resolc_exit_code": 1,
       "resolc_error": "LLVM IR generator: The `EXTCODECOPY` instruction is not supported",
-      "note": "Difference class (A): resolc rejects it at compile time. This is the compiler's job, not a MIESC finding; the file must NOT be placed on the normal scan path."
+      "polkavm_resolc_findings": ["polkavm-unsupported-opcode"],
+      "note": "Difference class (A): resolc rejects it at compile time. The polkavm_resolc adapter runs resolc and surfaces this as one authoritative polkavm-unsupported-opcode finding (a PolkaVM deployability blocker), anchored to the extcodecopy token in source; resolc's own L:C is a compiler-internal offset, not a source line."
     }
   ]
 }
