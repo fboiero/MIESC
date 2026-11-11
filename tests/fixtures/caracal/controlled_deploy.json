@@ -1,0 +1,28 @@
+[
+  {
+    "detector": "controlled-deploy",
+    "impact": "High",
+    "confidence": "Medium",
+    "message": "deploy_syscall with user controlled class hash in controlled_deploy::controlled_deploy::DeployContract::bad_direct\n deploy_syscall (controlled_deploy.cairo:15)",
+    "locations": [
+      {
+        "file": "controlled_deploy.cairo",
+        "line": 15,
+        "col": 9
+      }
+    ]
+  },
+  {
+    "detector": "controlled-deploy",
+    "impact": "High",
+    "confidence": "Medium",
+    "message": "deploy_syscall with user controlled class hash in controlled_deploy::controlled_deploy::DeployContract::do_deploy\n deploy_syscall (controlled_deploy.cairo:28)",
+    "locations": [
+      {
+        "file": "controlled_deploy.cairo",
+        "line": 28,
+        "col": 9
+      }
+    ]
+  }
+]

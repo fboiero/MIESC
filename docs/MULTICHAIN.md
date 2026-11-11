@@ -8,7 +8,7 @@ is on the **roadmap**: experimental adapter code exists but is not production-va
 | Level | Description |
 |-------|-------------|
 | ✅ **Production** | Full 9-layer analysis with 50 tools across 35 analysis modules. Recommended for audits. |
-| 🧪 **Experimental** | A real analyzer is integrated (not just patterns), but recall/precision are not yet benchmark-validated. Useful for review; not a production guarantee. |
+| 🧪 **Experimental** | A real external analyzer is integrated (not just patterns), but recall/precision are not yet benchmark-validated. Useful for review; not a production guarantee. |
 | 🛣️ **Roadmap** | Experimental adapter code (pattern-based). Planned, NOT production-validated — not for security decisions yet. |
 
 ## EVM Chains (Production)
@@ -84,6 +84,62 @@ miesc scan contracts/ --target polkavm --recursive
 - `pallet-revive` is itself experimental upstream (breaking changes).
 - No recall/precision benchmark yet — not for production security decisions.
 - See [`docs/guides/POLKADOT.md`](./guides/POLKADOT.md) for setup and details.
+
+---
+
+## Cairo / Starknet (Experimental)
+
+**Status:** 🧪 Experimental — Caracal integrated (not a pattern-only roadmap entry)
+
+MIESC runs **Caracal** (Trail of Bits' Sierra-level static analyzer for Starknet,
+AGPL-3.0) as a first-class adapter, and correlates its findings with a built-in
+pattern analyzer. Caracal is pinned to a Cairo-2.20 fork so it analyzes current
+Cairo; see [`docs/guides/CAIRO.md`](./guides/CAIRO.md) for setup and usage.
+
+### Languages
+- Cairo 1.x / 2.x (Starknet), up to Cairo **2.20** (the pinned Caracal front-end)
+
+### Tools
+- **Caracal** (external, semantic): compiles Cairo → Sierra and runs ~20 detectors.
+- **Built-in pattern analyzer** (`cairo`): low-confidence heuristic, used as a
+  correlation pair — when both agree on a class, confidence is raised.
+
+### Detected vulnerabilities (Caracal detector families)
+- Reentrancy (reentrancy, read-only, benign, events)
+- `tx-origin` / caller-based authorization
+- Controlled class hash: library-call, deploy, replace-class; unprotected upgrade
+- L1↔L2 messaging: unchecked `#[l1_handler]` sender, controlled L1 message
+- `felt252` unsafe arithmetic
+- Unchecked ERC-20 transfer / unused return
+- Array misuse (use-after-pop-front), unused events/arguments
+
+### Usage
+```bash
+miesc scan contract.cairo            # a loose .cairo file
+miesc scan path/to/scarb_project     # a Scarb project (directory with Scarb.toml)
+miesc doctor                         # shows Caracal/Scarb status + versions
+```
+
+### Install
+```bash
+cargo install --git https://github.com/adrienlacombe/caracal --profile release  # needs rustc >= 1.94
+```
+`scripts/bootstrap_researcher_tools.sh` installs it automatically (gated on the
+Rust toolchain). Scarb is only needed for Scarb *projects* and any 2.x works
+(Caracal's bundled compiler does the compiling; local Scarb only supplies metadata).
+
+### Limitations
+- **No recall/precision numbers yet** — a labelled Cairo benchmark is future work
+  (grant milestone M2). Do not cite detection rates for Cairo.
+- Caracal is a maintained fork of an upstream that is no longer active; it is
+  capped at the pinned Cairo version (2.20).
+- No symbolic execution or formal verification for Cairo.
+- The pattern analyzer is a low-confidence heuristic (use `--min-confidence 0.5`
+  for high-signal only).
+- Some detectors do not apply: `dead-code` is inert on Cairo 2.x (the compiler
+  strips unreachable code before Sierra) and `unenforced-view` is Cairo-1 only.
+- **Honest errors:** when Caracal fails to compile/run, the result is reported as
+  an error — never a silent "0 findings / clean".
 
 ---
 

@@ -451,7 +451,10 @@ class AdapterLoader:
 #              unsupported_source)
 #   timeout  - the tool was killed after the configured timeout
 #   error    - the tool ran and failed; ``error`` carries the message
-TOOL_STATUSES = ("success", "skipped", "timeout", "error")
+#   inconclusive - the tool ran but produced no trustworthy signal (e.g. a
+#              coverage-guided fuzzer that never exercised the contract); it is
+#              neither a clean pass nor a failure, and ``warning`` says why
+TOOL_STATUSES = ("success", "skipped", "timeout", "error", "inconclusive")
 
 _STATUS_ALIASES = {
     "success": "success",
@@ -468,6 +471,8 @@ _STATUS_ALIASES = {
     "error": "error",
     "failed": "error",
     "failure": "error",
+    "inconclusive": "inconclusive",
+    "degraded": "inconclusive",
 }
 
 
@@ -507,7 +512,7 @@ def summarize_tool_statuses(results: Iterable[Dict[str, Any]]) -> Dict[str, List
     ``timeout``, ``error``. Pseudo-tools (``miesc-intelligence`` ...) are included
     only where they carry a status."""
     buckets: Dict[str, List[str]] = {
-        k: [] for k in ("success", "fallback", "skipped", "timeout", "error")
+        k: [] for k in ("success", "fallback", "skipped", "timeout", "error", "inconclusive")
     }
     for r in results:
         tool = str(r.get("tool") or "")
@@ -521,13 +526,26 @@ def summarize_tool_statuses(results: Iterable[Dict[str, Any]]) -> Dict[str, List
 
 
 def format_tool_summary(results: Iterable[Dict[str, Any]]) -> str:
-    """One line a reader can trust: ``ran 42/50 (2 fallback) · skipped 6 · timeout 0 · error 2``."""
+    """One line a reader can trust:
+    ``ran 42/50 (2 fallback) · skipped 6 · timeout 0 · error 2 · inconclusive 1``."""
     b = summarize_tool_statuses(results)
-    total = len(b["success"]) + len(b["skipped"]) + len(b["timeout"]) + len(b["error"])
+    total = (
+        len(b["success"])
+        + len(b["skipped"])
+        + len(b["timeout"])
+        + len(b["error"])
+        + len(b["inconclusive"])
+    )
     ran = f"ran {len(b['success'])}/{total}"
     if b["fallback"]:
         ran += f" ({len(b['fallback'])} fallback)"
-    return f"{ran} · skipped {len(b['skipped'])} · timeout {len(b['timeout'])} · error {len(b['error'])}"
+    line = (
+        f"{ran} · skipped {len(b['skipped'])} · timeout {len(b['timeout'])} "
+        f"· error {len(b['error'])}"
+    )
+    if b["inconclusive"]:
+        line += f" · inconclusive {len(b['inconclusive'])}"
+    return line
 
 
 def tool_availability(tools: Iterable[str]) -> Dict[str, Dict[str, Any]]:
@@ -624,7 +642,11 @@ def run_tool(tool: str, contract: str, timeout: int = 0, **kwargs: Any) -> Dict[
                 "error": f"Tool {tool} not available: {status.value}",
             }
 
-        # Run analysis
+        # Run analysis. Clear the LLM-extraction sink first (P2-7) so this run
+        # cannot inherit a stale diagnostic from a previous tool on this thread.
+        from miesc.llm.json_extraction import clear_extraction_records, take_extraction_record
+
+        clear_extraction_records()
         result = adapter.analyze(contract, timeout=timeout, **kwargs)
 
         findings = result.get("findings", [])
@@ -665,6 +687,13 @@ def run_tool(tool: str, contract: str, timeout: int = 0, **kwargs: Any) -> Dict[
                 **(result.get("metadata") or {}),
                 FUZZ_CAMPAIGN_KEY: campaign,
             }
+        # P2-7: attach the LLM-extraction diagnostic recorded during analyze(),
+        # when one exists for this tool, so a "0 findings" result is
+        # distinguishable from a parse failure (parsed vs parsed-but-empty vs
+        # unparseable, with a raw excerpt on the latter two).
+        llm_extraction = take_extraction_record(tool)
+        if llm_extraction is not None and isinstance(record.get("metadata"), dict):
+            record["metadata"]["llm_extraction"] = llm_extraction
         return record
 
     except Exception as e:

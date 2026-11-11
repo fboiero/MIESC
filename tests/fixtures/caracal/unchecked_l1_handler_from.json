@@ -1,0 +1,54 @@
+[
+  {
+    "detector": "unchecked-l1-handler-from",
+    "impact": "High",
+    "confidence": "Medium",
+    "message": "The L1 handler function unchecked_l1_handler_from::unchecked_l1_handler_from::UncheckedL1HandlerFrom::__wrapper__bad (unchecked_l1_handler_from.cairo:6) does not check the L1 from address",
+    "locations": [
+      {
+        "file": "unchecked_l1_handler_from.cairo",
+        "line": 6,
+        "col": 5
+      }
+    ]
+  },
+  {
+    "detector": "felt252-unsafe-arithmetic",
+    "impact": "Medium",
+    "confidence": "Medium",
+    "message": "The function unchecked_l1_handler_from::unchecked_l1_handler_from::UncheckedL1HandlerFrom::bad uses the felt252 operation core::Felt252Add::add (unchecked_l1_handler_from.cairo:8) with the user-controlled operands: 1st, which is not overflow/underflow safe",
+    "locations": [
+      {
+        "file": "unchecked_l1_handler_from.cairo",
+        "line": 8,
+        "col": 9
+      }
+    ]
+  },
+  {
+    "detector": "felt252-unsafe-arithmetic",
+    "impact": "Medium",
+    "confidence": "Medium",
+    "message": "The function unchecked_l1_handler_from::unchecked_l1_handler_from::UncheckedL1HandlerFrom::check_recursive uses the felt252 operation core::Felt252Add::add (unchecked_l1_handler_from.cairo:38), which is not overflow/underflow safe",
+    "locations": [
+      {
+        "file": "unchecked_l1_handler_from.cairo",
+        "line": 38,
+        "col": 46
+      }
+    ]
+  },
+  {
+    "detector": "felt252-unsafe-arithmetic",
+    "impact": "Medium",
+    "confidence": "Medium",
+    "message": "The function unchecked_l1_handler_from::unchecked_l1_handler_from::UncheckedL1HandlerFrom::good3 uses the felt252 operation core::Felt252Add::add (unchecked_l1_handler_from.cairo:29) with the user-controlled operands: 1st, which is not overflow/underflow safe",
+    "locations": [
+      {
+        "file": "unchecked_l1_handler_from.cairo",
+        "line": 29,
+        "col": 9
+      }
+    ]
+  }
+]

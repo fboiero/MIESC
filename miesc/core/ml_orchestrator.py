@@ -38,11 +38,13 @@ _STATUS_ALIASES = {
     "error": "error",
     "failed": "error",
     "failure": "error",
+    "inconclusive": "inconclusive",
+    "degraded": "inconclusive",
 }
 
 
 def _normalize_status(result: Dict[str, Any]) -> Dict[str, Any]:
-    """Rewrite ``result["status"]`` into success / skipped / timeout / error."""
+    """Rewrite ``result["status"]`` into success / skipped / timeout / error / inconclusive."""
     raw = str(result.get("status") or "success").strip().lower()
     result["status"] = _STATUS_ALIASES.get(raw, "error")
     metadata = result.get("metadata") or {}

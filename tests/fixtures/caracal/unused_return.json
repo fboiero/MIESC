@@ -1,0 +1,184 @@
+[
+  {
+    "detector": "felt252-unsafe-arithmetic",
+    "impact": "Medium",
+    "confidence": "Medium",
+    "message": "The function unused_return::unused_return::UnusedReturn::f_5 uses the felt252 operation core::Felt252Mul::mul (unused_return.cairo:100), which is not overflow/underflow safe",
+    "locations": [
+      {
+        "file": "unused_return.cairo",
+        "line": 100,
+        "col": 9
+      }
+    ]
+  },
+  {
+    "detector": "felt252-unsafe-arithmetic",
+    "impact": "Medium",
+    "confidence": "Medium",
+    "message": "The function unused_return::unused_return::UnusedReturn::f_6 uses the felt252 operation core::Felt252Add::add (unused_return.cairo:106) with the user-controlled operands: 1st, which is not overflow/underflow safe",
+    "locations": [
+      {
+        "file": "unused_return.cairo",
+        "line": 106,
+        "col": 9
+      }
+    ]
+  },
+  {
+    "detector": "felt252-unsafe-arithmetic",
+    "impact": "Medium",
+    "confidence": "Medium",
+    "message": "The function unused_return::unused_return::UnusedReturn::f_6 uses the felt252 operation core::Felt252Mul::mul (unused_return.cairo:105) with the user-controlled operands: 1st,2nd, which is not overflow/underflow safe",
+    "locations": [
+      {
+        "file": "unused_return.cairo",
+        "line": 105,
+        "col": 19
+      }
+    ]
+  },
+  {
+    "detector": "felt252-unsafe-arithmetic",
+    "impact": "Medium",
+    "confidence": "Medium",
+    "message": "The function unused_return::unused_return::UnusedReturn::f_7 uses the felt252 operation core::Felt252Add::add (unused_return.cairo:111) with the user-controlled operands: 1st, which is not overflow/underflow safe",
+    "locations": [
+      {
+        "file": "unused_return.cairo",
+        "line": 111,
+        "col": 9
+      }
+    ]
+  },
+  {
+    "detector": "felt252-unsafe-arithmetic",
+    "impact": "Medium",
+    "confidence": "Medium",
+    "message": "The function unused_return::unused_return::UnusedReturn::f_7 uses the felt252 operation core::Felt252Mul::mul (1st occurrence) (unused_return.cairo:111) with the user-controlled operands: 1st,2nd, which is not overflow/underflow safe",
+    "locations": [
+      {
+        "file": "unused_return.cairo",
+        "line": 111,
+        "col": 9
+      }
+    ]
+  },
+  {
+    "detector": "felt252-unsafe-arithmetic",
+    "impact": "Medium",
+    "confidence": "Medium",
+    "message": "The function unused_return::unused_return::UnusedReturn::f_7 uses the felt252 operation core::Felt252Mul::mul (2nd occurrence) (unused_return.cairo:111) with the user-controlled operands: 1st,2nd, which is not overflow/underflow safe",
+    "locations": [
+      {
+        "file": "unused_return.cairo",
+        "line": 111,
+        "col": 9
+      }
+    ]
+  },
+  {
+    "detector": "felt252-unsafe-arithmetic",
+    "impact": "Medium",
+    "confidence": "Medium",
+    "message": "The function unused_return::unused_return::UnusedReturn::no_report4 uses the felt252 operation core::Felt252Add::add (unused_return.cairo:72) with the user-controlled operands: 1st,2nd, which is not overflow/underflow safe",
+    "locations": [
+      {
+        "file": "unused_return.cairo",
+        "line": 72,
+        "col": 9
+      }
+    ]
+  },
+  {
+    "detector": "unused-return",
+    "impact": "Medium",
+    "confidence": "Medium",
+    "message": "Return value unused for the function call to unused_return::unused_return::UnusedReturn::f_1 (unused_return.cairo:18) in unused_return::unused_return::UnusedReturn::unused_return_1",
+    "locations": [
+      {
+        "file": "unused_return.cairo",
+        "line": 18,
+        "col": 9
+      }
+    ]
+  },
+  {
+    "detector": "unused-return",
+    "impact": "Medium",
+    "confidence": "Medium",
+    "message": "Return value unused for the function call to unused_return::unused_return::UnusedReturn::f_2 (unused_return.cairo:23) in unused_return::unused_return::UnusedReturn::unused_return_2",
+    "locations": [
+      {
+        "file": "unused_return.cairo",
+        "line": 23,
+        "col": 25
+      }
+    ]
+  },
+  {
+    "detector": "unused-return",
+    "impact": "Medium",
+    "confidence": "Medium",
+    "message": "Return value unused for the function call to unused_return::unused_return::UnusedReturn::f_3 (unused_return.cairo:30) in unused_return::unused_return::UnusedReturn::unused_return_3",
+    "locations": [
+      {
+        "file": "unused_return.cairo",
+        "line": 30,
+        "col": 9
+      }
+    ]
+  },
+  {
+    "detector": "unused-return",
+    "impact": "Medium",
+    "confidence": "Medium",
+    "message": "Return value unused for the function call to unused_return::unused_return::UnusedReturn::f_4 (unused_return.cairo:35) in unused_return::unused_return::UnusedReturn::unused_return_4",
+    "locations": [
+      {
+        "file": "unused_return.cairo",
+        "line": 35,
+        "col": 18
+      }
+    ]
+  },
+  {
+    "detector": "unused-return",
+    "impact": "Medium",
+    "confidence": "Medium",
+    "message": "Return value unused for the function call to unused_return::unused_return::UnusedReturn::f_5 (unused_return.cairo:40) in unused_return::unused_return::UnusedReturn::unused_return_5",
+    "locations": [
+      {
+        "file": "unused_return.cairo",
+        "line": 40,
+        "col": 18
+      }
+    ]
+  },
+  {
+    "detector": "unused-return",
+    "impact": "Medium",
+    "confidence": "Medium",
+    "message": "Return value unused for the function call to unused_return::unused_return::UnusedReturn::f_6 (unused_return.cairo:45) in unused_return::unused_return::UnusedReturn::unused_return_6",
+    "locations": [
+      {
+        "file": "unused_return.cairo",
+        "line": 45,
+        "col": 18
+      }
+    ]
+  },
+  {
+    "detector": "unused-return",
+    "impact": "Medium",
+    "confidence": "Medium",
+    "message": "Return value unused for the function call to unused_return::unused_return::UnusedReturn::f_7 (unused_return.cairo:50) in unused_return::unused_return::UnusedReturn::unused_return_7",
+    "locations": [
+      {
+        "file": "unused_return.cairo",
+        "line": 50,
+        "col": 18
+      }
+    ]
+  }
+]

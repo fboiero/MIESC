@@ -51,6 +51,8 @@ class TestNormalize:
             ("timeout", "timeout"),
             ("error", "error"),
             ("failed", "error"),
+            ("inconclusive", "inconclusive"),
+            ("degraded", "inconclusive"),
             ("something-new", "error"),
             (None, "success"),
         ],
@@ -58,6 +60,16 @@ class TestNormalize:
     def test_every_label_lands_in_the_vocabulary(self, raw, expected):
         assert utils.normalize_tool_status(raw) == expected
         assert utils.normalize_tool_status(raw) in utils.TOOL_STATUSES
+
+    def test_inconclusive_is_a_known_status_not_flagged_as_unknown(self):
+        # A fuzzer that ran but did not exercise the contract (#317) must keep
+        # its honest `inconclusive` status, never be rewritten to error with an
+        # "unknown status" reason.
+        r = utils.normalize_tool_result(
+            {"status": "inconclusive", "warning": "no harness", "findings": []}
+        )
+        assert r["status"] == "inconclusive"
+        assert "reason" not in r or not str(r.get("reason", "")).startswith("unknown_status")
 
     def test_unknown_label_is_flagged_not_silently_succeeded(self):
         r = utils.normalize_tool_result({"status": "verified", "findings": []})
@@ -145,9 +157,23 @@ class TestSummaries:
             "skipped": ["mythril"],
             "timeout": ["wake"],
             "error": ["semgrep"],
+            "inconclusive": [],
         }
         assert utils.format_tool_summary(results) == (
             "ran 2/5 (1 fallback) · skipped 1 · timeout 1 · error 1"
+        )
+
+    def test_summarize_and_format_with_inconclusive(self):
+        results = [
+            {"tool": "slither", "status": "success"},
+            {"tool": "medusa", "status": "inconclusive"},
+        ]
+        b = utils.summarize_tool_statuses(results)
+        assert b["inconclusive"] == ["medusa"]
+        assert b["success"] == ["slither"]
+        # inconclusive counts toward the total and gets its own segment.
+        assert utils.format_tool_summary(results) == (
+            "ran 1/2 · skipped 0 · timeout 0 · error 0 · inconclusive 1"
         )
 
     def test_describe(self):

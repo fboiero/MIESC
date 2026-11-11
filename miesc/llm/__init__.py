@@ -139,6 +139,7 @@ from .finding_validator import (
 from .lending_solvency_liquidation import (
     LendingMarket,
     LendingSolvencyLiquidationPlan,
+    SolvencyHypothesis,
     mine_lending_solvency_liquidation,
     parse_lending_solvency_plans,
 )
@@ -166,6 +167,7 @@ from .privileged_governance_lifecycle import (
     GovernanceActor,
     GovernanceEdge,
     GovernanceRole,
+    LifecycleHypothesis,
     PrivilegedGovernanceLifecyclePlan,
     mine_privileged_governance_lifecycle,
     parse_privileged_governance_plans,
@@ -186,6 +188,7 @@ from .remediation_generator import (
 )
 from .resource_liveness_griefing import (
     GrowableSurface,
+    LivenessHypothesis,
     ResourceLivenessGriefingPlan,
     mine_resource_liveness_griefing,
     parse_resource_liveness_plans,
@@ -359,15 +362,18 @@ __all__ = [
     "parse_sequence_oracle_plans",
     "LendingMarket",
     "LendingSolvencyLiquidationPlan",
+    "SolvencyHypothesis",
     "mine_lending_solvency_liquidation",
     "parse_lending_solvency_plans",
     "GovernanceActor",
     "GovernanceEdge",
     "GovernanceRole",
+    "LifecycleHypothesis",
     "PrivilegedGovernanceLifecyclePlan",
     "mine_privileged_governance_lifecycle",
     "parse_privileged_governance_plans",
     "GrowableSurface",
+    "LivenessHypothesis",
     "ResourceLivenessGriefingPlan",
     "mine_resource_liveness_griefing",
     "parse_resource_liveness_plans",

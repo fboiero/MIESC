@@ -84,6 +84,185 @@ def _provider_status(row: dict) -> tuple[str, str]:
     )
 
 
+def _cairo_tool_rows() -> list[tuple[str, bool, str, str]]:
+    """Status rows for the Cairo/Starknet tools: (name, available, version, note).
+
+    Additive section — these tools live in ADAPTER_MAP but not in LAYERS (so they
+    never alter EVM audit enumeration). Caracal is the external semantic analyzer;
+    Scarb only supplies project metadata; the pattern adapter is the built-in
+    correlation pair.
+    """
+    rows: list[tuple[str, bool, str, str]] = []
+
+    # Caracal (external binary). is_available via the adapter (respects
+    # CARACAL_BIN / ~/.cargo/bin / PATH); version via its version_command.
+    caracal_status = AdapterLoader.check_tool_status("caracal")
+    caracal_version = ""
+    adapter = AdapterLoader.get_adapter("caracal")
+    vcmd = getattr(adapter, "version_command", lambda: None)() if adapter else None
+    if vcmd:
+        try:
+            res = subprocess.run(vcmd, capture_output=True, text=True, timeout=5)
+            if res.returncode == 0:
+                caracal_version = (res.stdout or res.stderr).strip().split("\n")[0][:40]
+        except Exception:
+            caracal_version = ""
+    rows.append(
+        (
+            "caracal",
+            bool(caracal_status.get("available")),
+            caracal_version or "—",
+            "Cairo 2.x (bundled compiler 2.20); install: fork adrienlacombe/caracal",
+        )
+    )
+
+    # Scarb — only needed to supply `scarb metadata` for Scarb projects; the
+    # bundled Caracal compiler does the actual compiling, so any 2.x works.
+    scarb_version = ""
+    try:
+        res = subprocess.run(["scarb", "--version"], capture_output=True, text=True, timeout=5)
+        if res.returncode == 0:
+            scarb_version = res.stdout.strip().split("\n")[0][:40]
+    except Exception:
+        scarb_version = ""
+    rows.append(
+        (
+            "scarb",
+            bool(scarb_version),
+            scarb_version or "—",
+            "Optional: supplies `scarb metadata` for Scarb projects (any 2.x)",
+        )
+    )
+
+    # Built-in pattern adapter (always available).
+    rows.append(
+        (
+            "cairo (patterns)",
+            True,
+            "built-in",
+            "Experimental; low-confidence correlation pair for Caracal",
+        )
+    )
+    return rows
+
+
+def _ollama_online(timeout: int = 3) -> bool:
+    """True iff a local Ollama server answers; used to label LLM-backed probes."""
+    try:
+        import urllib.request
+
+        urllib.request.urlopen(  # noqa: S310 - fixed localhost URL
+            "http://localhost:11434/api/tags", timeout=timeout
+        )
+        return True
+    except Exception:
+        return False
+
+
+def _smoke_verdict_style(verdict: str) -> str:
+    from miesc.cli import smoke_probe
+
+    return {
+        smoke_probe.FUNCTIONAL: "[green]functional[/green]",
+        smoke_probe.DEGRADED: "[red]degraded[/red]",
+        smoke_probe.SLOW: "[yellow]slow[/yellow]",
+        smoke_probe.NEEDS_BACKEND: "[dim]needs-backend[/dim]",
+        smoke_probe.NOT_APPLICABLE: "[dim]n/a[/dim]",
+    }.get(verdict, verdict)
+
+
+def _run_smoke(smoke_all: bool) -> None:
+    """Run the functional probe over the available tools and print the result.
+
+    This is opt-in and slow: it launches one short-lived subprocess per
+    available tool. It reports whether each tool *runs* on a trivial contract,
+    which is a stronger claim than ``doctor``'s "installed" — but a weaker one
+    than "works on a real project".
+    """
+    import tempfile
+
+    from miesc.cli import smoke_probe
+
+    layers = smoke_probe.layers_for(smoke_all)
+    timeout = smoke_probe.timeout_for(smoke_all)
+    llm_tools = AdapterLoader.llm_tools()
+    ollama_online = _ollama_online()
+
+    # Which tools in the selected layers are installed (only those are probed).
+    probed: list[tuple[int, str]] = []
+    total = 0
+    for layer in layers:
+        for tool in LAYERS[layer]["tools"]:
+            total += 1
+            if AdapterLoader.check_tool_status(tool).get("available"):
+                probed.append((layer, tool))
+
+    skipped_layers = [n for n in smoke_probe.SLOW_LAYERS if not smoke_all]
+
+    header = "Functional Probe (--smoke-all)" if smoke_all else "Functional Probe (--smoke)"
+    rows: list[tuple[int, str, str, str]] = []
+    with tempfile.TemporaryDirectory(prefix="miesc-smoke-") as tmp:
+        from pathlib import Path
+
+        fixture = str(smoke_probe.write_fixture(Path(tmp)))
+        for layer, tool in probed:
+            verdict, detail = smoke_probe.probe_tool(
+                tool,
+                fixture,
+                timeout=timeout,
+                llm_tools=llm_tools,
+                ollama_online=ollama_online,
+            )
+            rows.append((layer, tool, verdict, detail))
+
+    counts = smoke_probe.summarize(v for _, _, v, _ in rows)
+    functional = counts[smoke_probe.FUNCTIONAL]
+    # Tools that correctly declined this input (a .vy / circom analyzer handed a
+    # .sol) are not defects and do not count against the functional gap.
+    applicable = len(probed) - counts[smoke_probe.NOT_APPLICABLE]
+    line = smoke_probe.headline(functional, applicable, len(probed), total)
+
+    if RICH_AVAILABLE:
+        console.print("")
+        table = Table(title=header, box=box.ROUNDED)
+        table.add_column("L", style="bold", width=3, no_wrap=True)
+        table.add_column("Tool", width=20, no_wrap=True)
+        table.add_column("Probe", width=14, no_wrap=True)
+        table.add_column("Detail", width=36, overflow="fold")
+        for layer, tool, verdict, detail in rows:
+            table.add_row(str(layer), tool, _smoke_verdict_style(verdict), detail)
+        console.print(table)
+        console.print(f"\n[bold]{line}[/bold]")
+        extras = (
+            counts[smoke_probe.SLOW]
+            + counts[smoke_probe.NEEDS_BACKEND]
+            + counts[smoke_probe.NOT_APPLICABLE]
+        )
+        if extras:
+            console.print(
+                f"[dim]degraded {counts[smoke_probe.DEGRADED]} · "
+                f"slow {counts[smoke_probe.SLOW]} · "
+                f"needs-backend {counts[smoke_probe.NEEDS_BACKEND]} · "
+                f"n/a {counts[smoke_probe.NOT_APPLICABLE]} "
+                f"(n/a = correctly declined this file type)[/dim]"
+            )
+        if skipped_layers:
+            names = ", ".join(f"L{n} {LAYERS[n]['name']}" for n in skipped_layers)
+            console.print(f"[dim]Not probed (use --smoke-all): {names}[/dim]")
+        console.print(
+            "[dim]A probe runs each tool on a 15-line contract; "
+            "'functional' means it runs, not that it works on a real project.[/dim]"
+        )
+    else:
+        print(f"\n=== {header} ===")  # noqa: T201
+        for layer, tool, verdict, detail in rows:
+            print(f"  L{layer} {tool:<22} {verdict:<14} {detail}")  # noqa: T201
+        print(f"\n{line}")  # noqa: T201
+        if skipped_layers:
+            names = ", ".join(f"L{n}" for n in skipped_layers)
+            print(f"Not probed (use --smoke-all): {names}")  # noqa: T201
+
+
 # =============================================================================
 # Doctor Command
 # =============================================================================
@@ -113,7 +292,17 @@ def _polkavm_toolchain_status() -> tuple[str, str]:
 
 @click.command()
 @click.option("--verbose", "-v", is_flag=True, help="Show detailed information")
-def doctor(verbose: bool) -> None:
+@click.option(
+    "--smoke",
+    is_flag=True,
+    help="Functionally probe installed tools on a trivial contract (fast layers)",
+)
+@click.option(
+    "--smoke-all",
+    is_flag=True,
+    help="Probe every layer, including slow ones (fuzzing, symbolic, formal, AI)",
+)
+def doctor(verbose: bool, smoke: bool, smoke_all: bool) -> None:
     """Check tool availability and system health."""
     print_banner()
     info("Checking system health and tool availability...\n")
@@ -205,6 +394,24 @@ def doctor(verbose: bool) -> None:
             for tool, cmd in missing_installable:
                 console.print(f"  [yellow]{tool:<22}[/yellow] [cyan]{cmd}[/cyan]")
 
+        # Cairo / Starknet section (experimental; separate from the EVM layers)
+        console.print("")
+        cairo_table = Table(title="Cairo / Starknet (experimental)", box=box.ROUNDED)
+        cairo_table.add_column("Tool", style="bold", width=18)
+        cairo_table.add_column("Status", width=16)
+        cairo_table.add_column("Version", width=18)
+        cairo_table.add_column("Notes", width=44)
+        for name, available, version, note in _cairo_tool_rows():
+            status_cell = (
+                "[green]available[/green]" if available else "[yellow]not installed[/yellow]"
+            )
+            cairo_table.add_row(name, status_cell, version, note)
+        console.print(cairo_table)
+        console.print(
+            "[dim]Cairo support is experimental. Run: "
+            "miesc scan path/to/contract.cairo  (or a Scarb project directory)[/dim]"
+        )
+
         # LLM Providers section
         console.print("")
         llm_table = Table(title="LLM Providers", box=box.ROUNDED)
@@ -290,3 +497,12 @@ def doctor(verbose: bool) -> None:
 
         print(f"\n{total_available}/{total_tools} tools available")  # noqa: T201
         print("Missing tools are optional; MIESC degrades gracefully.")  # noqa: T201
+
+        print("\n=== Cairo / Starknet (experimental) ===")  # noqa: T201
+        for name, available, version, note in _cairo_tool_rows():
+            mark = "OK" if available else "MISSING"
+            print(f"  [{mark}] {name} ({version}) - {note}")  # noqa: T201
+
+    # Opt-in functional probe (runs after either render branch).
+    if smoke or smoke_all:
+        _run_smoke(smoke_all)

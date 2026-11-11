@@ -1,0 +1,184 @@
+[
+  {
+    "detector": "use-after-pop-front",
+    "impact": "Low",
+    "confidence": "Medium",
+    "message": "The array #1 is used after removing elements from it in the function use_after_pop_front::use_after_pop_front::UseAfterPopFront::bad (use_after_pop_front.cairo:37)",
+    "locations": [
+      {
+        "file": "use_after_pop_front.cairo",
+        "line": 37,
+        "col": 5
+      }
+    ]
+  },
+  {
+    "detector": "use-after-pop-front",
+    "impact": "Low",
+    "confidence": "Medium",
+    "message": "The array #1 is used after removing elements from it in the function use_after_pop_front::use_after_pop_front::UseAfterPopFront::bad_external_call (use_after_pop_front.cairo:95)",
+    "locations": [
+      {
+        "file": "use_after_pop_front.cairo",
+        "line": 95,
+        "col": 5
+      }
+    ]
+  },
+  {
+    "detector": "use-after-pop-front",
+    "impact": "Low",
+    "confidence": "Medium",
+    "message": "The array #1 is used after removing elements from it in the function use_after_pop_front::use_after_pop_front::UseAfterPopFront::bad_library_call (use_after_pop_front.cairo:86)",
+    "locations": [
+      {
+        "file": "use_after_pop_front.cairo",
+        "line": 86,
+        "col": 5
+      }
+    ]
+  },
+  {
+    "detector": "use-after-pop-front",
+    "impact": "Low",
+    "confidence": "Medium",
+    "message": "The array #1 is used after removing elements from it in the function use_after_pop_front::use_after_pop_front::UseAfterPopFront::bad_loop[136-339] (use_after_pop_front.cairo:60)",
+    "locations": [
+      {
+        "file": "use_after_pop_front.cairo",
+        "line": 60,
+        "col": 5
+      }
+    ]
+  },
+  {
+    "detector": "use-after-pop-front",
+    "impact": "Low",
+    "confidence": "Medium",
+    "message": "The array #1 is used after removing elements from it in the function use_after_pop_front::use_after_pop_front::UseAfterPopFront::bad_one_branch (use_after_pop_front.cairo:46)",
+    "locations": [
+      {
+        "file": "use_after_pop_front.cairo",
+        "line": 46,
+        "col": 5
+      }
+    ]
+  },
+  {
+    "detector": "use-after-pop-front",
+    "impact": "Low",
+    "confidence": "Medium",
+    "message": "The array #1 is used after removing elements from it in the function use_after_pop_front::use_after_pop_front::UseAfterPopFront::bad_return (use_after_pop_front.cairo:77)",
+    "locations": [
+      {
+        "file": "use_after_pop_front.cairo",
+        "line": 77,
+        "col": 5
+      }
+    ]
+  },
+  {
+    "detector": "use-after-pop-front",
+    "impact": "Low",
+    "confidence": "Medium",
+    "message": "The arrays #1, #2 are used after removing elements from them in the function use_after_pop_front::use_after_pop_front::UseAfterPopFront::bad_multiple_arrays (use_after_pop_front.cairo:104)",
+    "locations": [
+      {
+        "file": "use_after_pop_front.cairo",
+        "line": 104,
+        "col": 5
+      }
+    ]
+  },
+  {
+    "detector": "use-after-pop-front",
+    "impact": "Low",
+    "confidence": "Medium",
+    "message": "The span #1 is used after removing elements from it in the function use_after_pop_front::use_after_pop_front::UseAfterPopFront::bad_external_call_span (use_after_pop_front.cairo:206)",
+    "locations": [
+      {
+        "file": "use_after_pop_front.cairo",
+        "line": 206,
+        "col": 5
+      }
+    ]
+  },
+  {
+    "detector": "use-after-pop-front",
+    "impact": "Low",
+    "confidence": "Medium",
+    "message": "The span #1 is used after removing elements from it in the function use_after_pop_front::use_after_pop_front::UseAfterPopFront::bad_library_call_span (use_after_pop_front.cairo:196)",
+    "locations": [
+      {
+        "file": "use_after_pop_front.cairo",
+        "line": 196,
+        "col": 5
+      }
+    ]
+  },
+  {
+    "detector": "use-after-pop-front",
+    "impact": "Low",
+    "confidence": "Medium",
+    "message": "The span #1 is used after removing elements from it in the function use_after_pop_front::use_after_pop_front::UseAfterPopFront::bad_loop_span[177-380] (use_after_pop_front.cairo:168)",
+    "locations": [
+      {
+        "file": "use_after_pop_front.cairo",
+        "line": 168,
+        "col": 5
+      }
+    ]
+  },
+  {
+    "detector": "use-after-pop-front",
+    "impact": "Low",
+    "confidence": "Medium",
+    "message": "The span #1 is used after removing elements from it in the function use_after_pop_front::use_after_pop_front::UseAfterPopFront::bad_one_branch_span (use_after_pop_front.cairo:153)",
+    "locations": [
+      {
+        "file": "use_after_pop_front.cairo",
+        "line": 153,
+        "col": 5
+      }
+    ]
+  },
+  {
+    "detector": "use-after-pop-front",
+    "impact": "Low",
+    "confidence": "Medium",
+    "message": "The span #1 is used after removing elements from it in the function use_after_pop_front::use_after_pop_front::UseAfterPopFront::bad_return_span (use_after_pop_front.cairo:186)",
+    "locations": [
+      {
+        "file": "use_after_pop_front.cairo",
+        "line": 186,
+        "col": 5
+      }
+    ]
+  },
+  {
+    "detector": "use-after-pop-front",
+    "impact": "Low",
+    "confidence": "Medium",
+    "message": "The span #1 is used after removing elements from it in the function use_after_pop_front::use_after_pop_front::UseAfterPopFront::bad_span (use_after_pop_front.cairo:143)",
+    "locations": [
+      {
+        "file": "use_after_pop_front.cairo",
+        "line": 143,
+        "col": 5
+      }
+    ]
+  },
+  {
+    "detector": "use-after-pop-front",
+    "impact": "Low",
+    "confidence": "Medium",
+    "message": "The spans #1, #2 are used after removing elements from them in the function use_after_pop_front::use_after_pop_front::UseAfterPopFront::bad_multiple_arrays_span (use_after_pop_front.cairo:216)",
+    "locations": [
+      {
+        "file": "use_after_pop_front.cairo",
+        "line": 216,
+        "col": 5
+      }
+    ]
+  }
+]

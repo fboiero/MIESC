@@ -1,0 +1,56 @@
+[
+  {
+    "detector": "reentrancy-events",
+    "impact": "Low",
+    "confidence": "Medium",
+    "message": "Reentrancy in reentrancy_events::reentrancy_events::TestContract::__wrapper__bad1\n\tExternal call to reentrancy_events::reentrancy_events::IAnotherContractDispatcherImpl::foo (reentrancy_events.cairo:39) done in reentrancy_events::reentrancy_events::TestContract::bad1\n\tEvent emitted after the call by reentrancy_events::reentrancy_events::TestContract::ContractStateEventEmitter::emit (reentrancy_events.cairo:40) in reentrancy_events::reentrancy_events::TestContract::bad1.",
+    "locations": [
+      {
+        "file": "reentrancy_events.cairo",
+        "line": 39,
+        "col": 9
+      },
+      {
+        "file": "reentrancy_events.cairo",
+        "line": 40,
+        "col": 9
+      }
+    ]
+  },
+  {
+    "detector": "reentrancy-events",
+    "impact": "Low",
+    "confidence": "Medium",
+    "message": "Reentrancy in reentrancy_events::reentrancy_events::TestContract::__wrapper__bad2_emit_between_calls\n\tExternal call to reentrancy_events::reentrancy_events::IAnotherContractDispatcherImpl::foo (1st occurrence) (reentrancy_events.cairo:48) done in reentrancy_events::reentrancy_events::TestContract::bad2_emit_between_calls\n\tEvent emitted after the call by reentrancy_events::reentrancy_events::TestContract::ContractStateEventEmitter::emit (reentrancy_events.cairo:49) in reentrancy_events::reentrancy_events::TestContract::bad2_emit_between_calls.",
+    "locations": [
+      {
+        "file": "reentrancy_events.cairo",
+        "line": 48,
+        "col": 9
+      },
+      {
+        "file": "reentrancy_events.cairo",
+        "line": 49,
+        "col": 9
+      }
+    ]
+  },
+  {
+    "detector": "reentrancy-events",
+    "impact": "Low",
+    "confidence": "Medium",
+    "message": "Reentrancy in reentrancy_events::reentrancy_events::TestContract::__wrapper__good2\n\tExternal call to reentrancy_events::reentrancy_events::IAnotherContractDispatcherImpl::safe_foo (reentrancy_events.cairo:33) done in reentrancy_events::reentrancy_events::TestContract::good2\n\tEvent emitted after the call by reentrancy_events::reentrancy_events::TestContract::ContractStateEventEmitter::emit (reentrancy_events.cairo:34) in reentrancy_events::reentrancy_events::TestContract::good2.",
+    "locations": [
+      {
+        "file": "reentrancy_events.cairo",
+        "line": 33,
+        "col": 9
+      },
+      {
+        "file": "reentrancy_events.cairo",
+        "line": 34,
+        "col": 9
+      }
+    ]
+  }
+]

@@ -2,7 +2,7 @@
 
 Date: 2026-08-11
 Owner/Lane: Codex
-Status: Phase 1 implemented (deterministic authority graph) — see `miesc/llm/privileged_governance_lifecycle.py`. Later phases (lifecycle hypotheses, governance oracles, execution plans, LLM reasoning agent, cross-plan bridges) remain proposed. No benchmark claim.
+Status: Phases 1-2 implemented — see `miesc/llm/privileged_governance_lifecycle.py`. Phase 1 is the deterministic authority graph. Phase 2 adds three deterministic, advisory lifecycle guard-gap hypotheses — `unprotected_initializer`, `unsafe_upgrade_authority` and `pause_recovery_gap` — each emitted only when the disproving guard is not visible (an `only<Role>` or in-file/inherited access modifier, an inline caller check, an initializer-family guard, or, for pause, a recovery entrypoint in the same contract). They are the precise advisory view over `advanced_detectors`'s `ProxyUpgradeDetector`, whose regexes false-positive on the modifier-guarded `_authorizeUpgrade`/`initialize` forms this phase suppresses; `pause_recovery_gap` has no existing detector. Non-canonical measurement: OpenZeppelin library, Aave v3 and Compound III reference contracts produce 0. The other nine SDD categories (`role_admin_self_grant` — which needs a delay/timelock model, `missing_timelock`/`timelock_bypass`, `unbounded_emergency_power`, `guardian_takeover`, `cross_domain_governance_replay`, `renounce_brick`, `parameter_rug`, `treasury_drain_path`) remain proposed, owned by the LLM reasoning agent or plans that already cover them (governance timelock patterns, cross-chain, financial-math/lending). Governance oracles, execution plans and cross-plan bridges remain proposed. No benchmark claim.
 
 ## Signal
 

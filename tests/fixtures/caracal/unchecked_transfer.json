@@ -1,0 +1,80 @@
+[
+  {
+    "detector": "unchecked-transfer",
+    "impact": "High",
+    "confidence": "Medium",
+    "message": "The return value of the ERC20 transfer call to unchecked_transfer::unchecked_transfer::IERC20DispatcherImpl::transfer (unchecked_transfer.cairo:33) is never checked in unchecked_transfer::unchecked_transfer::UncheckedTransfer::bad_transfer",
+    "locations": [
+      {
+        "file": "unchecked_transfer.cairo",
+        "line": 33,
+        "col": 9
+      }
+    ]
+  },
+  {
+    "detector": "unchecked-transfer",
+    "impact": "High",
+    "confidence": "Medium",
+    "message": "The return value of the ERC20 transfer call to unchecked_transfer::unchecked_transfer::IERC20DispatcherImpl::transferFrom (unchecked_transfer.cairo:57) is never checked in unchecked_transfer::unchecked_transfer::UncheckedTransfer::bad_transfer_from_camel",
+    "locations": [
+      {
+        "file": "unchecked_transfer.cairo",
+        "line": 57,
+        "col": 9
+      }
+    ]
+  },
+  {
+    "detector": "unchecked-transfer",
+    "impact": "High",
+    "confidence": "Medium",
+    "message": "The return value of the ERC20 transfer call to unchecked_transfer::unchecked_transfer::IERC20DispatcherImpl::transfer_from (unchecked_transfer.cairo:45) is never checked in unchecked_transfer::unchecked_transfer::UncheckedTransfer::bad_transfer_from",
+    "locations": [
+      {
+        "file": "unchecked_transfer.cairo",
+        "line": 45,
+        "col": 9
+      }
+    ]
+  },
+  {
+    "detector": "unused-return",
+    "impact": "Medium",
+    "confidence": "Medium",
+    "message": "Return value unused for the function call to unchecked_transfer::unchecked_transfer::IERC20DispatcherImpl::transfer (unchecked_transfer.cairo:33) in unchecked_transfer::unchecked_transfer::UncheckedTransfer::bad_transfer",
+    "locations": [
+      {
+        "file": "unchecked_transfer.cairo",
+        "line": 33,
+        "col": 9
+      }
+    ]
+  },
+  {
+    "detector": "unused-return",
+    "impact": "Medium",
+    "confidence": "Medium",
+    "message": "Return value unused for the function call to unchecked_transfer::unchecked_transfer::IERC20DispatcherImpl::transferFrom (unchecked_transfer.cairo:57) in unchecked_transfer::unchecked_transfer::UncheckedTransfer::bad_transfer_from_camel",
+    "locations": [
+      {
+        "file": "unchecked_transfer.cairo",
+        "line": 57,
+        "col": 9
+      }
+    ]
+  },
+  {
+    "detector": "unused-return",
+    "impact": "Medium",
+    "confidence": "Medium",
+    "message": "Return value unused for the function call to unchecked_transfer::unchecked_transfer::IERC20DispatcherImpl::transfer_from (unchecked_transfer.cairo:45) in unchecked_transfer::unchecked_transfer::UncheckedTransfer::bad_transfer_from",
+    "locations": [
+      {
+        "file": "unchecked_transfer.cairo",
+        "line": 45,
+        "col": 9
+      }
+    ]
+  }
+]

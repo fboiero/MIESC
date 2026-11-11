@@ -2,10 +2,12 @@
 Cairo (Starknet) Adapter
 ========================
 
-⚠️  EXPERIMENTAL / ROADMAP — NOT production-validated.
-This non-EVM adapter uses pattern-based (regex/heuristic) detection only and is
-NOT registered in the active tool. EVM analysis is the production-ready surface.
-Non-EVM chains are future work (in test/development). See docs/MULTICHAIN.md.
+⚠️  EXPERIMENTAL — pattern-based (regex/heuristic) detection only.
+This non-EVM adapter complements the Caracal adapter (semantic, Sierra-level):
+it is registered as ``cairo`` and serves as the low-confidence correlation pair
+for Caracal in the intelligence engine's cross-tool dedup. EVM analysis remains
+the production-ready surface; Cairo/Starknet support is experimental. See
+docs/MULTICHAIN.md.
 
 Adapter for analyzing Cairo smart contracts on Starknet.
 
@@ -43,10 +45,19 @@ from __future__ import annotations
 
 import logging
 import re
+import time
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+
+from miesc.core.tool_protocol import (
+    ToolAdapter,
+    ToolCapability,
+    ToolCategory,
+    ToolMetadata,
+    ToolStatus,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -367,7 +378,15 @@ class CairoAnalyzer:
                     return i + 1  # 1-indexed
             return len(lines)
 
+        # STORAGE_COLLISION only matters for UPGRADEABLE contracts (the storage
+        # layout must stay stable across implementations). Its pattern matches
+        # `#[storage] struct Storage`, which every Starknet contract has, so gate
+        # it on an upgrade marker to avoid a finding on every single contract.
+        upgradeable = bool(re.search(r"replace_class", code))
+
         for vuln_type, cfg in CAIRO_PATTERNS.items():
+            if vuln_type == CairoVulnType.STORAGE_COLLISION and not upgradeable:
+                continue
             matched = False
             for pattern in cfg["patterns"]:
                 if matched:
@@ -423,3 +442,179 @@ def analyze_cairo_contract(contract_path: str) -> Dict[str, Any]:
     """Convenience function for Cairo analysis."""
     analyzer = CairoAnalyzer()
     return analyzer.analyze(contract_path)
+
+
+# =============================================================================
+# ToolAdapter wrapper (registered as "cairo")
+# =============================================================================
+
+
+class CairoPatternAdapter(ToolAdapter):
+    """ToolAdapter wrapper around :class:`CairoAnalyzer`.
+
+    Pure-Python, pattern-based (regex/heuristic) detection — no external binary,
+    always available. It is the low-confidence correlation pair for the Caracal
+    adapter: findings land with deliberately modest confidence so the semantic
+    Caracal findings dominate and the intelligence engine can corroborate (a
+    class flagged by BOTH tools gains cross-tool confidence) without the regex
+    heuristics inflating precision on their own.
+    """
+
+    # Pattern-based findings are heuristic (e.g. the access-control rule fires on
+    # any #[external] fn); keep confidence low so Caracal's semantic findings win.
+    CONFIDENCE_BY_SEVERITY = {
+        "Critical": 0.60,
+        "High": 0.55,
+        "Medium": 0.45,
+        "Low": 0.40,
+        "Info": 0.35,
+    }
+
+    # CairoVulnType.value -> (CWE, OWASP/Starknet label)
+    ENRICHMENT: Dict[str, tuple] = {
+        "felt_overflow": ("CWE-190", "SC03: Arithmetic"),
+        "arithmetic": ("CWE-190", "SC03: Arithmetic"),
+        "unchecked_u256": ("CWE-190", "SC03: Arithmetic"),
+        "l1_l2_message": ("CWE-346", "Starknet: L1<->L2 Messaging"),
+        "unchecked_l1_call": ("CWE-346", "Starknet: L1<->L2 Messaging"),
+        "caller_spoofing": ("CWE-477", "SC02: Access Control"),
+        "access_control": ("CWE-284", "SC02: Access Control"),
+        "storage_collision": ("CWE-665", "Starknet: Upgrade/Storage"),
+        "proxy_upgrade": ("CWE-829", "Starknet: Upgrade/Storage"),
+        "upgrade_no_init_guard": ("CWE-665", "SC05: Uninitialized Storage"),
+        "reentrancy": ("CWE-841", "SC01: Reentrancy"),
+        "pragma_oracle_stale": ("CWE-20", "SC... Oracle Manipulation"),
+        "unchecked_syscall_result": ("CWE-252", "SC04: Unchecked Return Values"),
+        "signature_replay": ("CWE-347", "SC... Signature Verification"),
+    }
+
+    def __init__(self) -> None:
+        self._analyzer = CairoAnalyzer()
+
+    def get_metadata(self) -> ToolMetadata:
+        return ToolMetadata(
+            name="cairo",
+            version=self._analyzer.version,
+            category=ToolCategory.STATIC_ANALYSIS,
+            author="Fernando Boiero",
+            license="AGPL-3.0",
+            homepage="https://github.com/fboiero/MIESC",
+            repository="https://github.com/fboiero/MIESC",
+            documentation="docs/guides/CAIRO.md",
+            installation_cmd="built-in (pure Python, no install)",
+            capabilities=[
+                ToolCapability(
+                    name="pattern_analysis",
+                    description="Pattern-based Cairo/Starknet vulnerability detection",
+                    supported_languages=["cairo", "starknet"],
+                    detection_types=[vt.value for vt in CairoVulnType],
+                )
+            ],
+            cost=0.0,
+            requires_api_key=False,
+            is_optional=True,
+            requires_llm=False,
+        )
+
+    def is_available(self) -> ToolStatus:
+        # Pure Python: always available.
+        return ToolStatus.AVAILABLE
+
+    def can_analyze(self, contract_path: str) -> bool:
+        path = Path(contract_path)
+        if path.is_file():
+            return path.suffix == ".cairo"
+        if path.is_dir():
+            if (path / "Scarb.toml").is_file():
+                return True
+            return any(path.glob("**/*.cairo"))
+        return contract_path.endswith(".cairo")
+
+    def analyze(self, contract_path: str, **kwargs: Any) -> Dict[str, Any]:
+        start_time = time.time()
+        path = Path(contract_path)
+        if not path.exists():
+            return self.create_result(
+                status="error",
+                error=f"Contract path does not exist: {contract_path}",
+                execution_time=time.time() - start_time,
+                metadata={"contract_analyzed": contract_path},
+            )
+
+        # Collect .cairo targets: a single file, or every .cairo under a directory.
+        if path.is_file():
+            targets = [path]
+        else:
+            targets = sorted(path.glob("**/*.cairo"))
+
+        raw: List[Dict[str, Any]] = []
+        for target in targets:
+            try:
+                res = self._analyzer.analyze(str(target))
+            except Exception as exc:  # noqa: BLE001 - one bad file must not sink the run
+                logger.warning("CairoAnalyzer failed on %s: %s", target, exc)
+                continue
+            if not res.get("success"):
+                continue
+            for finding in res.get("findings", []):
+                finding.setdefault("file", str(target))
+                raw.append(finding)
+
+        findings = self.normalize_findings(raw)
+        return self.create_result(
+            status="success",
+            findings=findings,
+            execution_time=time.time() - start_time,
+            metadata={
+                "contract_analyzed": contract_path,
+                "files_scanned": len(targets),
+                "raw_findings_count": len(raw),
+                "normalized_findings_count": len(findings),
+            },
+        )
+
+    def normalize_findings(self, raw_output: Any) -> List[Dict[str, Any]]:
+        """Normalize :meth:`CairoFinding.to_dict` records to MIESC findings."""
+        normalized: List[Dict[str, Any]] = []
+        if not isinstance(raw_output, list):
+            return normalized
+
+        for idx, item in enumerate(raw_output):
+            if not isinstance(item, dict):
+                continue
+            vtype = str(item.get("type", "unknown"))
+            raw_sev = str(item.get("severity", "Medium"))
+            severity = self.normalize_severity(raw_sev)
+            confidence = self.CONFIDENCE_BY_SEVERITY.get(raw_sev, 0.45)
+            loc = item.get("location", {}) if isinstance(item.get("location"), dict) else {}
+            cwe, owasp = self.ENRICHMENT.get(vtype, (None, None))
+
+            normalized.append(
+                {
+                    "id": f"cairo-{vtype}-{idx}",
+                    "type": vtype,
+                    "severity": severity,
+                    "confidence": max(0.0, min(1.0, confidence)),
+                    "location": {
+                        "file": str(item.get("file", "")),
+                        "line": int(loc.get("line", 0) or 0),
+                        "function": str(loc.get("function", "") or ""),
+                    },
+                    "message": str(item.get("title", vtype)),
+                    "description": str(item.get("description", "")),
+                    "recommendation": str(item.get("recommendation", "")),
+                    "swc_id": None,
+                    "cwe_id": cwe,
+                    "owasp_category": owasp,
+                    "chain": "starknet",
+                    "_cairo_pattern": True,  # heuristic source (for correlation/FP weighting)
+                }
+            )
+
+        return normalized
+
+    def get_default_config(self) -> Dict[str, Any]:
+        return {}
+
+
+__all__ = ["CairoAnalyzer", "CairoFinding", "CairoVulnType", "CairoPatternAdapter"]

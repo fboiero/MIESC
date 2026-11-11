@@ -158,6 +158,38 @@ _DIRECT_MAP: Dict[str, CanonicalCategory] = {
     # ----- Centralization -----
     "centralization-risk": CanonicalCategory.CENTRALIZATION,
     "owner-privileged": CanonicalCategory.CENTRALIZATION,
+    # ----- Cairo / Starknet -----
+    # Caracal detector slugs (kebab-case) and a few CairoAnalyzer CairoVulnType
+    # values (snake_case) are mapped here so a Caracal finding and the pattern
+    # adapter's finding for the same class collapse to one canonical category in
+    # the intelligence engine's cross-tool dedup. Reentrancy/tx-origin/unchecked-
+    # transfer/unused-return/unchecked_u256/pragma_oracle_stale/
+    # upgrade_no_init_guard/unchecked_syscall_result/signature_replay/
+    # proxy_upgrade are already covered by the entries above (proxy_upgrade is the
+    # one that corroborates Caracal's *-replace-class findings).
+    #
+    # Deliberately NOT mapped here: the generic snake_case types "arithmetic",
+    # "access_control" and "storage_collision". EVM / other-chain adapters
+    # (hardhat, peculiar, gptlens, smartguard, upgradability_checker, stellar, ...)
+    # already emit those exact strings; adding them to this shared map would
+    # change EVM finding classification, which the additive constraint forbids.
+    # Cairo arithmetic/access-control still correlate via the Cairo-specific keys
+    # below (felt_overflow, felt252-unsafe-arithmetic, caller_spoofing, tx-origin).
+    "felt252-unsafe-arithmetic": CanonicalCategory.ARITHMETIC,
+    "felt_overflow": CanonicalCategory.ARITHMETIC,
+    "controlled-library-call": CanonicalCategory.ACCESS_CONTROL,
+    "controlled-deploy": CanonicalCategory.ACCESS_CONTROL,
+    "controlled-replace-class": CanonicalCategory.PROXY_UPGRADE,
+    "unprotected-replace-class": CanonicalCategory.PROXY_UPGRADE,
+    "unchecked-l1-handler-from": CanonicalCategory.INPUT_VALIDATION,
+    "controlled-l1-message": CanonicalCategory.INPUT_VALIDATION,
+    "unchecked-l1-message": CanonicalCategory.INPUT_VALIDATION,
+    "l1_l2_message": CanonicalCategory.INPUT_VALIDATION,
+    "unchecked_l1_call": CanonicalCategory.INPUT_VALIDATION,
+    "unchecked-zero-owner": CanonicalCategory.ACCESS_CONTROL,
+    "caller_spoofing": CanonicalCategory.ACCESS_CONTROL,
+    "privileged-write-no-event": CanonicalCategory.CENTRALIZATION,
+    "block-values-for-randomness": CanonicalCategory.BAD_RANDOMNESS,
 }
 
 

@@ -1,0 +1,74 @@
+[
+  {
+    "detector": "read-only-reentrancy",
+    "impact": "Medium",
+    "confidence": "Medium",
+    "message": "Read only reentrancy in read_only_reentrancy::read_only_reentrancy::TestContract::__wrapper__get_a\n\tExternal call to read_only_reentrancy::read_only_reentrancy::IAnotherContractDispatcherImpl::foo (read_only_reentrancy.cairo:31) done in read_only_reentrancy::read_only_reentrancy::TestContract::bad\n\tStorage variable #0 of read_only_reentrancy::read_only_reentrancy::TestContract written after the call by core::starknet::storage::StorablePointerWriteAccessImpl::write (read_only_reentrancy.cairo:32) in read_only_reentrancy::read_only_reentrancy::TestContract::bad.",
+    "locations": [
+      {
+        "file": "read_only_reentrancy.cairo",
+        "line": 31,
+        "col": 9
+      },
+      {
+        "file": "read_only_reentrancy.cairo",
+        "line": 32,
+        "col": 9
+      }
+    ]
+  },
+  {
+    "detector": "read-only-reentrancy",
+    "impact": "Medium",
+    "confidence": "Medium",
+    "message": "Read only reentrancy in read_only_reentrancy::read_only_reentrancy::TestContract::__wrapper__get_a\n\tExternal call to read_only_reentrancy::read_only_reentrancy::IAnotherContractDispatcherImpl::safe_foo (read_only_reentrancy.cairo:42) done in read_only_reentrancy::read_only_reentrancy::TestContract::good2\n\tStorage variable #0 of read_only_reentrancy::read_only_reentrancy::TestContract written after the call by core::starknet::storage::StorablePointerWriteAccessImpl::write (read_only_reentrancy.cairo:43) in read_only_reentrancy::read_only_reentrancy::TestContract::good2.",
+    "locations": [
+      {
+        "file": "read_only_reentrancy.cairo",
+        "line": 42,
+        "col": 9
+      },
+      {
+        "file": "read_only_reentrancy.cairo",
+        "line": 43,
+        "col": 9
+      }
+    ]
+  },
+  {
+    "detector": "reentrancy-benign",
+    "impact": "Low",
+    "confidence": "Medium",
+    "message": "Reentrancy in read_only_reentrancy::read_only_reentrancy::TestContract::__wrapper__bad\n\tExternal call to read_only_reentrancy::read_only_reentrancy::IAnotherContractDispatcherImpl::foo (read_only_reentrancy.cairo:31) done in read_only_reentrancy::read_only_reentrancy::TestContract::bad\n\tStorage variable #0 of read_only_reentrancy::read_only_reentrancy::TestContract written after the call by core::starknet::storage::StorablePointerWriteAccessImpl::write (read_only_reentrancy.cairo:32) in read_only_reentrancy::read_only_reentrancy::TestContract::bad.",
+    "locations": [
+      {
+        "file": "read_only_reentrancy.cairo",
+        "line": 31,
+        "col": 9
+      },
+      {
+        "file": "read_only_reentrancy.cairo",
+        "line": 32,
+        "col": 9
+      }
+    ]
+  },
+  {
+    "detector": "reentrancy-benign",
+    "impact": "Low",
+    "confidence": "Medium",
+    "message": "Reentrancy in read_only_reentrancy::read_only_reentrancy::TestContract::__wrapper__good2\n\tExternal call to read_only_reentrancy::read_only_reentrancy::IAnotherContractDispatcherImpl::safe_foo (read_only_reentrancy.cairo:42) done in read_only_reentrancy::read_only_reentrancy::TestContract::good2\n\tStorage variable #0 of read_only_reentrancy::read_only_reentrancy::TestContract written after the call by core::starknet::storage::StorablePointerWriteAccessImpl::write (read_only_reentrancy.cairo:43) in read_only_reentrancy::read_only_reentrancy::TestContract::good2.",
+    "locations": [
+      {
+        "file": "read_only_reentrancy.cairo",
+        "line": 42,
+        "col": 9
+      },
+      {
+        "file": "read_only_reentrancy.cairo",
+        "line": 43,
+        "col": 9
+      }
+    ]
+  }
+]

@@ -12,7 +12,9 @@ from __future__ import annotations
 from pathlib import Path
 
 from miesc.llm.resource_liveness_griefing import (
+    _HYPOTHESIS_CATEGORIES,
     GrowableSurface,
+    LivenessHypothesis,
     ResourceLivenessGriefingPlan,
     _is_progress_name,
     _tokenize,
@@ -226,3 +228,332 @@ class TestLoopDetectionArtifacts:
         """
         plans = mine_resource_liveness_griefing(src, Path("q.sol"))
         assert [p.surface.progress_functions for p in plans] == [["processAll"]]
+
+
+# ======================================================================================
+# Phase 2 — advisory guard-gap liveness hypotheses
+# ======================================================================================
+def _cats(src, path="c.sol"):
+    """{resource: [hypothesis categories]} for a source."""
+    return {
+        p.surface.resource: [h.category for h in p.liveness_hypotheses]
+        for p in mine_resource_liveness_griefing(src, Path(path))
+        if p.surface
+    }
+
+
+# A resource grown by an unguarded, uncapped entrypoint, traversed by a progress loop with a push.
+UNBOUNDED_PUSH = """
+contract C {
+  address[] public users;
+  function join() external { users.push(msg.sender); }
+  function withdrawAll() external {
+    for (uint i = 0; i < users.length; i++) { payable(users[i]).transfer(1); }
+  }
+}
+"""
+
+
+class TestUnboundedLoop:
+    def test_attacker_growable_unbounded_loop_fires(self):
+        assert "unbounded_loop" in _cats(UNBOUNDED_PUSH)["users"]
+
+    def test_caller_owned_slice_suppresses(self):
+        # for (i = start; i < end; ) with end a parameter — a caller-owned slice (SDD l.125).
+        src = """
+        contract C { address[] public u;
+          function join() external { u.push(msg.sender); }
+          function claimRange(uint s, uint e) external {
+            require(e <= u.length);
+            for (uint i = s; i < e; i++) { payable(u[i]).transfer(1); } } }
+        """
+        assert "unbounded_loop" not in _cats(src)["u"]
+
+    def test_admin_grown_list_suppresses(self):
+        # strategies is only grown behind onlyOwner: not attacker-controlled (SDD l.129).
+        src = """
+        contract C { address[] public strategies;
+          function addStrategy(address s) external onlyOwner { strategies.push(s); }
+          function distribute() external {
+            for (uint i = 0; i < strategies.length; i++) { payable(strategies[i]).transfer(1); } } }
+        """
+        assert "unbounded_loop" not in _cats(src)["strategies"]
+
+    def test_length_capped_growth_suppresses(self):
+        src = """
+        contract C { address[] public u;
+          function join() external { require(u.length < 100); u.push(msg.sender); }
+          function withdrawAll() external {
+            for (uint i = 0; i < u.length; i++) { payable(u[i]).transfer(1); } } }
+        """
+        assert "unbounded_loop" not in _cats(src)["u"]
+
+    def test_clamped_bound_suppresses(self):
+        # end = min(start+n, u.length) via a ternary clamp — not driven by the raw length.
+        src = """
+        contract C { address[] public u;
+          function join() external { u.push(msg.sender); }
+          function claimClamped(uint s, uint n) external {
+            uint e = s + n < u.length ? s + n : u.length;
+            for (uint i = s; i < e; i++) { payable(u[i]).transfer(1); } } }
+        """
+        assert "unbounded_loop" not in _cats(src)["u"]
+
+    def test_cached_length_solely_equal_fires(self):
+        # uint len = u.length; for (i < len) — the dominant unsafe cached-length form.
+        src = """
+        contract C { address[] public u;
+          function join() external { u.push(msg.sender); }
+          function redeemAll() external {
+            uint len = u.length;
+            for (uint i = 0; i < len; i++) { payable(u[i]).transfer(1); } } }
+        """
+        assert "unbounded_loop" in _cats(src)["u"]
+
+    def test_mapping_resource_does_not_seed_unbounded_loop(self):
+        # A mapping has no .length to drive a loop; the array driving the loop owns the hypothesis.
+        src = """
+        contract C { address[] public u; mapping(address => uint) public bal;
+          function join() external { u.push(msg.sender); bal[msg.sender] = 1; }
+          function withdrawAll() external {
+            for (uint i = 0; i < u.length; i++) { payable(u[i]).transfer(bal[u[i]]); } } }
+        """
+        cats = _cats(src)
+        assert "unbounded_loop" in cats["u"]
+        assert "unbounded_loop" not in cats.get("bal", [])
+
+
+class TestPushPaymentBlocking:
+    def test_unisolated_push_fires(self):
+        assert "push_payment_blocking" in _cats(UNBOUNDED_PUSH)["users"]
+
+    def test_call_value_idiom_is_covered(self):
+        # The DoS detector's .transfer/.send patterns miss .call{value:}; this phase catches it.
+        src = """
+        contract C { address[] public u;
+          function join() external { u.push(msg.sender); }
+          function distribute() external {
+            for (uint i = 0; i < u.length; i++) { (bool ok,) = u[i].call{value:1}(""); require(ok); } } }
+        """
+        assert "push_payment_blocking" in _cats(src)["u"]
+
+    def test_try_catch_isolation_suppresses(self):
+        src = """
+        contract C { address[] public u;
+          function join() external { u.push(msg.sender); }
+          function distribute() external {
+            for (uint i = 0; i < u.length; i++) { try IR(u[i]).p{value:1}() {} catch {} } } }
+        """
+        assert "push_payment_blocking" not in _cats(src)["u"]
+
+    def test_credit_on_failure_suppresses(self):
+        # Nested-key credit write failed[u[i]] = true isolates the failure for a later pull.
+        src = """
+        contract C { address[] public u; mapping(address=>bool) failed;
+          function join() external { u.push(msg.sender); }
+          function distribute() external {
+            for (uint i = 0; i < u.length; i++) {
+              (bool ok,) = u[i].call{value:1}(""); if (!ok) { failed[u[i]] = true; } } } }
+        """
+        assert "push_payment_blocking" not in _cats(src)["u"]
+
+    def test_separate_pull_payment_path_suppresses(self):
+        src = """
+        contract C { address[] public u; mapping(address => uint) public pendingRefunds;
+          function join() external { u.push(msg.sender); }
+          function distribute() external {
+            for (uint i = 0; i < u.length; i++) { payable(u[i]).transfer(1); } }
+          function claimRefund() external {
+            uint a = pendingRefunds[msg.sender]; payable(msg.sender).transfer(a); } }
+        """
+        assert "push_payment_blocking" not in _cats(src)["u"]
+
+    def test_recipient_must_index_the_resource(self):
+        # IERC20(rewardTokens[i]).safeTransfer(msg.sender, amt): the resource element is the TOKEN,
+        # the caller is the payee — not a push-to-each-recipient, so push must NOT fire.
+        src = """
+        contract C { address[] public rewardTokens;
+          function addToken(address t) external onlyOwner { rewardTokens.push(t); }
+          function claimAll() external {
+            for (uint i = 0; i < rewardTokens.length; i++) {
+              IERC20(rewardTokens[i]).safeTransfer(msg.sender, 1); } } }
+        """
+        assert "push_payment_blocking" not in _cats(src).get("rewardTokens", [])
+
+    def test_onlyowner_sweep_is_not_a_pull_path(self):
+        # An onlyOwner function paying msg.sender (the owner) is not a user self-service pull path,
+        # so it does not suppress push over the distributed list.
+        src = """
+        contract C { address[] public u; mapping(address => uint) bal;
+          function join() external { u.push(msg.sender); }
+          function ownerWithdraw() external onlyOwner {
+            payable(msg.sender).transfer(bal[msg.sender]); }
+          function distribute() external {
+            for (uint i = 0; i < u.length; i++) { payable(u[i]).transfer(1); } } }
+        """
+        assert "push_payment_blocking" in _cats(src)["u"]
+
+
+class TestPushIsolationEdges:
+    def test_plain_indexed_write_does_not_isolate_a_hard_transfer(self):
+        # paid[i] = true before a .transfer() is tracking, not isolation: .transfer reverts the
+        # whole frame, so the credit never runs. Push must still fire.
+        src = """
+        contract C { address[] public u; mapping(uint=>bool) paid;
+          function join() external { u.push(msg.sender); }
+          function distribute() external {
+            for (uint i = 0; i < u.length; i++) { paid[i] = true; payable(u[i]).transfer(1); } } }
+        """
+        assert "push_payment_blocking" in _cats(src)["u"]
+
+    def test_paginated_bound_also_suppresses_push(self):
+        # A caller-chosen (start, end) lets the caller skip a reverting index, so push is suppressed.
+        src = """
+        contract C { address[] public u;
+          function join() external { u.push(msg.sender); }
+          function claimRange(uint s, uint e) external {
+            require(e <= u.length);
+            for (uint i = s; i < e; i++) { payable(u[i]).transfer(1); } } }
+        """
+        assert _cats(src)["u"] == []
+
+
+class TestRealFixtures:
+    """Positives on the feature's own canonical fixture and a real SmartBugs DoS sample."""
+
+    PAYOUTS = """
+    contract Payouts { address[] public depositors;
+      mapping(address => uint256) public balances;
+      function deposit() external payable {
+        if (balances[msg.sender] == 0) { depositors.push(msg.sender); }
+        balances[msg.sender] += msg.value; }
+      function payoutAll() external {
+        for (uint256 i = 0; i < depositors.length; i++) {
+          payable(depositors[i]).transfer(balances[depositors[i]]); } }
+      function withdraw() external {
+        uint256 a = balances[msg.sender]; balances[msg.sender] = 0;
+        payable(msg.sender).transfer(a); } }
+    """
+
+    def test_payouts_fires_unbounded_but_pull_path_suppresses_push(self):
+        # deposit() is open growth (the if(balances[msg.sender]==0) dedup is not access control);
+        # withdraw() is a self-service pull path, so push is suppressed, unbounded is not.
+        assert _cats(self.PAYOUTS, "P.sol")["depositors"] == ["unbounded_loop"]
+
+    def test_send_loop_style_require_send_in_loop_fires_push(self):
+        # SmartBugs send_loop.sol: require(list[x].send(...)) over a constructor-filled list. The
+        # constructor push is not an entrypoint, so the list is not attacker-growable (no
+        # unbounded_loop); but a single reverting recipient blocks all refunds, and `refunds` is only
+        # a lookup, not a pull path — so exactly push_payment_blocking fires.
+        src = """
+        contract Refunder { address[] private refundAddresses;
+          mapping (address => uint) public refunds;
+          constructor() { refundAddresses.push(msg.sender); }
+          function refundAll() public {
+            for (uint x; x < refundAddresses.length; x++) {
+              require(refundAddresses[x].send(refunds[refundAddresses[x]])); } } }
+        """
+        assert _cats(src)["refundAddresses"] == ["push_payment_blocking"]
+
+
+class TestEntrypointGate:
+    def test_internal_and_view_functions_do_not_seed(self):
+        # The only loop lives in an internal helper and a view — neither is attack surface.
+        src = """
+        contract C { address[] public u;
+          function join() external { u.push(msg.sender); }
+          function _withdrawAll() internal {
+            for (uint i = 0; i < u.length; i++) { payable(u[i]).transfer(1); } }
+          function claimView() external view returns (uint) {
+            uint t; for (uint i = 0; i < u.length; i++) { t += 1; } return t; } }
+        """
+        # `u` is still a Phase 1 surface (claimView traverses it), but no entrypoint seeds a loop.
+        assert _cats(src).get("u", []) == []
+
+
+class TestRealProtocolNoFalsePositive:
+    def test_compound_style_admin_grown_markets_yield_no_hypotheses(self):
+        # allMarkets grows only behind onlyAdmin; claimComp is public with no push — zero hypotheses.
+        src = """
+        contract Comptroller { CToken[] public allMarkets;
+          function _supportMarket(CToken c) external onlyAdmin { allMarkets.push(c); }
+          function claimComp(address holder) public {
+            for (uint i = 0; i < allMarkets.length; i++) { distribute(allMarkets[i], holder); } } }
+        """
+        assert _cats(src)["allMarkets"] == []
+
+
+class TestLivenessHypothesisParser:
+    def test_round_trip_preserves_categories(self):
+        plans = mine_resource_liveness_griefing(UNBOUNDED_PUSH, Path("c.sol"))
+        data = {"resource_liveness_griefing_plans": [p.to_dict() for p in plans]}
+        reparsed = parse_resource_liveness_plans(data)
+        cats = {h.category for p in reparsed for h in p.liveness_hypotheses}
+        assert {"unbounded_loop", "push_payment_blocking"} <= cats
+
+    def test_singular_sdd_key_is_accepted(self):
+        data = {
+            "plans": [
+                {
+                    "objective": "o",
+                    "surface": {"resource": "q"},
+                    "liveness_hypothesis": {
+                        "category": "keeper_blocking",
+                        "attacker_action": "keeper withholds",
+                        "negative_checks": ["any keeper can act"],
+                    },
+                }
+            ]
+        }
+        [plan] = parse_resource_liveness_plans(data)
+        assert [h.category for h in plan.liveness_hypotheses] == ["keeper_blocking"]
+
+    def test_unknown_category_dropped(self):
+        data = {
+            "plans": [
+                {
+                    "objective": "o",
+                    "surface": {"resource": "q"},
+                    "liveness_hypotheses": [
+                        {"category": "made_up", "negative_checks": ["x"]},
+                        {"category": "unbounded_loop", "negative_checks": ["y"]},
+                    ],
+                }
+            ]
+        }
+        [plan] = parse_resource_liveness_plans(data)
+        assert [h.category for h in plan.liveness_hypotheses] == ["unbounded_loop"]
+
+    def test_hypothesis_without_negative_check_dropped(self):
+        data = {
+            "plans": [
+                {
+                    "objective": "o",
+                    "surface": {"resource": "q"},
+                    "liveness_hypotheses": [{"category": "unbounded_loop"}],
+                }
+            ]
+        }
+        [plan] = parse_resource_liveness_plans(data)
+        assert plan.liveness_hypotheses == []
+
+
+class TestAdvisoryContract:
+    def test_every_hypothesis_carries_a_negative_check(self):
+        plans = mine_resource_liveness_griefing(UNBOUNDED_PUSH, Path("c.sol"))
+        hyps = [h for p in plans for h in p.liveness_hypotheses]
+        assert hyps and all(h.negative_checks for h in hyps)
+
+    def test_promotion_state_stays_hypothesis(self):
+        [plan] = mine_resource_liveness_griefing(UNBOUNDED_PUSH, Path("c.sol"))
+        assert plan.to_dict()["promotion"]["state"] == "hypothesis"
+
+    def test_all_emitted_categories_are_in_the_schema(self):
+        plans = mine_resource_liveness_griefing(UNBOUNDED_PUSH, Path("c.sol"))
+        for p in plans:
+            for h in p.liveness_hypotheses:
+                assert h.category in _HYPOTHESIS_CATEGORIES
+
+    def test_unknown_category_normalizes_to_unclassified_in_to_dict(self):
+        h = LivenessHypothesis(category="nope", negative_checks=["x"])
+        assert h.to_dict()["category"] == "unclassified"

@@ -1,0 +1,28 @@
+[
+  {
+    "detector": "unprotected-replace-class",
+    "impact": "High",
+    "confidence": "Low",
+    "message": "The external function unprotected_replace_class::unprotected_replace_class::UnprotectedReplaceClass::__wrapper__bad_upgrade (unprotected_replace_class.cairo:15) can replace the contract class without a caller address check",
+    "locations": [
+      {
+        "file": "unprotected_replace_class.cairo",
+        "line": 15,
+        "col": 5
+      }
+    ]
+  },
+  {
+    "detector": "unprotected-replace-class",
+    "impact": "High",
+    "confidence": "Low",
+    "message": "The external function unprotected_replace_class::unprotected_replace_class::UnprotectedReplaceClass::__wrapper__bad_upgrade_indirect (unprotected_replace_class.cairo:23) can replace the contract class without a caller address check",
+    "locations": [
+      {
+        "file": "unprotected_replace_class.cairo",
+        "line": 23,
+        "col": 5
+      }
+    ]
+  }
+]
