@@ -126,12 +126,67 @@ In short: Rung 1 works and the IR surface is good, but the ripe fruit is a singl
 already flag with more confidence; new coverage is genuine analysis work. This is **not** the
 leap the name "Rung 1" implies, and the result is recorded here rather than built.
 
+## Semantic-analysis spike (the "genuine analysis work" cases)
+
+The verdict above claims CREATE2 / unbounded-memory / constructor-order need real dataflow on the
+host ABI. That claim was itself spiked — with a throwaway prototype — to measure which case yields
+an *extractable, reliable* detector versus a general program-analysis rabbit hole.
+
+### Constructor init-order — extractable, but a false-positive machine without source
+
+The `@__deploy` (constructor) IR shows the via-ir ordering divergence **explicitly**. For
+`Derived is Base` (where `Base`'s constructor sets `startId = _firstId()` and `Derived` overrides
+`_firstId()` to return its `offset = 1`):
+
+```
+load_storage_word(slot 1)        ; read offset — still 0, its initializer has not run
+store_storage_word(slot 0, …)    ; startId = (that 0)
+store_storage_word(slot 1, 1)    ; offset = 1  — only now
+```
+
+A ~40-line prototype parsed `@__deploy`, recovered each storage slot (from the `store i256 N`
+into the pointer passed to `__revive_load/store_storage_word`), and flagged any slot **read before
+it is written**:
+
+| Contract | `__deploy` storage ops | Flag |
+|---|---|---|
+| `CleanCtor` (`a = 7; b = a + 1`) | store 0, store 1 | clean ✓ |
+| `ConstructorOrder` / `Derived` | **load 1**, store 0, store 1 | **flag slot 1** ✓ (the real bug) |
+| `SelfDestructUse` | load 0, store 0 | **flag slot 0** ✗ (false positive) |
+
+So the IR read-before-init pattern is **necessary but not sufficient**: `SelfDestructUse` reads a
+slot before writing it for an ordinary reason, not the ordering bug. Precision requires
+**source↔IR correlation** — the flagged slot must map to a source state variable with a *declared
+non-zero initializer that runs after the read*. That (IR dataflow on `@__deploy` + source
+initializer correlation) is the real detector: buildable and scoped, not a rabbit hole, but not a
+free pattern either.
+
+### CREATE2 address — the IR does not beat source
+
+The IR faithfully shows the named `code_hash`, `hash_keccak_256` and `instantiate` host calls, but
+the divergence (a developer assumed the EVM CREATE2 address formula; on PolkaVM the address derives
+from the code hash and `creationCode` returns a hash) is a mismatch between **developer intent** and
+PolkaVM semantics. Neither source nor IR can know the developer intended EVM semantics without
+modelling intent. No IR advantage here.
+
+### Net
+
+Of the "analysis work" cases, **constructor init-order is the only one where IR analysis genuinely
+adds power and is extractable** (prototype-proven on real IR) — and even it needs source correlation
+for precision. CREATE2 / unbounded-memory are source-equivalent or intent-modelling problems. The
+measured value of this spike is the *knowledge* of exactly what is buildable and why, not a build.
+
 ## If Rung 1 is picked up later
 
 - **Minimal first deliverable:** a `prevrandao`/`difficulty` magic-constant detector that runs
   native resolc with `--debug-output-dir`, parses `*.optimized.ll` for `2500000000000000`, and
   reports it (correlated with the source using `block.prevrandao`/`difficulty`) as a
   higher-confidence corroboration of `polkavm-predictable-prevrandao`.
-- **Beyond that:** model the named host ABI (calls, storage, memory, `instantiate`) and add
-  dataflow to reach CREATE2 / unbounded-memory / constructor-order — scoped as its own effort.
-- **Dependency:** the native resolc binary (≈234 MB), not the npx wrapper.
+- **The one analysis-worth-it target:** a **constructor init-order** detector — intra-procedural
+  dataflow over `@__deploy`'s `__revive_load/store_storage_word` (read-before-write per slot),
+  correlated with source state variables that carry a declared non-zero initializer (to drop the
+  `SelfDestructUse`-style false positives measured above). Scoped as its own effort.
+- **Not worth it via IR:** CREATE2 (intent mismatch) and unbounded-memory (the 128 KB limit is
+  global) — source heuristics do as well or better.
+- **Dependency:** the native resolc binary (≈234 MB), not the npx wrapper. Weigh this against the
+  value: one narrow bug class that still needs source correlation.
