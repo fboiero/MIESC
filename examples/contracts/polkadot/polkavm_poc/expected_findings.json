@@ -38,10 +38,17 @@
       "expected": [
         {
           "check": "polkavm-create2-address-assumption",
+          "function": "deploy",
+          "severity": "Medium",
+          "difference_class": "B",
+          "rationale": "new Child{salt:...}() is a CREATE2 deployment; on PolkaVM the derived address differs from the EVM derivation."
+        },
+        {
+          "check": "polkavm-create2-address-assumption",
           "function": "predicted",
           "severity": "Medium",
           "difference_class": "B",
-          "rationale": "Addresses derive from code hash; type(T).creationCode returns a keccak256 hash, so EVM CREATE2 precomputation is wrong."
+          "rationale": "type(T).creationCode returns a keccak256 hash on PolkaVM, so EVM CREATE2 precomputation is wrong."
         }
       ]
     },
