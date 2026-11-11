@@ -124,7 +124,9 @@ def test_gas_capped_call_not_flagged():
         "  }\n"
         "}\n"
     )
-    assert "polkavm-unlimited-gas-call" not in [f["type"] for f in _adapter().normalize_findings(src)]
+    assert "polkavm-unlimited-gas-call" not in [
+        f["type"] for f in _adapter().normalize_findings(src)
+    ]
 
 
 def test_literal_sized_memory_not_flagged():
@@ -190,8 +192,14 @@ def test_cli_target_polkavm_routes_and_skips_evm(tmp_path):
     out = tmp_path / "pvm.json"
     res = CliRunner().invoke(
         scan,
-        [str(FIXTURES / "vulnerable" / "UnlimitedGasCall.sol"),
-         "--target", "polkavm", "-o", str(out), "--quiet"],
+        [
+            str(FIXTURES / "vulnerable" / "UnlimitedGasCall.sol"),
+            "--target",
+            "polkavm",
+            "-o",
+            str(out),
+            "--quiet",
+        ],
     )
     assert res.exit_code == 0, res.output
     data = json.loads(out.read_text())

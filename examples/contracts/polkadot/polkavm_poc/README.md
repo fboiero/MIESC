@@ -5,8 +5,8 @@ Fixtures for the experimental Polkadot/PolkaVM support in MIESC
 contracts meant to be compiled with **`resolc`** (the Parity revive compiler) and
 run on **`pallet-revive`** (PolkaVM / RISC-V) on Asset Hub — *not* the EVM.
 
-License: MIT (same as MIESC's own examples). These contracts are original to this
-repository.
+License: AGPL-3.0-only (the MIESC project license). These contracts are original
+to this repository.
 
 ## What they demonstrate
 

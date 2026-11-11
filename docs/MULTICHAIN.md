@@ -41,7 +41,7 @@ miesc audit batch ./contracts -p thorough  # Batch audit
 
 ## Polkadot (Experimental)
 
-**Status:** 🧪 Experimental — PolkaVM / `pallet-revive` via the built-in `polkavm_diff` analyzer
+**Status:** 🧪 Experimental — PolkaVM / `pallet-revive`, via Slither / Aderyn / Solhint plus built-in `polkavm_diff` pattern checks
 
 Polkadot has three distinct smart-contract models; MIESC covers them as follows:
 
@@ -69,7 +69,7 @@ differently on PolkaVM (silent runtime differences, per the revive compiler book
 - `CREATE2` / `creationCode` — address derived from code hash, EVM precomputation breaks
 - `block.prevrandao` / `difficulty` — a constant on PolkaVM → predictable randomness
 - via-ir constructor init-order — base constructors run before derived state-var initializers
-- `selfdestruct` — compiles but its semantics differ from the EVM
+- `selfdestruct` — compiles under `resolc` (verified); flagged because its runtime behaviour on `pallet-revive` may differ from the EVM (runtime semantics not independently confirmed)
 
 ### Usage
 

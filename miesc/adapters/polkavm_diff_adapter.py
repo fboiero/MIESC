@@ -150,9 +150,9 @@ _STATE_INIT_RE = re.compile(
 )
 
 
-def _line_matches(blank_lines: List[str], raw_lines: List[str], regex: re.Pattern) -> List[
-    Tuple[int, str]
-]:
+def _line_matches(
+    blank_lines: List[str], raw_lines: List[str], regex: re.Pattern
+) -> List[Tuple[int, str]]:
     hits: List[Tuple[int, str]] = []
     for idx, bline in enumerate(blank_lines):
         if regex.search(bline):
@@ -160,7 +160,9 @@ def _line_matches(blank_lines: List[str], raw_lines: List[str], regex: re.Patter
     return hits
 
 
-def _find_unlimited_gas(blank: str, raw_lines: List[str], blank_lines: List[str]):
+def _find_unlimited_gas(
+    blank: str, raw_lines: List[str], blank_lines: List[str]
+) -> List[Tuple[int, str]]:
     hits: List[Tuple[int, str]] = []
     for idx, bline in enumerate(blank_lines):
         for m in _CALL_RE.finditer(bline):
@@ -172,7 +174,9 @@ def _find_unlimited_gas(blank: str, raw_lines: List[str], blank_lines: List[str]
     return hits
 
 
-def _find_unbounded_memory(blank: str, raw_lines: List[str], blank_lines: List[str]):
+def _find_unbounded_memory(
+    blank: str, raw_lines: List[str], blank_lines: List[str]
+) -> List[Tuple[int, str]]:
     hits: List[Tuple[int, str]] = []
     for idx, bline in enumerate(blank_lines):
         for m in _NEW_MEM_RE.finditer(bline):
@@ -185,7 +189,9 @@ def _find_unbounded_memory(blank: str, raw_lines: List[str], blank_lines: List[s
     return hits
 
 
-def _find_constructor_order(blank: str, raw_lines: List[str], blank_lines: List[str]):
+def _find_constructor_order(
+    blank: str, raw_lines: List[str], blank_lines: List[str]
+) -> List[Tuple[int, str]]:
     # Heuristic (lower confidence): inheritance + a constructor + an inline-
     # initialized state var → via-ir base/derived init order on PolkaVM may
     # differ from legacy EVM. Reported once, at the constructor line.
@@ -261,8 +267,8 @@ RULES: List[Rule] = [
     Rule(
         check="polkavm-selfdestruct-semantics",
         severity="Low",
-        message="Use of selfdestruct; it compiles under resolc but its semantics on "
-        "pallet-revive differ from the EVM (portability/semantic risk).",
+        message="Use of selfdestruct; it compiles under resolc but its runtime behaviour on "
+        "pallet-revive may differ from the EVM (portability/semantic risk; runtime not confirmed).",
         recommendation="Avoid selfdestruct on PolkaVM; use an explicit disable/withdraw pattern.",
         confidence=0.7,
         cwe_id="CWE-710",

@@ -91,8 +91,13 @@ QUICK_TOOLS: List[str] = ["slither", "aderyn", "solhint"]
 # The Solidity source-level tools apply to the .sol source as-is; the built-in
 # `polkavm_diff` adapter adds the PolkaVM "difference-with-EVM" checks. EVM
 # bytecode/symbolic/fuzzing tools (mythril, manticore, echidna, ...) do NOT apply
-# to a RISC-V target and are deliberately excluded. Used when `miesc scan` is run
-# with `--target polkavm`.
+# to a RISC-V target and are deliberately excluded. Used only when `miesc scan` is
+# run with `--target polkavm` (explicit opt-in).
+#
+# NOTE: `polkavm_diff` is intentionally NOT in any LAYERS entry. Every implicit
+# scan/audit path builds its tool list from LAYERS, so `polkavm_diff` never runs
+# on an EVM contract by accident — it is reachable only via `--target polkavm` or
+# an explicit `miesc audit single polkavm_diff`.
 POLKAVM_TOOLS: List[str] = [*QUICK_TOOLS, "polkavm_diff"]
 
 # Adapter class mapping (tool name -> adapter class name)

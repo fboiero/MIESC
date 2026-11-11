@@ -985,6 +985,29 @@ def _run_polkavm_scan(
                 finding.setdefault("file", str(sol_file))
             all_results.append(result)
 
+    # Intelligence engine: cross-tool semantic dedup + confidence calibration,
+    # same as the EVM path. This is what makes the source-level tools and the
+    # polkavm_diff checks corroborate (e.g. Slither 'weak-prng' and
+    # 'polkavm-predictable-prevrandao' on the same spot) instead of just coexisting.
+    try:
+        from miesc.core.intelligence import enhance_findings
+
+        flat: list[dict[str, Any]] = []
+        for result in all_results:
+            for finding in result.get("findings", []):
+                finding.setdefault("tool", result.get("tool", "unknown"))
+                flat.append(finding)
+        if flat:
+            enhanced = enhance_findings(flat, source_code="", file_path=str(contract))
+            non_suppressed = [f for f in enhanced if not f.get("fp_suppressed")]
+            tool_metadata = [{k: v for k, v in r.items() if k != "findings"} for r in all_results]
+            all_results = tool_metadata + [
+                {"tool": "miesc-intelligence", "status": "success", "findings": non_suppressed}
+            ]
+    except Exception as exc:  # noqa: BLE001 — best-effort, never breaks the scan
+        if not quiet:
+            info(f"Intelligence engine skipped: {exc}")
+
     _display_and_save(
         all_results,
         contract=str(contract),
@@ -1282,8 +1305,7 @@ def _apply_triage_rank(all_results: list[dict[str, Any]], *, contract: str, quie
     if not quiet:
         if total < 0:
             info(
-                "rank: no triage model — train with scripts/train_triage_model.py "
-                "(order unchanged)"
+                "rank: no triage model — train with scripts/train_triage_model.py (order unchanged)"
             )
         else:
             info(
@@ -1349,8 +1371,7 @@ def _apply_acceptance_ordering(
     if not quiet:
         if total < 0:
             info(
-                f"acceptance ({choice}): provider unavailable — order unchanged "
-                "(recall-safe no-op)"
+                f"acceptance ({choice}): provider unavailable — order unchanged (recall-safe no-op)"
             )
         else:
             info(

@@ -87,7 +87,7 @@
           "function": "destroy",
           "severity": "Low",
           "difference_class": "B",
-          "rationale": "selfdestruct compiles under resolc (verified) but its semantics on pallet-revive differ from the EVM; portability/semantic risk."
+          "rationale": "selfdestruct compiles under resolc (verified); flagged because its runtime behaviour on pallet-revive may differ from the EVM (runtime semantics not independently confirmed); portability/semantic risk."
         }
       ]
     },

@@ -326,24 +326,18 @@ consideradas y descartadas:
 Tradeoff aceptado de PolkaVM: superficie nueva y alineada con el futuro de Polkadot, a cambio de
 tooling externo inmaduro (de ahí la capa nativa propia, Decisión Abierta #2).
 
-### Decisión Abierta #1 — Mecanismo de routing (la más importante)
+### Decisión Abierta #1 — Mecanismo de routing — **RESUELTA (owner): flag `--target polkavm`**
 
-Un `.sol` PolkaVM es indistinguible de uno EVM por contenido. ¿Cómo lo señalamos?
-- (a) flag explícita `--target polkavm` / `--chain polkadot` (hoy no existe `--chain` en `scan.py`) —
-  simple y explícito, **recomendada** para el PoC.
-- (b) detección por marcador de proyecto (`foundry-polkadot`, `hardhat-resolc`, `resolc` en el
-  toolchain) — más mágico, más frágil.
-- (c) ambas. Impacta F3/F5. ¿Agregamos `--chain`/`--target` como parte del PoC o esperamos un
-  refactor de routing multichain más amplio?
+Resuelta a favor de (a): flag explícita `--target polkavm` en `scan.py` (no existía `--chain`).
+Implementada en F3 — sin la flag, el camino EVM queda intacto. El marcador de proyecto (b) se
+descartó por frágil. Un `.sol` PolkaVM es indistinguible de uno EVM por contenido, de ahí la señal
+explícita.
 
-### Decisión Abierta #2 — Estrategia de tool (externo vs nativo)
+### Decisión Abierta #2 — Estrategia de tool — **RESUELTA: (b) capa nativa + PolkaGuard opcional**
 
-- (a) **Capa nativa MIESC sola** (reglas de §0.3, grounded en el *revive book*): máximo control, sin
-  dep externa floja, pero las escribimos nosotros.
-- (b) **Capa nativa + PolkaGuard opcional** como corroboración (**recomendada**): integramos un tool
-  externo (como Cairo) sin apostar el PoC a un repo 0★/stale.
-- (c) PolkaGuard primero: menos trabajo, pero procedencia floja (riesgo shadowhare). Se decide en F0
-  con evidencia de madurez real.
+Resuelta a favor de (b): la **capa nativa `polkavm_diff`** (reglas de §0.3, grounded en el *revive
+book*) es el motor; **PolkaGuard queda opcional** (no se integró en el PoC por procedencia floja —
+0★/stale). (a) y (c) descartadas. Evidencia en el ADR F0 §5–§6.
 
 ### Decisión Abierta #3 — Alcance de la supresión EVM-only
 

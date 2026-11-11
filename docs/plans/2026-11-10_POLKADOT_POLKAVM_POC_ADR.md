@@ -70,7 +70,7 @@ chequea la capa nativa** (código correcto en EVM, inseguro/roto en PolkaVM):
 | `PREVRANDAO`/`DIFFICULTY` → constante `2500000000000000` | silent runtime | randomness predecible/constante | `block.prevrandao`/`difficulty` como entropía |
 | Orden de init con via-ir: constructores base antes de inicializar state vars derivadas (ej. del libro: `0` en vez de `1`) | silent runtime | lógica de init distinta | dependencia de orden base↔derivada en constructor |
 | En constructor: `calldataload`/`calldatacopy` offset ignorado (→0); `codesize` → calldata size | silent runtime | lógica de constructor distinta | esos opcodes en constructor |
-| `SELFDESTRUCT`: **COMPILA** con resolc (verificado en F0, exit 0) — no es error de compilación; su semántica en PolkaVM difiere de EVM | silent runtime | lógica/semántica distinta | flag: uso de `selfdestruct`/`suicide` |
+| `SELFDESTRUCT`: **COMPILA** con resolc (verificado en F0, exit 0) — no es error de compilación; su comportamiento en runtime en PolkaVM **podría** diferir de EVM (compila verificado; runtime sin confirmar) | silent runtime | lógica/semántica distinta | flag: uso de `selfdestruct`/`suicide` |
 
 ## 5. PolkaGuard — evaluación (read-only, sin ejecución)
 

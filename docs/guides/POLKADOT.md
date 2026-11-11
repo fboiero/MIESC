@@ -50,7 +50,7 @@ compiler's job, not MIESC's.)
 | `polkavm-create2-address-assumption` | Addresses derive from the code hash; `creationCode` returns a hash → EVM `CREATE2` precomputation breaks |
 | `polkavm-predictable-prevrandao` | `block.prevrandao` / `difficulty` is a constant on PolkaVM → predictable randomness |
 | `polkavm-constructor-init-order` | Under via-ir, base constructors run before derived state-variable initializers |
-| `polkavm-selfdestruct-semantics` | `selfdestruct` compiles but its semantics differ from the EVM |
+| `polkavm-selfdestruct-semantics` | `selfdestruct` compiles under `resolc` (verified); flagged because its runtime behaviour on `pallet-revive` may differ from the EVM (runtime semantics not independently confirmed) |
 
 ## Compiling for PolkaVM (optional, to reproduce the target)
 
