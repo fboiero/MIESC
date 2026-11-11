@@ -24,6 +24,25 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Resource/liveness griefing hypotheses — SDD Phase 2.** `mine_resource_liveness_griefing` now
+  attaches deterministic, advisory **`liveness_hypotheses`** to each Phase-1 progress surface:
+  `unbounded_loop` and `push_payment_blocking`. Each is a guard-gap keyed on the resource that drives
+  the loop header (the array whose `.length`, directly or via a cached local, bounds the loop — never
+  a duplicate on a resource the body only reads), emitted only when the control that would disprove it
+  is not visible: pagination or a caller-owned/clamped bound and access-controlled or length-capped
+  growth (for `unbounded_loop`), or failure isolation (try/catch, or a low-level send/call whose
+  failure is credited) and a self-service pull-payment path (for `push_payment_blocking`). They are
+  the precise advisory view over the existing `DenialOfServiceDetector` (`smartbugs_detectors`) and
+  `UnboundedLoopDetector` (`examples`), which (measured 2026-11-11) false-positive on paginated loops,
+  admin-grown lists and clamped bounds this phase suppresses, and cover the `.call{value:}` idiom the
+  DoS detector misses. They are **advisory** (`promotion.state` stays `hypothesis`, never a
+  `Finding`), each carries a `negative_check`. Non-canonical measurement: a sweep of all 214 repo
+  `.sol` files surfaced 5 and emitted one hypothesis (SmartBugs `send_loop.sol` →
+  `push_payment_blocking`); the other five SmartBugs DoS samples expose no progress surface, a recall
+  gap rather than a clean pass (no recall claim). The canonical `Payouts` fixture fires
+  `unbounded_loop`; typed PaymentSplitter/Comptroller snippets emit 0. `keeper_blocking` and the other
+  seven categories are deferred to the LLM reasoning agent. Phase 1 output is unchanged. No benchmark
+  claim.
 - **Governance lifecycle hypotheses — SDD Phase 2.** `mine_privileged_governance_lifecycle` now
   derives three deterministic, advisory **`lifecycle_hypotheses`** on top of the Phase-1 authority
   graph: `unprotected_initializer`, `unsafe_upgrade_authority` and `pause_recovery_gap`. Each is a

@@ -188,6 +188,7 @@ from .remediation_generator import (
 )
 from .resource_liveness_griefing import (
     GrowableSurface,
+    LivenessHypothesis,
     ResourceLivenessGriefingPlan,
     mine_resource_liveness_griefing,
     parse_resource_liveness_plans,
@@ -372,6 +373,7 @@ __all__ = [
     "mine_privileged_governance_lifecycle",
     "parse_privileged_governance_plans",
     "GrowableSurface",
+    "LivenessHypothesis",
     "ResourceLivenessGriefingPlan",
     "mine_resource_liveness_griefing",
     "parse_resource_liveness_plans",
