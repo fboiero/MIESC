@@ -130,6 +130,21 @@ check_solc() {
   log "solc not found. Install solc or solc-select before running formal verification."
 }
 
+install_resolc() {
+  # Optional: resolc (Solidity -> PolkaVM) for the experimental `miesc scan
+  # --target polkavm` path. resolc is normally used on demand via
+  # `npx @parity/resolc`; installing it globally here just caches it. Non-fatal:
+  # the built-in polkavm_diff source-level checks need none of this.
+  if ! have node || ! have npm; then
+    log "resolc: node/npm not found — skipping (optional; polkavm_diff checks still work)"
+    return
+  fi
+  log "Installing resolc (@parity/resolc@1.5.0) for --target polkavm (optional)"
+  npm install -g @parity/resolc@1.5.0 >/dev/null 2>&1 \
+    || log "resolc global install failed — use: npx @parity/resolc@1.5.0"
+  npx --yes @parity/resolc@1.5.0 --version 2>/dev/null | head -1 || true
+}
+
 main() {
   ensure_python_311
   ensure_main_venv
@@ -141,6 +156,7 @@ main() {
   install_wake
   install_semgrep
   check_solc
+  install_resolc
 
   if [ -f apik.sh ]; then
     # shellcheck disable=SC1091

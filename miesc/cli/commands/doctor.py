@@ -89,6 +89,28 @@ def _provider_status(row: dict) -> tuple[str, str]:
 # =============================================================================
 
 
+def _polkavm_toolchain_status() -> tuple[str, str]:
+    """(status_markup, detail) for the PolkaVM / `resolc` toolchain (Experimental).
+
+    Fast and side-effect-free: checks PATH only, never downloads. `resolc` is
+    normally fetched on demand via ``npx @parity/resolc``, so "on-demand" (with
+    node + solc present) is a healthy state, not an error.
+    """
+    import shutil
+
+    resolc = shutil.which("resolc")
+    if resolc:
+        try:
+            v = subprocess.run([resolc, "--version"], capture_output=True, text=True, timeout=5)
+            ver = (v.stdout or v.stderr).strip().split("\n")[0][:40] or "installed"
+        except Exception:
+            ver = "installed"
+        return "[green]OK[/green]", f"resolc: {ver}"
+    if shutil.which("node") and shutil.which("solc"):
+        return "[cyan]on-demand[/cyan]", "npx @parity/resolc@1.5.0 (node + solc present)"
+    return "[yellow]prereqs[/yellow]", "needs node + solc, then npx @parity/resolc@1.5.0"
+
+
 @click.command()
 @click.option("--verbose", "-v", is_flag=True, help="Show detailed information")
 def doctor(verbose: bool) -> None:
@@ -123,6 +145,20 @@ def doctor(verbose: bool) -> None:
                 dep_table.add_row(dep, "[yellow]MISSING[/yellow]", "Not installed")
 
         console.print(dep_table)
+        console.print("")
+
+        # PolkaVM / pallet-revive (Experimental): resolc toolchain + built-in layer.
+        # polkavm_diff is intentionally not in LAYERS, so it is surfaced here.
+        pvm_status, pvm_detail = _polkavm_toolchain_status()
+        pvm_table = Table(title="PolkaVM / pallet-revive (Experimental)", box=box.ROUNDED)
+        pvm_table.add_column("Component", style="bold", width=15)
+        pvm_table.add_column("Status", width=12)
+        pvm_table.add_column("Detail", width=45)
+        pvm_table.add_row("resolc", pvm_status, pvm_detail)
+        pvm_table.add_row(
+            "polkavm_diff", "[green]built-in[/green]", "miesc scan <contract> --target polkavm"
+        )
+        console.print(pvm_table)
         console.print("")
 
         total_tools = sum(len(layer_info["tools"]) for layer_info in LAYERS.values())
