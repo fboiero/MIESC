@@ -225,6 +225,13 @@ from .vulnerability_rag import (
     VulnerabilityExample,
     VulnerabilityRAG,
 )
+from .yul_assembly_memory_safety import (
+    AssemblySummary,
+    YulAssemblySafetyPlan,
+    YulHazard,
+    mine_yul_assembly_safety,
+    parse_yul_assembly_safety_plans,
+)
 
 # v5.1.0+ Embedding RAG with ChromaDB (optional dependencies)
 try:
@@ -377,6 +384,11 @@ __all__ = [
     "ResourceLivenessGriefingPlan",
     "mine_resource_liveness_griefing",
     "parse_resource_liveness_plans",
+    "AssemblySummary",
+    "YulHazard",
+    "YulAssemblySafetyPlan",
+    "mine_yul_assembly_safety",
+    "parse_yul_assembly_safety_plans",
     "GuardGapHypothesis",
     "GuardInventoryItem",
     "RevertInvariantOraclePlan",

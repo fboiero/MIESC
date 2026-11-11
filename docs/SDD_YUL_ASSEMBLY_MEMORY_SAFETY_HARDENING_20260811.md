@@ -2,7 +2,7 @@
 
 Date: 2026-08-11
 Owner/Lane: Codex
-Status: Phase 1 implemented (deterministic local core) — see `miesc/detectors/yul_assembly_safety_detector.py`. Later phases (LLM reasoning agent, validation obligations, cross-subsystem bridges) remain proposed. No benchmark claim.
+Status: Phase 1 implemented as a deterministic detector (`miesc/detectors/yul_assembly_safety_detector.py`, PR #207 — block extraction plus three high-precision hazards: memory-safe violation, unbounded returndatacopy, arbitrary sstore), plus the advisory provider-neutral effect-summary plan `miesc/llm/yul_assembly_memory_safety.py` (`YulAssemblySafetyPlan`): a per-block structured model of memory/storage/calldata/returndata effects (an opcode→effect tokenizer that classifies each memory write by region and each storage slot by provenance, keeping `tload`/`tstore` out of the storage fields), with `hazards` filled by calling the detector's own classifier — no second classifier — and `metadata.evaluated_hazard_categories` recording which three of the ten categories were checked so an empty `hazards` is never read as "clean". The LLM reasoning agent, the remaining seven hazard categories, and the validation obligations / cross-subsystem bridges remain proposed. Advisory only (`promotion.state = hypothesis`); no benchmark claim. (This is a divergent root-level duplicate of the canonical `docs/sdd/SDD_YUL_ASSEMBLY_MEMORY_SAFETY_HARDENING_20260811.md` — only this Status line has been reconciled with it; the two still differ in their internal path references, and de-duplicating them is deferred.)
 
 ## Signal
 
