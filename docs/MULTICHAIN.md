@@ -8,6 +8,7 @@ is on the **roadmap**: experimental adapter code exists but is not production-va
 | Level | Description |
 |-------|-------------|
 | ✅ **Production** | Full 9-layer analysis with 50 tools across 35 analysis modules. Recommended for audits. |
+| 🧪 **Experimental** | A real analyzer is integrated (not just patterns), but recall/precision are not yet benchmark-validated. Useful for review; not a production guarantee. |
 | 🛣️ **Roadmap** | Experimental adapter code (pattern-based). Planned, NOT production-validated — not for security decisions yet. |
 
 ## EVM Chains (Production)
@@ -35,6 +36,54 @@ miesc scan contract.sol                    # Quick scan
 miesc audit full contract.sol              # Full 9-layer audit
 miesc audit batch ./contracts -p thorough  # Batch audit
 ```
+
+---
+
+## Polkadot (Experimental)
+
+**Status:** 🧪 Experimental — PolkaVM / `pallet-revive` via the built-in `polkavm_diff` analyzer
+
+Polkadot has three distinct smart-contract models; MIESC covers them as follows:
+
+- **EVM parachains (Moonbeam, Astar EVM)** — standard EVM via Frontier / `pallet-evm`.
+  **Already covered** by MIESC's production EVM analysis; nothing new is needed.
+- **PolkaVM / `pallet-revive`** — Solidity compiled with `resolc` to PolkaVM (RISC-V), run on
+  Asset Hub. **This experimental support.** Run it with `--target polkavm`.
+- **ink!** (Rust → WASM on `pallet-contracts`) — the language was discontinued (Jan 2026);
+  tracked as secondary future work.
+
+### What `--target polkavm` does
+
+Routes a Solidity contract to the Solidity **source-level** tools (Slither, Aderyn, Solhint) plus
+the built-in **`polkavm_diff`** checks, and **skips** EVM bytecode / symbolic / fuzzing tools — the
+compiled target is RISC-V, not EVM, so EVM-bytecode tools do not apply. Without the flag, the EVM
+path is unchanged.
+
+### PolkaVM "difference-with-EVM" checks
+
+`polkavm_diff` flags code that compiles and is correct on the EVM but is insecure or behaves
+differently on PolkaVM (silent runtime differences, per the revive compiler book):
+
+- Unlimited-gas external call — no 63/64 gas rule on PolkaVM → DoS vector
+- Unbounded memory — fixed 128kb buffer → runtime trap (OutOfBound)
+- `CREATE2` / `creationCode` — address derived from code hash, EVM precomputation breaks
+- `block.prevrandao` / `difficulty` — a constant on PolkaVM → predictable randomness
+- via-ir constructor init-order — base constructors run before derived state-var initializers
+- `selfdestruct` — compiles but its semantics differ from the EVM
+
+### Usage
+
+```bash
+miesc scan contract.sol --target polkavm
+miesc scan contracts/ --target polkavm --recursive
+```
+
+### Limitations
+
+- **Source-level only** — no PolkaVM (RISC-V) bytecode analysis.
+- `pallet-revive` is itself experimental upstream (breaking changes).
+- No recall/precision benchmark yet — not for production security decisions.
+- See [`docs/guides/POLKADOT.md`](./guides/POLKADOT.md) for setup and details.
 
 ---
 
