@@ -7,12 +7,16 @@ class (B) *silent runtime differences* documented in the revive compiler book
 ("Differences to EVM"): code that compiles and is correct on the EVM but is
 insecure or behaves differently on PolkaVM.
 
-It deliberately does NOT re-flag class (A) differences (``EXTCODECOPY``, ``PC``,
-``BLOBHASH`` ...) — ``resolc`` rejects those at compile time, so they are the
-compiler's job, not ours.
+It deliberately does NOT itself re-flag class (A) differences (``EXTCODECOPY``,
+``PC``, ``BLOBHASH`` ...): ``resolc`` rejects those at compile time, so they are
+the compiler's job. MIESC surfaces them through its correlation pair,
+:mod:`miesc.adapters.polkavm_resolc_adapter` (``polkavm_resolc``), which actually
+runs ``resolc`` and reports the rejection — this source-level adapter stays
+heuristic and binary-free.
 
-This is a built-in pattern/source-level adapter (no external binary), the
-correlation pair for the optional external PolkaGuard tool. It implements the
+This is a built-in pattern/source-level adapter (no external binary). Together
+with ``polkavm_resolc`` (class A, compiler-authoritative) and the optional
+external PolkaGuard tool it forms the PolkaVM correlation set. It implements the
 MIESC ``ToolAdapter`` protocol and returns the standard
 ``status``/``findings`` result shape.
 

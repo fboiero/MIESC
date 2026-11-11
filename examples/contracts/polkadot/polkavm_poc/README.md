@@ -15,9 +15,12 @@ that is correct on the EVM but insecure or semantically different on PolkaVM. Pe
 the revive compiler book ("Differences to EVM"), differences split into two classes:
 
 - **Class (A) — rejected by `resolc` at compile time** (e.g. `EXTCODECOPY`, `PC`,
-  `BLOBHASH`): the compiler's job, not MIESC's. See `error_cases/`.
+  `BLOBHASH`): the `polkavm_resolc` adapter runs `resolc` and surfaces these as
+  authoritative, HIGH deployability-blocker findings (the compiler is the oracle).
+  See `error_cases/`.
 - **Class (B) — silent runtime differences** (compile fine, behave differently):
-  the real audit target. Each `vulnerable/` contract isolates one.
+  the heuristic audit target of the built-in `polkavm_diff` adapter. Each
+  `vulnerable/` contract isolates one.
 
 | Fixture | Class-(B) difference | Severity |
 |---|---|---|
@@ -28,7 +31,7 @@ the revive compiler book ("Differences to EVM"), differences split into two clas
 | `vulnerable/ConstructorOrder.sol` | via-ir: base ctor runs before derived state-var init → value differs vs EVM | Medium |
 | `vulnerable/SelfDestructUse.sol` | `selfdestruct` compiles but its semantics differ on pallet-revive | Low |
 | `clean/Counter.sol` | none — must raise no High/Critical | — |
-| `error_cases/ExtCodeCopyRejected.sol` | Class (A): resolc **rejects** at compile time (documented, off scan path) | — |
+| `error_cases/ExtCodeCopyRejected.sol` | Class (A): resolc **rejects** at compile time → `polkavm_resolc` emits one `polkavm-unsupported-opcode` finding | High |
 
 Ground truth per contract is in [`expected_findings.json`](./expected_findings.json).
 

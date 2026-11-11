@@ -112,9 +112,9 @@ def _validate_model_option(
     type=click.Choice(["evm", "polkavm"], case_sensitive=False),
     default="evm",
     help="Execution target (Experimental). 'polkavm' routes a Solidity contract/dir to the "
-    "PolkaVM / pallet-revive source-level tools plus the difference-with-EVM checks, and "
-    "SKIPS EVM-bytecode/symbolic/fuzzing tools (the target is RISC-V, not EVM). Default "
-    "'evm' keeps the normal EVM path unchanged.",
+    "PolkaVM / pallet-revive source-level tools plus the difference-with-EVM (polkavm_diff) and "
+    "compile-compatibility (polkavm_resolc) checks, and SKIPS EVM-bytecode/symbolic/fuzzing tools "
+    "(the target is RISC-V, not EVM). Default 'evm' keeps the normal EVM path unchanged.",
 )
 @click.option(
     "--diff",
@@ -390,8 +390,9 @@ def scan(
     contract_path = Path(contract)
 
     # PolkaVM / pallet-revive routing (Experimental): an explicit --target polkavm
-    # sends a Solidity contract/dir to the source-level + PolkaVM-difference tools
-    # and skips EVM-bytecode tools. Without the flag, the EVM path below is unchanged.
+    # sends a Solidity contract/dir to the source-level + PolkaVM-difference +
+    # compile-compatibility tools and skips EVM-bytecode tools. Without the flag,
+    # the EVM path below is unchanged.
     if target.lower() == "polkavm":
         _run_polkavm_scan(
             contract,
@@ -979,7 +980,8 @@ def _run_polkavm_scan(
     """Scan a Solidity contract/dir as a PolkaVM / pallet-revive target.
 
     Runs POLKAVM_TOOLS (the Solidity source-level tools that apply to the .sol
-    source, plus the built-in ``polkavm_diff`` difference-with-EVM checks). EVM
+    source, plus the built-in ``polkavm_diff`` difference-with-EVM checks and the
+    ``polkavm_resolc`` compile-compatibility checks). EVM
     bytecode/symbolic/fuzzing tools are not in that set, so they never run here —
     the compiled target is PolkaVM (RISC-V), not EVM. Results flow through the
     shared display/report path (confidence, SARIF-capable exporters, CI gate).
@@ -999,7 +1001,10 @@ def _run_polkavm_scan(
     if not quiet:
         print_banner()
         info(f"Scanning {contract}")
-        info("Route: PolkaVM / pallet-revive (Experimental) — Solidity source + difference checks")
+        info(
+            "Route: PolkaVM / pallet-revive (Experimental) — "
+            "Solidity source + difference + compile-compatibility checks"
+        )
         info(f"Tools: {', '.join(POLKAVM_TOOLS)}  (EVM-bytecode/symbolic/fuzzing tools skipped)")
 
     all_results: list[dict[str, Any]] = []

@@ -24,6 +24,30 @@ os.environ.setdefault(
 )
 
 
+@pytest.fixture(autouse=True)
+def _neutralize_resolc_unless_live(request, monkeypatch):
+    """Keep ``polkavm_resolc`` from shelling out to ``resolc`` / ``npx`` in tests.
+
+    ``polkavm_resolc`` is in ``POLKAVM_TOOLS``, so any ``--target polkavm`` path
+    would otherwise compile each contract via ``npx @parity/resolc`` — a network
+    fetch and a real compile on CI. Force the adapter 'not installed' by default so
+    the whole suite stays hermetic; set ``MIESC_RESOLC_LIVE=1`` to run it for real.
+
+    Tests that assert the real availability logic carry ``@pytest.mark.resolc_logic``
+    and are exempt (they patch ``shutil.which`` deterministically themselves).
+    """
+    if os.environ.get("MIESC_RESOLC_LIVE") or request.node.get_closest_marker("resolc_logic"):
+        yield
+        return
+    try:
+        from miesc.adapters.polkavm_resolc_adapter import PolkaVMResolcAdapter
+
+        monkeypatch.setattr(PolkaVMResolcAdapter, "_resolc_base_cmd", lambda self: None)
+    except Exception:
+        pass
+    yield
+
+
 @pytest.fixture(scope="session", autouse=True)
 def _prewarm_tool_discovery_singleton():
     """Populate the global tool-discovery singleton once, before any test runs.
@@ -442,6 +466,9 @@ def pytest_configure(config):
     )
     config.addinivalue_line("markers", "integration: marks tests as integration tests")
     config.addinivalue_line("markers", "requires_tools: marks tests that require external tools")
+    config.addinivalue_line(
+        "markers", "resolc_logic: exempt from the polkavm_resolc neutralization fixture"
+    )
 
 
 def _check_foundry_available():

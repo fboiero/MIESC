@@ -88,17 +88,21 @@ LAYERS: Dict[int, Dict[str, Any]] = {
 QUICK_TOOLS: List[str] = ["slither", "aderyn", "solhint"]
 
 # PolkaVM / pallet-revive tools (Solidity compiled via resolc, run on PolkaVM/RISC-V).
-# The Solidity source-level tools apply to the .sol source as-is; the built-in
-# `polkavm_diff` adapter adds the PolkaVM "difference-with-EVM" checks. EVM
+# The Solidity source-level tools apply to the .sol source as-is; two PolkaVM
+# adapters form a correlation pair: the built-in `polkavm_diff` flags class (B)
+# silent runtime differences, and `polkavm_resolc` runs the resolc compiler and
+# surfaces class (A) compile-time rejections (unsupported opcodes). EVM
 # bytecode/symbolic/fuzzing tools (mythril, manticore, echidna, ...) do NOT apply
 # to a RISC-V target and are deliberately excluded. Used only when `miesc scan` is
 # run with `--target polkavm` (explicit opt-in).
 #
-# NOTE: `polkavm_diff` is intentionally NOT in any LAYERS entry. Every implicit
-# scan/audit path builds its tool list from LAYERS, so `polkavm_diff` never runs
-# on an EVM contract by accident — it is reachable only via `--target polkavm` or
-# an explicit `miesc audit single polkavm_diff`.
-POLKAVM_TOOLS: List[str] = [*QUICK_TOOLS, "polkavm_diff"]
+# NOTE: neither `polkavm_diff` nor `polkavm_resolc` is in any LAYERS entry. Every
+# implicit scan/audit path builds its tool list from LAYERS, so they never run on
+# an EVM contract by accident — they are reachable only via `--target polkavm` or
+# an explicit `miesc audit single polkavm_diff` / `polkavm_resolc`. `polkavm_resolc`
+# is additionally inert where resolc is unresolvable (is_available is PATH-only and
+# never downloads): it is simply skipped, never a false "clean".
+POLKAVM_TOOLS: List[str] = [*QUICK_TOOLS, "polkavm_diff", "polkavm_resolc"]
 
 # Cairo / Starknet tools: the Caracal external analyzer (semantic, Sierra-level)
 # plus the built-in pattern analyzer as its correlation pair. Used when `miesc
@@ -114,6 +118,8 @@ ADAPTER_MAP: Dict[str, str] = {
     "solhint": "SolhintAdapter",
     # PolkaVM / pallet-revive difference-with-EVM checks (built-in, source-level)
     "polkavm_diff": "PolkaVMDiffAdapter",
+    # PolkaVM / pallet-revive class (A) compile-time rejections (runs resolc)
+    "polkavm_resolc": "PolkaVMResolcAdapter",
     "wake": "WakeAdapter",
     "semgrep": "SemgrepAdapter",
     "fouranalyzer": "FourAnalyzerAdapter",

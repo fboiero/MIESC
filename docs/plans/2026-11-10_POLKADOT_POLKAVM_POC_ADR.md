@@ -55,8 +55,15 @@ Leído directamente en `paritytech.github.io/revive/user_guide/differences.html`
 book) + README de `paritytech/revive`. Esta parte de F0 **está hecha** y confirma §0.3 del plan, con
 una corrección importante: hay **dos clases**, y sólo una tiene valor de auditoría.
 
-**(A) Rechazadas en compilación por `resolc`** (error, no compilan) → trabajo del compilador, la capa
-MIESC **no** las re-flaggea: `EXTCODECOPY`, `PC`, `BLOBHASH`, `BLOBBASEFEE`, `SLOTNUM`.
+**(A) Rechazadas en compilación por `resolc`** (error, no compilan): `EXTCODECOPY`, `PC`, `BLOBHASH`,
+`BLOBBASEFEE`, `SLOTNUM`.
+
+> **Actualización (supersede parcial):** el adapter `polkavm_resolc` **sí** surfacéa estas rechazos
+> corriendo `resolc` y reportándolos como findings `polkavm-unsupported-opcode` autoritativos (el
+> compilador es el oráculo). La decisión original ("la capa MIESC no las re-flaggea") valía sólo para
+> la capa **source-level** `polkavm_diff`, que sigue sin correr compilador. Medido: `EXTCODECOPY` y
+> `BLOBHASH` los rechaza la fase LLVM-IR de resolc; `PC` lo rechaza antes `solc` mismo → error honesto,
+> no finding.
 
 **(B) Diferencias SILENCIOSAS de runtime** (compilan igual, se comportan distinto) → **esto es lo que
 chequea la capa nativa** (código correcto en EVM, inseguro/roto en PolkaVM):

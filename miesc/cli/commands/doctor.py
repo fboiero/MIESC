@@ -337,7 +337,8 @@ def doctor(verbose: bool, smoke: bool, smoke_all: bool) -> None:
         console.print("")
 
         # PolkaVM / pallet-revive (Experimental): resolc toolchain + built-in layer.
-        # polkavm_diff is intentionally not in LAYERS, so it is surfaced here.
+        # polkavm_diff / polkavm_resolc are intentionally not in LAYERS, so they
+        # are surfaced here.
         pvm_status, pvm_detail = _polkavm_toolchain_status()
         pvm_table = Table(title="PolkaVM / pallet-revive (Experimental)", box=box.ROUNDED)
         pvm_table.add_column("Component", style="bold", width=15)
@@ -345,8 +346,21 @@ def doctor(verbose: bool, smoke: bool, smoke_all: bool) -> None:
         pvm_table.add_column("Detail", width=45)
         pvm_table.add_row("resolc", pvm_status, pvm_detail)
         pvm_table.add_row(
-            "polkavm_diff", "[green]built-in[/green]", "miesc scan <contract> --target polkavm"
+            "polkavm_diff",
+            "[green]built-in[/green]",
+            "class-B heuristics (source-level, no binary)",
         )
+        # polkavm_resolc needs resolc; its availability mirrors the resolc row above.
+        rc_status = (
+            "[green]OK[/green]"
+            if "OK" in pvm_status
+            else (
+                "[cyan]on-demand[/cyan]"
+                if "on-demand" in pvm_status
+                else "[yellow]prereqs[/yellow]"
+            )
+        )
+        pvm_table.add_row("polkavm_resolc", rc_status, "class-A compile rejections (runs resolc)")
         console.print(pvm_table)
         console.print("")
 
