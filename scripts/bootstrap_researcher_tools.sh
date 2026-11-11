@@ -130,6 +130,21 @@ check_solc() {
   log "solc not found. Install solc or solc-select before running formal verification."
 }
 
+install_resolc() {
+  # Optional: resolc (Solidity -> PolkaVM) for the experimental `miesc scan
+  # --target polkavm` path. resolc is normally used on demand via
+  # `npx @parity/resolc`; installing it globally here just caches it. Non-fatal:
+  # the built-in polkavm_diff source-level checks need none of this.
+  if ! have node || ! have npm; then
+    log "resolc: node/npm not found — skipping (optional; polkavm_diff checks still work)"
+    return
+  fi
+  log "Installing resolc (@parity/resolc@1.5.0) for --target polkavm (optional)"
+  npm install -g @parity/resolc@1.5.0 >/dev/null 2>&1 \
+    || log "resolc global install failed — use: npx @parity/resolc@1.5.0"
+  npx --yes @parity/resolc@1.5.0 --version 2>/dev/null | head -1 || true
+}
+
 # Caracal — experimental Cairo/Starknet analyzer. Pinned to the adrienlacombe
 # fork (Cairo 2.20) at the exact commit recorded in the PoC ADR. Optional: skips
 # gracefully when the Rust toolchain is missing or too old (MIESC degrades, and
@@ -183,6 +198,7 @@ main() {
   install_wake
   install_semgrep
   check_solc
+  install_resolc
   install_caracal
   check_scarb
 

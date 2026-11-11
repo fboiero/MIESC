@@ -241,5 +241,25 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 
 EXPOSE 8000
 
+# ==========================================
+# OPTIONAL: PolkaVM / pallet-revive toolchain (resolc) — Experimental
+# Disabled by default; enable with --build-arg INSTALL_RESOLC=true.
+# Installs Node.js + @parity/resolc so `miesc scan --target polkavm` can also
+# compile contracts for PolkaVM. The polkavm_diff source-level checks are
+# built in and need none of this. NOTE: not build-tested in this change.
+# ==========================================
+USER root
+ARG INSTALL_RESOLC=false
+RUN if [ "$INSTALL_RESOLC" = "true" ]; then \
+        curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
+        apt-get install -y --no-install-recommends nodejs && \
+        npm install -g @parity/resolc@1.5.0 && \
+        rm -rf /var/lib/apt/lists/* && \
+        echo "resolc installed for --target polkavm"; \
+    else \
+        echo "resolc skipped (use --build-arg INSTALL_RESOLC=true for PolkaVM compilation)"; \
+    fi
+USER miesc
+
 ENTRYPOINT ["miesc"]
 CMD ["--help"]

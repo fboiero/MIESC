@@ -1,0 +1,109 @@
+{
+  "description": "Ground truth for the PolkaVM / pallet-revive PoC fixtures. Every vulnerable contract COMPILES with resolc (verified in F0) and triggers one PolkaVM 'difference-with-EVM' check (class B: silent runtime difference). The class-A file documents resolc's compile-time rejection and is NOT placed on the scan path.",
+  "toolchain": {
+    "resolc": "1.5.0+commit.2942b3a.llvm-23.1.3",
+    "solc": "0.8.24",
+    "verified_on": "2026-11-11"
+  },
+  "contracts": [
+    {
+      "file": "vulnerable/UnlimitedGasCall.sol",
+      "compiles_with_resolc": true,
+      "expected": [
+        {
+          "check": "polkavm-unlimited-gas-call",
+          "function": "forward",
+          "severity": "High",
+          "difference_class": "B",
+          "rationale": "PolkaVM does not apply the 63/64 gas rule; forwarding all gas to an untrusted callee is a DoS vector."
+        }
+      ]
+    },
+    {
+      "file": "vulnerable/UnboundedMemory.sol",
+      "compiles_with_resolc": true,
+      "expected": [
+        {
+          "check": "polkavm-unbounded-memory",
+          "function": "build",
+          "severity": "Medium",
+          "difference_class": "B",
+          "rationale": "Fixed 128kb memory buffer; a caller-controlled unbounded allocation can trap at runtime (OutOfBound)."
+        }
+      ]
+    },
+    {
+      "file": "vulnerable/Create2Address.sol",
+      "compiles_with_resolc": true,
+      "expected": [
+        {
+          "check": "polkavm-create2-address-assumption",
+          "function": "deploy",
+          "severity": "Medium",
+          "difference_class": "B",
+          "rationale": "new Child{salt:...}() is a CREATE2 deployment; on PolkaVM the derived address differs from the EVM derivation."
+        },
+        {
+          "check": "polkavm-create2-address-assumption",
+          "function": "predicted",
+          "severity": "Medium",
+          "difference_class": "B",
+          "rationale": "type(T).creationCode returns a keccak256 hash on PolkaVM, so EVM CREATE2 precomputation is wrong."
+        }
+      ]
+    },
+    {
+      "file": "vulnerable/PredictableRandomness.sol",
+      "compiles_with_resolc": true,
+      "expected": [
+        {
+          "check": "polkavm-predictable-prevrandao",
+          "function": "roll",
+          "severity": "High",
+          "difference_class": "B",
+          "rationale": "block.prevrandao translates to a constant (2500000000000000) on PolkaVM; randomness derived from it is predictable."
+        }
+      ]
+    },
+    {
+      "file": "vulnerable/ConstructorOrder.sol",
+      "compiles_with_resolc": true,
+      "expected": [
+        {
+          "check": "polkavm-constructor-init-order",
+          "function": "constructor",
+          "severity": "Medium",
+          "difference_class": "B",
+          "rationale": "With via-ir (how resolc compiles), base constructors run before derived state-var initializers; init-order-dependent logic changes value vs EVM."
+        }
+      ]
+    },
+    {
+      "file": "vulnerable/SelfDestructUse.sol",
+      "compiles_with_resolc": true,
+      "expected": [
+        {
+          "check": "polkavm-selfdestruct-semantics",
+          "function": "destroy",
+          "severity": "Low",
+          "difference_class": "B",
+          "rationale": "selfdestruct compiles under resolc (verified); flagged because its runtime behaviour on pallet-revive may differ from the EVM (runtime semantics not independently confirmed); portability/semantic risk."
+        }
+      ]
+    },
+    {
+      "file": "clean/Counter.sol",
+      "compiles_with_resolc": true,
+      "expected": []
+    }
+  ],
+  "error_cases": [
+    {
+      "file": "error_cases/ExtCodeCopyRejected.sol",
+      "compiles_with_resolc": false,
+      "resolc_exit_code": 1,
+      "resolc_error": "LLVM IR generator: The `EXTCODECOPY` instruction is not supported",
+      "note": "Difference class (A): resolc rejects it at compile time. This is the compiler's job, not a MIESC finding; the file must NOT be placed on the normal scan path."
+    }
+  ]
+}

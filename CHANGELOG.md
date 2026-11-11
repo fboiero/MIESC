@@ -24,6 +24,16 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Experimental Polkadot / PolkaVM support (`pallet-revive`).** `miesc scan --target polkavm`
+  routes a Solidity contract (or directory) to the Solidity source-level tools plus a new built-in
+  `polkavm_diff` analyzer, and skips EVM bytecode/symbolic/fuzzing tools — the compiled target is
+  RISC-V (via `resolc`), not EVM. `polkavm_diff` flags "difference-with-EVM" issues that compile
+  under `resolc` but are insecure or behave differently on PolkaVM: unlimited-gas external calls
+  (no 63/64 rule → DoS), unbounded memory (fixed 128kb buffer → trap), `CREATE2`/`creationCode`
+  address assumptions, constant `block.prevrandao`, via-ir constructor init-order, and
+  `selfdestruct` semantics. The default EVM path is unchanged. Experimental, source-level only,
+  not yet benchmark-validated. See `docs/guides/POLKADOT.md` and `docs/MULTICHAIN.md`.
+
 - **Resource/liveness griefing hypotheses — SDD Phase 2.** `mine_resource_liveness_griefing` now
   attaches deterministic, advisory **`liveness_hypotheses`** to each Phase-1 progress surface:
   `unbounded_loop` and `push_payment_blocking`. Each is a guard-gap keyed on the resource that drives
