@@ -5,6 +5,9 @@ No binary needed. Covers:
 - _is_cairo_target: Cairo inputs route to the Cairo path, Solidity does not.
 - _cairo_corroborate: confidence rises (and findings are flagged) when both
   Caracal and the pattern adapter agree on (file, canonical category).
+- End-to-end alignment: a real captured Caracal finding and real pattern-adapter
+  output for the same class corroborate (guards the category map, which the
+  synthetic tests above do not — they hand-pick already-aligned categories).
 - finding_taxonomy: Cairo slugs map to canonical categories, and the generic
   keys stay OUT of the shared map (additive constraint — EVM unchanged).
 
@@ -14,10 +17,17 @@ License: AGPL-3.0
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
+from miesc.adapters.cairo_adapter import CairoPatternAdapter
+from miesc.adapters.caracal_adapter import CaracalAdapter
 from miesc.cli.commands.scan import _cairo_corroborate, _is_cairo_target
 from miesc.core.finding_taxonomy import CanonicalCategory, normalize_finding_type
+
+_REPO = Path(__file__).resolve().parent.parent
+_CARACAL_FIXTURES = _REPO / "tests" / "fixtures" / "caracal"
+_CAIRO_SAMPLES = _REPO / "examples" / "contracts" / "cairo" / "caracal_poc" / "vulnerable"
 
 # --------------------------------------------------------------------------- #
 # _is_cairo_target                                                            #
@@ -110,6 +120,55 @@ def test_corroboration_confidence_capped() -> None:
     ]
     _cairo_corroborate(results)
     assert results[0]["findings"][0]["confidence"] <= 0.99
+
+
+# --------------------------------------------------------------------------- #
+# End-to-end alignment: REAL Caracal output + REAL pattern output corroborate  #
+# --------------------------------------------------------------------------- #
+
+
+def test_real_caracal_and_pattern_outputs_corroborate() -> None:
+    """A captured Caracal finding and the pattern adapter's own output for the
+    felt-arithmetic class must cross-validate.
+
+    This guards the *category alignment* end-to-end: the two tools emit
+    DIFFERENT raw type names (`felt252-unsafe-arithmetic` vs `felt_overflow`),
+    and corroboration only fires if both still canonicalize to the same category.
+    The synthetic tests above hand-pick already-aligned categories, so they would
+    not catch a regression in the taxonomy map; this one would. No binary: Caracal
+    output comes from a committed fixture, the pattern adapter runs in-process.
+    """
+    sample = _CAIRO_SAMPLES / "felt252_overflow.cairo"
+    raw = json.loads((_CARACAL_FIXTURES / "felt252_overflow.json").read_text())
+
+    caracal = CaracalAdapter().normalize_findings(raw)
+    for f in caracal:
+        f["tool"] = "caracal"  # run_tool tags the tool name; normalize_findings does not
+    pattern = CairoPatternAdapter().analyze(str(sample)).get("findings", [])
+    for f in pattern:
+        f["tool"] = "cairo"
+
+    # The two tools genuinely disagree on the raw slug for this class...
+    assert any(f.get("type") == "felt252-unsafe-arithmetic" for f in caracal)
+    assert any(f.get("type") == "felt_overflow" for f in pattern)
+    # ...yet both must land on the same canonical category (the alignment guard).
+    assert normalize_finding_type({"type": "felt252-unsafe-arithmetic"}) is (
+        CanonicalCategory.ARITHMETIC
+    )
+    assert normalize_finding_type({"type": "felt_overflow"}) is CanonicalCategory.ARITHMETIC
+
+    results = [
+        {"tool": "caracal", "findings": caracal},
+        {"tool": "cairo", "findings": pattern},
+    ]
+    boosted = _cairo_corroborate(results)
+    assert boosted > 0, "real Caracal + pattern output must cross-validate on felt arithmetic"
+
+    corroborated = [f for f in caracal + pattern if f.get("cross_tool_corroborated")]
+    assert corroborated, "at least one finding must be flagged cross_tool_corroborated"
+    assert all(f["cross_tool_corroborated"] == ["cairo", "caracal"] for f in corroborated)
+    # both tools appear among the corroborated findings (not one tool twice)
+    assert {f["tool"] for f in corroborated} == {"caracal", "cairo"}
 
 
 # --------------------------------------------------------------------------- #
