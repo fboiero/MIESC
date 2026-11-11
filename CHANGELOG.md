@@ -24,6 +24,24 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Yul / inline-assembly advisory effect-summary plan.** New `mine_yul_assembly_safety`
+  (`miesc/llm/yul_assembly_memory_safety.py`) builds a provider-neutral **`YulAssemblySafetyPlan`**
+  per inline-assembly block: a structured `assembly_summary` of what the block does to memory,
+  storage, calldata and returndata via an opcode→effect tokenizer (memory is written by
+  `calldatacopy`/`returndatacopy`/`codecopy`/`extcodecopy`/`mcopy` as well as `mstore`; each write is
+  classified by region — scratch / free-pointer / zero-slot / fixed / computed — and each storage
+  slot by provenance — literal / `.slot` / keccak / calldata-or-param; `tload`/`tstore` stay out of
+  the storage fields). It complements, and does not duplicate, the shipped
+  `YulAssemblySafetyDetector` (PR #207): it **imports** that detector's block extractor and fills the
+  `hazards` field by calling the detector's own classifier, and records
+  `metadata.evaluated_hazard_categories` so an empty `hazards` reads as "the three evaluated
+  categories found nothing", not "clean". It also recovers the enclosing context for blocks in a
+  `fallback`/`receive`/`constructor`/modifier (which the detector reports as `unknown`). **Advisory
+  only** (`promotion.state` stays `hypothesis`, never a `Finding`); each hazard carries a
+  `negative_check`. Crash-swept over 222 repo `.sol` files (11 with assembly, 0 errors) and the
+  effect summaries hand-verified against source on the `VulnerableProxy` fallback and the Parity
+  `create` block; the remaining seven SDD hazard categories, the LLM reasoning agent, and validation
+  obligations are deferred. No benchmark claim.
 - **Experimental Polkadot / PolkaVM support (`pallet-revive`).** `miesc scan --target polkavm`
   routes a Solidity contract (or directory) to the Solidity source-level tools plus a new built-in
   `polkavm_diff` analyzer, and skips EVM bytecode/symbolic/fuzzing tools — the compiled target is
