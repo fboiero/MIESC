@@ -7,6 +7,25 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Solana/Anchor pattern detector hardened against false positives.** The
+  `SolanaPatternDetector` previously emitted safe constructs (`checked_add`,
+  `find_program_address`, `CpiContext::new`, `#[account(init)]`, `as u64` casts…)
+  as "findings" and used line-local negative-lookahead regexes that could not see
+  the `#[derive(Accounts)]` struct where Anchor's validation lives — measured
+  firing **13 findings (10 High) on a clean 41-line Anchor program**. Rewritten to
+  blank comments/strings Rust-aware (so `<'info>` lifetimes are not read as
+  strings), emit only genuine-vulnerability patterns (unchecked arithmetic on a
+  financial value, manual lamport mutation, arbitrary CPI, non-canonical PDA,
+  unchecked account) and use the disproving control as a suppressor. Also fixed
+  `_check_signer_validation`, which tested lowercase `"signer"` and so flagged
+  every handler whose Accounts struct used the `Signer<'info>` type. Measured
+  after: **0 findings on the clean program, all true positives retained on a
+  vulnerable one.** Still experimental/pattern-only — no recall/precision claim.
+  `docs/MULTICHAIN.md` Solana section updated (and its CLI corrected to
+  `miesc analyze … --chain solana`).
+
 ### Documentation
 
 - **Optional tools documented honestly (P2-8): Certora, Vertigo, DA-GNN.** These three adapters are

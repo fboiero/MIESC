@@ -160,109 +160,164 @@ class AnchorIDL:
 # ============================================================================
 
 
+def _blank_rust(source: str) -> str:
+    """Blank comment and string *contents* (newlines preserved) so regex rules
+    match real code, not words in comments/strings.
+
+    Rust-aware, unlike a Solidity blanker: ``'`` is NEVER treated as a string
+    delimiter, so lifetimes such as ``<'info>`` are left intact (the old
+    Solidity-style blanker opened a "string" at the lifetime tick and blanked the
+    rest of the struct). Handles ``//`` line comments, ``/* */`` nestable block
+    comments, and ``"..."`` strings with ``\\`` escapes. Raw strings
+    (``r"..."``/``r#"..."#``) are a documented limitation.
+    """
+    out: List[str] = []
+    i, n = 0, len(source)
+    state = "code"  # code | line | block | string
+    depth = 0
+    while i < n:
+        ch = source[i]
+        nxt = source[i + 1] if i + 1 < n else ""
+        if state == "code":
+            if ch == "/" and nxt == "/":
+                out.append("  ")
+                i += 2
+                state = "line"
+            elif ch == "/" and nxt == "*":
+                out.append("  ")
+                i += 2
+                depth = 1
+                state = "block"
+            elif ch == '"':
+                out.append(" ")
+                i += 1
+                state = "string"
+            else:
+                out.append(ch)
+                i += 1
+        elif state == "line":
+            if ch == "\n":
+                out.append("\n")
+                state = "code"
+            else:
+                out.append(" ")
+            i += 1
+        elif state == "block":
+            if ch == "/" and nxt == "*":
+                out.append("  ")
+                i += 2
+                depth += 1
+            elif ch == "*" and nxt == "/":
+                out.append("  ")
+                i += 2
+                depth -= 1
+                if depth == 0:
+                    state = "code"
+            else:
+                out.append("\n" if ch == "\n" else " ")
+                i += 1
+        elif state == "string":
+            if ch == "\\" and nxt:
+                out.append("  ")
+                i += 2
+            elif ch == '"':
+                out.append(" ")
+                i += 1
+                state = "code"
+            else:
+                out.append("\n" if ch == "\n" else " ")
+                i += 1
+    return "".join(out)
+
+
 class SolanaPatternDetector:
-    """Detects vulnerability patterns in Solana/Anchor code."""
+    """Detects *genuine* Solana/Anchor vulnerabilities (hardened 2026-11-12).
 
-    # Missing signer check patterns
-    SIGNER_PATTERNS = [
-        (r"#\[account\((?!.*signer).*mut.*\)\]", "mutable_without_signer"),
-        (r"\.key\(\)\s*==\s*\w+\.key\(\)", "key_comparison_without_signer"),
-        (r"ctx\.accounts\.\w+\s*(?!.*\.is_signer)", "account_without_signer_check"),
-    ]
+    The previous version emitted SAFE constructs (``checked_add``,
+    ``find_program_address``, ``CpiContext::new``, ``#[account(init)]`` ...) as
+    "findings" and used line-local negative-lookahead regexes that could not see
+    the ``#[derive(Accounts)]`` struct where Anchor's validation lives — measured
+    firing 13 findings (10 High) on a clean 41-line Anchor program. This version:
 
-    # Missing owner check patterns
-    OWNER_PATTERNS = [
-        (r"#\[account\((?!.*owner).*\)\]", "missing_owner_constraint"),
-        (r"\.owner\s*!=\s*\w+", "incorrect_owner_check"),
-        (r"Account<'info,\s*\w+>(?!.*owner)", "unvalidated_account_owner"),
-    ]
+    * blanks comments/strings first, **Rust-aware** (lifetimes like ``<'info>``
+      are never read as string literals);
+    * emits only genuine vulnerability patterns;
+    * uses the disproving control (safe math on the line, a program-id check, an
+      ``owner``/``has_one``/``address``/``constraint`` in the nearby attribute) as
+      a **suppressor** — it stays silent when the control is visible.
 
-    # PDA patterns
-    PDA_PATTERNS = [
-        (r"Pubkey::find_program_address\s*\(", "find_pda"),
-        (r"#\[account\(.*seeds\s*=.*\)\]", "pda_seeds"),
-        (r"\.bump\s*=", "bump_assignment"),
-        (r"create_program_address\s*\((?!.*canonical)", "non_canonical_bump"),
-    ]
+    Pattern-level only (no full Anchor parse), so it is conservative: it favors
+    precision and will miss validations split across many lines, macro-generated
+    code, or cross-file flows. Experimental — no recall/precision validated.
+    """
 
-    # Initialization patterns
-    INIT_PATTERNS = [
-        (r"#\[account\(init(?!_if_needed)", "init_account"),
-        (r"#\[account\(init_if_needed", "init_if_needed"),
-        (r"is_initialized\s*:\s*bool", "initialization_flag"),
-        (r"\.is_initialized\s*==\s*false", "initialization_check"),
-    ]
+    _FINANCIAL = (
+        r"(?:balance|amount|lamports|total|supply|stake|deposit|debt|reserve|shares|collateral)"
+    )
+    _SAFE_MATH = re.compile(r"\b(?:checked_|saturating_|wrapping_)(?:add|sub|mul|div)\b")
+    _UNCHECKED_ASSIGN = re.compile(r"\b\w*" + _FINANCIAL + r"\w*\s*(?:\+=|-=|\*=)", re.IGNORECASE)
+    _UNCHECKED_EXPR = re.compile(
+        r"\b\w*" + _FINANCIAL + r"\w*\s*=\s*[^;]*[+\-*][^;]+", re.IGNORECASE
+    )
+    _RAW_LAMPORT_MUT = re.compile(
+        r"(?:try_borrow_mut_lamports\s*\(\s*\)\s*\??|lamports\s*\(\s*\)\s*\.\s*borrow_mut\s*\(\s*\))"
+        r"\s*[-+*]?="
+    )
+    _INVOKE = re.compile(r"\binvoke(?:_signed)?\s*\(")
+    # Treat a typed Program<'info,...> account or an explicit key equality as
+    # evidence the program validates its CPI target. Conservative (may suppress a
+    # real arbitrary CPI); passing an account's .key as an argument does NOT count.
+    _ID_CHECK = re.compile(r"require_keys_eq!|\.key\(\)\s*==|\bProgram\s*<\s*'")
+    _CREATE_PDA = re.compile(r"\bcreate_program_address\s*\(")
+    _UNCHECKED_ACCT = re.compile(r"\b(?:UncheckedAccount|AccountInfo)\s*<")
+    _ACCT_CONSTRAINT = re.compile(
+        r"owner\s*=|address\s*=|has_one|constraint\s*=|seeds\s*=|\baddress\b"
+    )
 
-    # CPI patterns
-    CPI_PATTERNS = [
-        (r"invoke\s*\(", "raw_invoke"),
-        (r"invoke_signed\s*\(", "invoke_signed"),
-        (r"CpiContext::new\s*\(", "cpi_context"),
-        (r"\.invoke\s*\(", "anchor_invoke"),
-    ]
-
-    # Arithmetic patterns
-    ARITHMETIC_PATTERNS = [
-        (r"\.checked_add\s*\(", "checked_add"),
-        (r"\.checked_sub\s*\(", "checked_sub"),
-        (r"\.checked_mul\s*\(", "checked_mul"),
-        (r"\.checked_div\s*\(", "checked_div"),
-        (r"\s+\+\s+(?!.*checked)", "unchecked_add"),
-        (r"\s+-\s+(?!.*checked)", "unchecked_sub"),
-        (r"\s+\*\s+(?!.*checked)", "unchecked_mul"),
-        (r"as\s+u64", "unsafe_cast"),
-    ]
-
-    # Account close patterns
-    CLOSE_PATTERNS = [
-        (r"#\[account\(.*close\s*=", "close_account"),
-        (r"\.lamports\s*=\s*0", "zero_lamports"),
-        (r"close\s*\(\s*ctx\.accounts", "anchor_close"),
-    ]
-
-    def detect_patterns(
-        self,
-        source_code: str,
-        file_path: str,
-    ) -> List[Dict[str, Any]]:
-        """
-        Detect vulnerability patterns in source code.
-
-        Args:
-            source_code: Rust/Anchor source code
-            file_path: Path for reporting
-
-        Returns:
-            List of pattern matches
-        """
+    def detect_patterns(self, source_code: str, file_path: str) -> List[Dict[str, Any]]:
+        """Detect genuine vulnerability patterns. Output shape is unchanged:
+        ``{pattern, category, severity, line, file, code}`` per finding."""
         findings: List[Dict[str, Any]] = []
-        lines = source_code.split("\n")
+        blank = _blank_rust(source_code)
+        blines = blank.splitlines()
+        raws = source_code.splitlines()
+        while len(raws) < len(blines):
+            raws.append("")
 
-        # Check all pattern categories
-        all_patterns = [
-            (self.SIGNER_PATTERNS, "access_control", "High"),
-            (self.OWNER_PATTERNS, "access_control", "High"),
-            (self.PDA_PATTERNS, "input_validation", "Medium"),
-            (self.INIT_PATTERNS, "state_handling", "Medium"),
-            (self.CPI_PATTERNS, "external_calls", "Medium"),
-            (self.ARITHMETIC_PATTERNS, "arithmetic", "High"),
-            (self.CLOSE_PATTERNS, "state_handling", "Medium"),
-        ]
+        file_has_id_check = bool(self._ID_CHECK.search(blank))
 
-        for patterns, category, severity in all_patterns:
-            for pattern, pattern_name in patterns:
-                for i, line in enumerate(lines, 1):
-                    if re.search(pattern, line):
-                        findings.append(
-                            {
-                                "pattern": pattern_name,
-                                "category": category,
-                                "severity": severity,
-                                "line": i,
-                                "file": file_path,
-                                "code": line.strip(),
-                            }
-                        )
+        def add(idx: int, name: str, category: str, severity: str) -> None:
+            findings.append(
+                {
+                    "pattern": name,
+                    "category": category,
+                    "severity": severity,
+                    "line": idx + 1,
+                    "file": file_path,
+                    "code": raws[idx].strip(),
+                }
+            )
+
+        for i, bl in enumerate(blines):
+            # 1. Unchecked arithmetic on a financial value (no safe math on the line)
+            if (
+                self._UNCHECKED_ASSIGN.search(bl) or self._UNCHECKED_EXPR.search(bl)
+            ) and not self._SAFE_MATH.search(bl):
+                add(i, "unchecked_arithmetic", "arithmetic", "Medium")
+            # 2. Manual lamport mutation — verify a signer/owner check authorizes it
+            if self._RAW_LAMPORT_MUT.search(bl):
+                add(i, "raw_lamport_mutation", "access_control", "High")
+            # 3. Arbitrary CPI: invoke with no program-id validation anywhere in file
+            if self._INVOKE.search(bl) and not file_has_id_check:
+                add(i, "arbitrary_cpi", "external_calls", "Medium")
+            # 4. Non-canonical PDA derivation (use find_program_address + stored bump)
+            if self._CREATE_PDA.search(bl):
+                add(i, "non_canonical_pda", "input_validation", "Medium")
+            # 5. Unchecked account with no validating constraint in the attribute block
+            if self._UNCHECKED_ACCT.search(bl):
+                window = " ".join(blines[max(0, i - 3) : i + 1])
+                if not self._ACCT_CONSTRAINT.search(window):
+                    add(i, "unchecked_account_no_constraint", "access_control", "Medium")
 
         return findings
 
@@ -532,35 +587,31 @@ class SolanaAnalyzer(AbstractChainAnalyzer):
         pattern = match["pattern"]
         match["category"]
 
-        # Define finding messages
+        # Finding message + recommendation per hardened pattern name.
         messages = {
-            "mutable_without_signer": (
-                "Mutable account without signer check",
-                "Add `signer` constraint to the account attribute",
+            "unchecked_arithmetic": (
+                "Unchecked arithmetic on a financial value",
+                "Use checked_add/checked_sub/checked_mul (or ensure overflow-checks "
+                "is on for the release profile).",
             ),
-            "missing_owner_constraint": (
-                "Account missing owner constraint",
-                "Add owner validation using `#[account(owner = ...)]` or explicit check",
+            "raw_lamport_mutation": (
+                "Manual lamport mutation without a visible authorization check",
+                "Verify a Signer/owner constraint authorizes this transfer; prefer a "
+                "CPI transfer or `#[account(close = ...)]` over hand-editing lamports.",
             ),
-            "non_canonical_bump": (
-                "PDA created without canonical bump",
-                "Use `Pubkey::find_program_address` to ensure canonical bump",
+            "arbitrary_cpi": (
+                "CPI invoke with no visible program-id validation",
+                "Type the target as `Program<'info, T>` or check its key with "
+                "`require_keys_eq!` before invoking.",
             ),
-            "unchecked_add": (
-                "Unchecked arithmetic addition",
-                "Use `.checked_add()` or `#[checked]` attribute",
+            "non_canonical_pda": (
+                "Non-canonical PDA derivation via create_program_address",
+                "Use `find_program_address` and store/verify the canonical bump.",
             ),
-            "unchecked_sub": (
-                "Unchecked arithmetic subtraction",
-                "Use `.checked_sub()` or handle underflow explicitly",
-            ),
-            "unsafe_cast": (
-                "Potentially unsafe type cast",
-                "Validate value range before casting",
-            ),
-            "raw_invoke": (
-                "Raw CPI invoke detected",
-                "Consider using Anchor's CPI wrappers for type safety",
+            "unchecked_account_no_constraint": (
+                "UncheckedAccount/AccountInfo with no validating constraint",
+                "Add `owner`/`address`/`has_one`/`seeds`, or use a typed "
+                "`Account<'info, T>` so Anchor validates the account.",
             ),
         }
 
@@ -604,9 +655,19 @@ class SolanaAnalyzer(AbstractChainAnalyzer):
                 ctx_end = source.find("}", ctx_start)
                 ctx_body = source[ctx_start:ctx_end]
 
-                if "#[account(mut" in ctx_body and "signer" not in ctx_body:
-                    # Check if there's at least one signer
-                    if "is_signer" not in ctx_body and "#[account(signer" not in ctx_body:
+                # A field typed `Signer<'info>` (or an explicit is_signer /
+                # #[account(signer)] / has_one) is Anchor's signer validation.
+                # The old check tested lowercase "signer", which never matches the
+                # `Signer` type and so flagged every struct that used it — the main
+                # source of false positives on clean Anchor code.
+                has_signer = (
+                    "Signer<" in ctx_body
+                    or "is_signer" in ctx_body
+                    or "#[account(signer" in ctx_body
+                    or "has_one" in ctx_body
+                )
+                if "#[account(mut" in ctx_body:
+                    if not has_signer:
                         findings.append(
                             self.normalize_finding(
                                 vuln_type=SolanaVulnerability.MISSING_SIGNER_CHECK.value,
