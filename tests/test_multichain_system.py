@@ -1136,33 +1136,46 @@ class TestSolanaPatternDetector:
     """Tests for SolanaPatternDetector."""
 
     def test_detect_signer_patterns(self):
-        """Test signer pattern detection."""
+        """Hardened: a typed, validated account raises nothing; an unvalidated
+        AccountInfo and a manual lamport mutation do. (The old detector flagged a
+        plain typed Account as 'mutable_without_signer' — a false positive.)"""
         detector = SolanaPatternDetector()
 
-        code = """
-        #[account(mut)]
-        pub account: Account<'info, Data>,
+        clean = """
+        #[account(mut, has_one = authority)]
+        pub counter: Account<'info, Counter>,
+        pub authority: Signer<'info>,
         """
+        assert detector.detect_patterns(clean, "clean.rs") == []
 
-        patterns = detector.detect_patterns(code, "test.rs")
-        assert len(patterns) > 0
+        vuln = """
+        #[account(mut)]
+        pub vault: AccountInfo<'info>,
+        **vault.try_borrow_mut_lamports()? -= amount;
+        """
+        names = {p["pattern"] for p in detector.detect_patterns(vuln, "vuln.rs")}
+        assert "unchecked_account_no_constraint" in names
+        assert "raw_lamport_mutation" in names
 
     def test_detect_arithmetic_patterns(self):
-        """Test arithmetic pattern detection."""
+        """Hardened: unchecked arithmetic on a financial value fires; a checked_add
+        line and a plain `as` cast do not (the old `as u64` rule was a false-positive
+        generator and was removed)."""
         detector = SolanaPatternDetector()
 
         code = """
         account.balance += amount;
         total -= fee;
-        value = x as u64;
+        safe = reserve.checked_add(x).unwrap();
+        idx = i as u64;
         """
 
-        patterns = detector.detect_patterns(code, "test.rs")
-        arithmetic_patterns = [p for p in patterns if p["category"] == "arithmetic"]
-        # At minimum should detect the unsafe cast
-        assert len(arithmetic_patterns) >= 1
-        # Check that unsafe_cast was detected
-        assert any(p["pattern"] == "unsafe_cast" for p in arithmetic_patterns)
+        arithmetic = [
+            p for p in detector.detect_patterns(code, "test.rs") if p["category"] == "arithmetic"
+        ]
+        assert all(p["pattern"] == "unchecked_arithmetic" for p in arithmetic)
+        # exactly the two unchecked financial lines — not the checked_add, not the cast
+        assert len(arithmetic) == 2
 
     def test_detect_cpi_patterns(self):
         """Test CPI pattern detection."""

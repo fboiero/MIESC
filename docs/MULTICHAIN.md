@@ -164,26 +164,35 @@ Rust toolchain). Scarb is only needed for Scarb *projects* and any 2.x works
 - Rust with Anchor framework
 - Native Solana programs
 
-### Detected Vulnerabilities
-- Missing signer checks
-- Missing owner checks
-- Arithmetic overflow/underflow
-- Account data matching issues
-- Insecure PDA derivation
-- Unchecked account data
-- Type cosplay attacks
-- Closing account vulnerabilities
+### Detected Vulnerabilities (hardened pattern set)
+The source-level pattern detector emits only genuine-vulnerability patterns, each
+with a disproving control used as a suppressor (so correct Anchor code stays
+quiet):
+- **Unchecked arithmetic** on a financial value — unless `checked_/saturating_/
+  wrapping_` is on the line.
+- **Manual lamport mutation** (`try_borrow_mut_lamports`) without a visible
+  authorization — the classic missing-signer withdraw shape.
+- **Arbitrary CPI** — `invoke`/`invoke_signed` when the program never types a
+  target as `Program<'info, _>` nor checks a key with `require_keys_eq!`.
+- **Non-canonical PDA** — `create_program_address` instead of `find_program_address`.
+- **Unchecked account** — `UncheckedAccount`/`AccountInfo` with no
+  `owner`/`address`/`has_one`/`seeds`/`constraint`.
+
+Plus semantic checks (missing signer on a mutable-accounts handler, account-data
+matching, arithmetic safety, CPI reentrancy).
 
 ### Usage
 ```bash
-miesc scan program.rs --chain solana
+miesc analyze program.rs --chain solana
 ```
 
 ### Limitations
-- No symbolic execution
-- No formal verification
-- Pattern-based detection only
-- May have false positives/negatives
+- No symbolic execution or formal verification.
+- Pattern-based (no full Anchor parse): macro-generated code, validations split
+  across many lines, and cross-file flows can cause misses — it favors precision.
+- **Experimental: no recall/precision benchmark.** Hardened against false
+  positives (measured: a clean 41-line Anchor program went from 13 findings, 10
+  of them High, to 0), but a labeled corpus is still needed to cite rates.
 
 ---
 
