@@ -7,6 +7,20 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **Cross-chain research whitepaper reframed around a falsifiable research question.**
+  `docs/research/UNIFIED_CROSSCHAIN_INTELLIGENCE_RESEARCH_20261113.md` was rewritten from
+  the "unified intelligence core" framing to a sharper, more defensible thesis — *does
+  vulnerability-detection intelligence transfer across execution models?* — grounded in an
+  **invariant theory** that predicts the transfer boundary from execution-model semantics,
+  a literature positioning (Yu 2024; Sol2Vy; MWC; Boi & Esposito 2025), an honest
+  preliminary audit of the repo's own non-EVM adapters (the full emission inventory
+  deferred to Track T1), a falsifiable ablation test (alternative **H₁** vs null **H₀**),
+  and a Cairo-piloted, per-chain-fundable milestone plan. New figure
+  `docs/figures/execution_model_transfer_2027.svg` (invariant × model matrix) replaces the
+  previous "shared core" diagram. No benchmark figures changed.
+
 ### Fixed
 
 - **Cross-chain research whitepaper: factual corrections.** `docs/research/UNIFIED_CROSSCHAIN_INTELLIGENCE_RESEARCH_20261113.md`
