@@ -53,8 +53,8 @@ def test_metadata():
     assert meta.name == "polkavm_diff"
     assert meta.license == "AGPL-3.0"
     assert "solidity" in meta.capabilities[0].supported_languages
-    # six class-(B) checks
-    assert len(meta.capabilities[0].detection_types) == 6
+    # seven class-(B) checks
+    assert len(meta.capabilities[0].detection_types) == 7
 
 
 def test_can_analyze():
@@ -76,6 +76,7 @@ def test_can_analyze():
         ("vulnerable/PredictableRandomness.sol", "polkavm-predictable-prevrandao"),
         ("vulnerable/ConstructorOrder.sol", "polkavm-constructor-init-order"),
         ("vulnerable/SelfDestructUse.sol", "polkavm-selfdestruct-semantics"),
+        ("vulnerable/AsmManualDeploy.sol", "polkavm-asm-manual-deploy"),
     ],
 )
 def test_fixture_fires_expected_check(fixture, expected_check):
@@ -127,6 +128,74 @@ def test_gas_capped_call_not_flagged():
     assert "polkavm-unlimited-gas-call" not in [
         f["type"] for f in _adapter().normalize_findings(src)
     ]
+
+
+def test_asm_manual_deploy_fires_only_inside_assembly():
+    # A function NAMED create and a Solidity-level call to it (outside any
+    # assembly block) must NOT fire polkavm-asm-manual-deploy; only the Yul
+    # create/create2 builtin inside an assembly block does.
+    src = (
+        "pragma solidity ^0.8.0;\n"
+        "contract Factory {\n"
+        "  function create(uint256 n) public returns (uint256) { return n; }\n"
+        "  function run() external returns (uint256) { return create(1); }\n"
+        "}\n"
+    )
+    assert "polkavm-asm-manual-deploy" not in [
+        f["type"] for f in _adapter().normalize_findings(src)
+    ]
+
+
+def test_asm_manual_deploy_memory_safe_form_fires():
+    # OZ v5 Clones uses `assembly ("memory-safe") { ... }`; the blanker blanks the
+    # quoted flag, so the opener regex must still match.
+    src = (
+        "pragma solidity ^0.8.0;\n"
+        "contract C {\n"
+        "  function clone(address impl) external returns (address inst) {\n"
+        '    assembly ("memory-safe") {\n'
+        "      let ptr := mload(0x40)\n"
+        "      inst := create(0, ptr, 0x37)\n"
+        "    }\n"
+        "  }\n"
+        "}\n"
+    )
+    assert "polkavm-asm-manual-deploy" in [f["type"] for f in _adapter().normalize_findings(src)]
+
+
+def test_asm_manual_deploy_skips_creationcode_form():
+    # The UniswapV2 / OZ Create2.deploy idiom feeds type(T).creationCode into an
+    # assembly create2. That is the Solidity-level form already reported by
+    # polkavm-create2-address-assumption, so asm-manual-deploy must NOT also fire
+    # (no double-report), and the "hand-built initcode" message does not apply.
+    src = (
+        "pragma solidity ^0.8.0;\n"
+        "contract Factory {\n"
+        "  function deploy(bytes32 salt) external returns (address pair) {\n"
+        "    bytes memory bytecode = type(Factory).creationCode;\n"
+        "    assembly { pair := create2(0, add(bytecode, 32), mload(bytecode), salt) }\n"
+        "  }\n"
+        "}\n"
+    )
+    types = [f["type"] for f in _adapter().normalize_findings(src)]
+    assert "polkavm-asm-manual-deploy" not in types
+    assert "polkavm-create2-address-assumption" in types
+
+
+def test_asm_manual_deploy_fires_on_assembly_create():
+    src = (
+        "pragma solidity ^0.8.0;\n"
+        "contract C {\n"
+        "  function clone(address impl) external returns (address inst) {\n"
+        "    assembly {\n"
+        "      let ptr := mload(0x40)\n"
+        "      inst := create2(0, ptr, 0x37, 0)\n"
+        "    }\n"
+        "  }\n"
+        "}\n"
+    )
+    types = [f["type"] for f in _adapter().normalize_findings(src)]
+    assert "polkavm-asm-manual-deploy" in types
 
 
 def test_literal_sized_memory_not_flagged():

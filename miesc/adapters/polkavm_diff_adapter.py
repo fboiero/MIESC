@@ -152,6 +152,17 @@ _CTOR_RE = re.compile(r"\bconstructor\b")
 _STATE_INIT_RE = re.compile(
     r"^\s*(?:uint\d*|int\d*|address|bool|bytes\d*|string|mapping)\b[^;=]*=\s*[^;]+;"
 )
+# An inline-assembly block opener: ``assembly { ... }`` or ``assembly ("memory-safe") { ... }``.
+# The optional dialect/flags argument is matched permissively because the
+# comment/string blanker blanks the quoted flag *contents* (and its quotes), so
+# ``assembly ("memory-safe")`` reaches this regex as ``assembly (            )``.
+_ASSEMBLY_OPEN_RE = re.compile(r"\bassembly\b\s*(?:\([^){]*\))?\s*\{")
+# The Yul ``create`` / ``create2`` builtins (hand-rolled deployment from a memory buffer).
+_YUL_CREATE_RE = re.compile(r"\bcreate2?\s*\(")
+# A buffer sourced from ``type(T).creationCode`` / ``.runtimeCode``: the Solidity-level
+# CREATE2 form already reported by ``polkavm-create2-address-assumption``, not a
+# hand-built initcode buffer, so the manual-deploy rule suppresses it.
+_INITCODE_SRC_RE = re.compile(r"\.(?:creationCode|runtimeCode)\b")
 
 
 def _line_matches(
@@ -207,6 +218,55 @@ def _find_constructor_order(
         if _CTOR_RE.search(bline):
             return [(idx, raw_lines[idx].strip())]
     return []
+
+
+def _find_asm_manual_deploy(
+    blank: str, raw_lines: List[str], blank_lines: List[str]
+) -> List[Tuple[int, str]]:
+    # A hand-rolled ``create`` / ``create2`` inside an inline-assembly block (the
+    # EIP-1167 clone / CREATE3 / counterfactual-address idiom). On PolkaVM the
+    # deploy opcode takes a code-hash buffer, not a concatenated-initcode buffer,
+    # so the manually assembled deployment does not behave as on the EVM. The
+    # Solidity-level ``new X{salt:}`` / ``creationCode`` form is handled by
+    # ``polkavm-create2-address-assumption``; this finder covers only the
+    # assembly form, scoped to the brace-matched block so a ``create`` token
+    # outside assembly (a function or variable name) never fires. A buffer built
+    # from type(T).creationCode is suppressed: that is the Solidity-level CREATE2
+    # form already reported by polkavm-create2-address-assumption, and the buffer
+    # is not hand-built, so firing here would double-report.
+    hits: List[Tuple[int, str]] = []
+    for m in _ASSEMBLY_OPEN_RE.finditer(blank):
+        brace = blank.find("{", m.end() - 1)
+        if brace == -1:
+            continue
+        depth = 0
+        end = len(blank)
+        for i in range(brace, len(blank)):
+            ch = blank[i]
+            if ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    end = i
+                    break
+        cm = _YUL_CREATE_RE.search(blank, brace, end)
+        if cm is None:
+            continue
+        line_idx = blank.count("\n", 0, cm.start())
+        # Suppress the creationCode / runtimeCode form (handled elsewhere): scan the
+        # enclosing function, from its `function`/`constructor` header down to the
+        # create call, for a .creationCode / .runtimeCode source.
+        fn_start = line_idx
+        for j in range(line_idx, -1, -1):
+            if _FUNC_RE.search(blank_lines[j]):
+                fn_start = j
+                break
+        scope = "\n".join(blank_lines[fn_start : line_idx + 1])
+        if _INITCODE_SRC_RE.search(scope):
+            continue
+        hits.append((line_idx, raw_lines[line_idx].strip()))
+    return hits
 
 
 RULES: List[Rule] = [
@@ -277,6 +337,24 @@ RULES: List[Rule] = [
         confidence=0.7,
         cwe_id="CWE-710",
         finder=lambda b, r, bl: _line_matches(bl, r, _SELFDESTRUCT_RE),
+    ),
+    Rule(
+        check="polkavm-asm-manual-deploy",
+        severity="Medium",
+        message="Inline-assembly create/create2 with a hand-built initcode buffer (the EIP-1167 "
+        "clone / CREATE3 idiom). On PolkaVM the deploy opcode expects two pointers — a code-hash "
+        "buffer and a separate constructor-arguments buffer — not the EVM's concatenated deploy "
+        "code; the revive compiler book warns this 'might fall apart in code creating contracts "
+        "inside assembly blocks' and strongly discourages manually crafting deployments there, so "
+        "EVM-style CREATE2 address precomputation does not hold. Measured: compiles silently under "
+        "resolc 1.5.0 (no diagnostic), so this is not a compile-time (class-A) rejection; the "
+        "runtime divergence is per the book and not independently confirmed here.",
+        recommendation="Do not hand-roll create/create2 deployments in assembly for PolkaVM; use the "
+        "Solidity `new` keyword (revive translates dataoffset/datasize to the code hash so it works) "
+        "and read the deployed address from the result instead of precomputing it from the initcode.",
+        confidence=0.6,
+        cwe_id="CWE-668",
+        finder=_find_asm_manual_deploy,
     ),
 ]
 

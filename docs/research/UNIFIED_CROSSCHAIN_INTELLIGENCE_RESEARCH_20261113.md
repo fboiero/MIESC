@@ -29,7 +29,7 @@ different story, and the repository is honest about it
 |---|---|---|
 | EVM (Solidity/Vyper) | **Production** | Real external tools (Slither, Mythril, Aderyn, Semgrep, …) |
 | Cairo / Starknet | Experimental | **Real**: Caracal (Sierra static analysis) + a pattern adapter for correlation |
-| Polkadot / PolkaVM | Experimental | **Real**: `resolc` compiler (class-A) + `polkavm_diff` (6 class-B heuristics) |
+| Polkadot / PolkaVM | Experimental | **Real**: `resolc` compiler (class-A) + `polkavm_diff` (7 class-B heuristics) |
 | Solana, NEAR, Move, Stellar, Algorand, Cardano | Roadmap | **Pattern-only** (hand-written regex/heuristic adapters) |
 
 The deeper problem is not the adapters — it is that **all of MIESC's accumulated

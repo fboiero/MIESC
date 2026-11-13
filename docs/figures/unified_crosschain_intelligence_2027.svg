@@ -31,7 +31,7 @@
   <!-- Polkadot (experimental) -->
   <rect x="424" y="78" width="168" height="54" rx="8" fill="#fff8e6" stroke="#bf8700" stroke-width="1.8"/>
   <text x="508" y="100" text-anchor="middle" font-size="13" font-weight="700" fill="#9a6700">PolkaVM — Experimental</text>
-  <text x="508" y="118" text-anchor="middle" font-size="11" fill="#1f2328">resolc + diff (6 rules)</text>
+  <text x="508" y="118" text-anchor="middle" font-size="11" fill="#1f2328">resolc + diff (7 rules)</text>
 
   <!-- Roadmap group -->
   <rect x="608" y="78" width="376" height="54" rx="8" fill="#f6f8fa" stroke="#6e7781" stroke-width="1.6" stroke-dasharray="5 4"/>
