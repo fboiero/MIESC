@@ -9,6 +9,17 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **Cross-chain research whitepaper: factual corrections.** `docs/research/UNIFIED_CROSSCHAIN_INTELLIGENCE_RESEARCH_20261113.md`
+  and its figure corrected after a code-grounded audit: removed Algorand from the
+  "DoS / unbounded resource" shared-class row (the adapter declares no such label);
+  removed `felt_overflow` from the Cairo "non-transferable" list (MIESC's taxonomy maps
+  it to the shared ARITHMETIC class — class transfers, mechanism does not); fixed the
+  statistical mislabel (the shared-transfer bet is the alternative **H₁**, with the null
+  **H₀** stated and used consistently); and reworded the 13-false-positive Solana
+  anecdote to its actual root cause (line-local regexes + a lowercase `"signer"` test),
+  not an unsupported "EVM-style reasoning" claim. Also softened the overstated "the
+  repository already contains the empirical material" framing to match the nominal-label
+  caveat. No benchmark figures changed.
 - **Solana/Anchor pattern detector hardened against false positives.** The
   `SolanaPatternDetector` previously emitted safe constructs (`checked_add`,
   `find_program_address`, `CpiContext::new`, `#[account(init)]`, `as u64` casts…)
