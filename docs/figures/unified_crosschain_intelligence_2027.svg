@@ -1,0 +1,127 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 760" font-family="'Segoe UI',system-ui,-apple-system,Roboto,sans-serif" role="img" aria-label="Proposed unified cross-chain security intelligence core for MIESC: per-chain frontends normalize shared vulnerability classes into a shared intelligence core, while chain-specific classes bypass it; a bounded feedback loop enriches the knowledge base.">
+  <!-- self-contained background so the figure reads on any theme -->
+  <rect x="0" y="0" width="1040" height="760" rx="14" fill="#ffffff" stroke="#d0d7de" stroke-width="1.5"/>
+
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#57606a"/>
+    </marker>
+    <marker id="arrowblue" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#0969da"/>
+    </marker>
+  </defs>
+
+  <!-- title -->
+  <text x="520" y="36" text-anchor="middle" font-size="22" font-weight="700" fill="#1f2328">Unified Cross-Chain Security Intelligence Core</text>
+  <text x="520" y="58" text-anchor="middle" font-size="13" fill="#57606a">Proposed research program for 2027 — a design to validate, not a shipped system. Only SHARED classes flow through the core.</text>
+
+  <!-- ===== Row 1: per-chain frontends ===== -->
+  <text x="34" y="92" font-size="12" font-weight="600" fill="#57606a" transform="rotate(-90 34 92)" text-anchor="middle">FRONTENDS</text>
+
+  <!-- EVM (production) -->
+  <rect x="56" y="78" width="168" height="54" rx="8" fill="#eafaf0" stroke="#2da44e" stroke-width="1.8"/>
+  <text x="140" y="100" text-anchor="middle" font-size="13" font-weight="700" fill="#1a7f37">EVM — Production</text>
+  <text x="140" y="118" text-anchor="middle" font-size="11" fill="#1f2328">Slither · Mythril · Aderyn</text>
+
+  <!-- Cairo (experimental) -->
+  <rect x="240" y="78" width="168" height="54" rx="8" fill="#fff8e6" stroke="#bf8700" stroke-width="1.8"/>
+  <text x="324" y="100" text-anchor="middle" font-size="13" font-weight="700" fill="#9a6700">Cairo — Experimental</text>
+  <text x="324" y="118" text-anchor="middle" font-size="11" fill="#1f2328">Caracal (real)</text>
+
+  <!-- Polkadot (experimental) -->
+  <rect x="424" y="78" width="168" height="54" rx="8" fill="#fff8e6" stroke="#bf8700" stroke-width="1.8"/>
+  <text x="508" y="100" text-anchor="middle" font-size="13" font-weight="700" fill="#9a6700">PolkaVM — Experimental</text>
+  <text x="508" y="118" text-anchor="middle" font-size="11" fill="#1f2328">resolc + diff (6 rules)</text>
+
+  <!-- Roadmap group -->
+  <rect x="608" y="78" width="376" height="54" rx="8" fill="#f6f8fa" stroke="#6e7781" stroke-width="1.6" stroke-dasharray="5 4"/>
+  <text x="796" y="100" text-anchor="middle" font-size="13" font-weight="700" fill="#57606a">Solana · NEAR · Move · Stellar · Algorand · Cardano</text>
+  <text x="796" y="118" text-anchor="middle" font-size="11" fill="#1f2328">Roadmap — pattern-only adapters</text>
+
+  <!-- arrows frontends -> waist (shared classes) -->
+  <path d="M140,132 L300,176" fill="none" stroke="#57606a" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <path d="M324,132 L360,176" fill="none" stroke="#57606a" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <path d="M508,132 L430,176" fill="none" stroke="#57606a" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <path d="M700,132 L470,176" fill="none" stroke="#57606a" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <text x="208" y="158" text-anchor="middle" font-size="10.5" fill="#1a7f37" font-weight="600">shared classes only</text>
+
+  <!-- ===== Narrow waist: canonical taxonomy ===== -->
+  <polygon points="150,180 630,180 540,224 240,224" fill="#ddf4ff" stroke="#0969da" stroke-width="1.8"/>
+  <text x="390" y="199" text-anchor="middle" font-size="13" font-weight="700" fill="#0a3069">Canonical taxonomy — normalize to shared classes</text>
+  <text x="390" y="216" text-anchor="middle" font-size="10.5" fill="#1f2328">reentrancy · access-control · arithmetic · oracle · unchecked-call · upgrade · DoS</text>
+
+  <path d="M390,224 L390,258" fill="none" stroke="#0969da" stroke-width="2" marker-end="url(#arrowblue)"/>
+
+  <!-- ===== Shared intelligence core ===== -->
+  <rect x="120" y="262" width="540" height="214" rx="12" fill="#f3f8ff" stroke="#0969da" stroke-width="2"/>
+  <text x="390" y="286" text-anchor="middle" font-size="15" font-weight="700" fill="#0a3069">Shared Intelligence Core  (class-indexed)</text>
+
+  <rect x="140" y="300" width="244" height="72" rx="8" fill="#ffffff" stroke="#8ab4e8" stroke-width="1.5"/>
+  <text x="262" y="322" text-anchor="middle" font-size="12.5" font-weight="700" fill="#1f2328">Class-indexed RAG KB</text>
+  <text x="262" y="340" text-anchor="middle" font-size="10.5" fill="#57606a">93 docs today (EVM)</text>
+  <text x="262" y="356" text-anchor="middle" font-size="10.5" fill="#57606a">-&gt; add chain provenance</text>
+
+  <rect x="398" y="300" width="244" height="72" rx="8" fill="#ffffff" stroke="#8ab4e8" stroke-width="1.5"/>
+  <text x="520" y="322" text-anchor="middle" font-size="12.5" font-weight="700" fill="#1f2328">Calibration / FP filter</text>
+  <text x="520" y="340" text-anchor="middle" font-size="10.5" fill="#57606a">conservative, Solidity-keyed today</text>
+  <text x="520" y="356" text-anchor="middle" font-size="10.5" fill="#57606a">-&gt; test transfer per chain</text>
+
+  <rect x="140" y="386" width="244" height="72" rx="8" fill="#ffffff" stroke="#8ab4e8" stroke-width="1.5"/>
+  <text x="262" y="408" text-anchor="middle" font-size="12.5" font-weight="700" fill="#1f2328">9-layer methodology</text>
+  <text x="262" y="426" text-anchor="middle" font-size="10.5" fill="#57606a">defense-in-depth,</text>
+  <text x="262" y="442" text-anchor="middle" font-size="10.5" fill="#57606a">recall-first triage</text>
+
+  <rect x="398" y="386" width="244" height="72" rx="8" fill="#fff8e6" stroke="#bf8700" stroke-width="1.6"/>
+  <text x="520" y="408" text-anchor="middle" font-size="12.5" font-weight="700" fill="#9a6700">Reproducible benchmark</text>
+  <text x="520" y="426" text-anchor="middle" font-size="10.5" fill="#57606a">independence · Wilson CI</text>
+  <text x="520" y="442" text-anchor="middle" font-size="10.5" fill="#9a6700" font-weight="600">GATE: no corpus, no claim</text>
+
+  <!-- core -> findings -->
+  <path d="M390,476 L390,510" fill="none" stroke="#0969da" stroke-width="2" marker-end="url(#arrowblue)"/>
+
+  <!-- ===== Per-chain enriched findings ===== -->
+  <rect x="120" y="514" width="540" height="56" rx="10" fill="#eafaf0" stroke="#2da44e" stroke-width="1.8"/>
+  <text x="390" y="538" text-anchor="middle" font-size="13.5" font-weight="700" fill="#1a7f37">Per-chain findings — enriched for shared classes</text>
+  <text x="390" y="556" text-anchor="middle" font-size="10.5" fill="#1f2328">unified report: JSON · SARIF · PDF</text>
+
+  <!-- ===== Chain-specific bypass (right) ===== -->
+  <rect x="700" y="180" width="300" height="296" rx="12" fill="#fbf7ff" stroke="#8250df" stroke-width="1.8" stroke-dasharray="6 4"/>
+  <text x="850" y="206" text-anchor="middle" font-size="13.5" font-weight="700" fill="#6639ba">Chain-specific classes</text>
+  <text x="850" y="224" text-anchor="middle" font-size="10.5" fill="#57606a">bypass the core by construction</text>
+
+  <text x="850" y="252" text-anchor="middle" font-size="11" fill="#1f2328">Solana — PDA / CPI / type-cosplay</text>
+  <text x="850" y="274" text-anchor="middle" font-size="11" fill="#1f2328">Move — resource / hot-potato</text>
+  <text x="850" y="296" text-anchor="middle" font-size="11" fill="#1f2328">Cardano — eUTXO double-satisfaction</text>
+  <text x="850" y="318" text-anchor="middle" font-size="11" fill="#1f2328">Algorand — rekey / close-to</text>
+  <text x="850" y="340" text-anchor="middle" font-size="11" fill="#1f2328">Stellar — TTL / i128 overflow</text>
+  <text x="850" y="362" text-anchor="middle" font-size="11" fill="#1f2328">Cairo — felt / L1-L2 message</text>
+
+  <text x="850" y="396" text-anchor="middle" font-size="10.5" fill="#6639ba" font-weight="600">expected NOT to transfer —</text>
+  <text x="850" y="412" text-anchor="middle" font-size="10.5" fill="#6639ba" font-weight="600">stay in per-chain detectors</text>
+
+  <!-- bypass arrow straight to findings -->
+  <path d="M850,476 L850,542 L664,542" fill="none" stroke="#8250df" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#arrow)"/>
+
+  <!-- ===== Bounded feedback loop ===== -->
+  <path d="M120,540 C40,540 40,336 136,336" fill="none" stroke="#1a7f37" stroke-width="1.8" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
+  <text x="44" y="440" font-size="10.5" fill="#1a7f37" font-weight="600" transform="rotate(-90 44 440)" text-anchor="middle">incidents enrich KB — bounded to shared classes</text>
+
+  <!-- ===== Hypothesis banner ===== -->
+  <rect x="120" y="600" width="880" height="54" rx="10" fill="#f6f8fa" stroke="#d0d7de" stroke-width="1.4"/>
+  <text x="138" y="622" font-size="12" font-weight="700" fill="#1f2328">H0 (falsifiable):</text>
+  <text x="138" y="640" font-size="11.5" fill="#1f2328">a subset of classes is chain-agnostic, so shared context/calibration transfers. Negative-result path is explicit: no measured lift -&gt; record the null, keep that class per-chain.</text>
+
+  <!-- ===== Legend ===== -->
+  <rect x="120" y="674" width="18" height="12" rx="2" fill="#eafaf0" stroke="#2da44e"/>
+  <text x="144" y="684" font-size="11" fill="#1f2328">Production</text>
+  <rect x="236" y="674" width="18" height="12" rx="2" fill="#fff8e6" stroke="#bf8700"/>
+  <text x="260" y="684" font-size="11" fill="#1f2328">Experimental</text>
+  <rect x="360" y="674" width="18" height="12" rx="2" fill="#f6f8fa" stroke="#6e7781" stroke-dasharray="4 3"/>
+  <text x="384" y="684" font-size="11" fill="#1f2328">Roadmap (pattern-only)</text>
+  <rect x="540" y="674" width="18" height="12" rx="2" fill="#f3f8ff" stroke="#0969da"/>
+  <text x="564" y="684" font-size="11" fill="#1f2328">Shared core</text>
+  <rect x="664" y="674" width="18" height="12" rx="2" fill="#fbf7ff" stroke="#8250df" stroke-dasharray="4 3"/>
+  <text x="688" y="684" font-size="11" fill="#1f2328">Chain-specific (bypasses core)</text>
+
+  <text x="1000" y="714" text-anchor="end" font-size="10" fill="#8c959f">MIESC — Unified Cross-Chain Intelligence (2027 research program). Current state verified against source 2026-11-13.</text>
+</svg>

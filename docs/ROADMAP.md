@@ -45,6 +45,12 @@ MIESC is feature-complete and in active maintenance. Highlights of the 5.x line:
 - Promote additional chain analyzers (Solana, Move/CosmWasm) from experimental to beta.
 - Expand the RAG knowledge base and per-detector calibration.
 - Deeper LLM-ensemble consensus and confidence calibration.
+- **Cross-chain intelligence — 2027 research program.** Unify methodology, RAG, and
+  calibration behind a shared core so that improvements on one chain benefit the rest,
+  separating vulnerability classes that genuinely recur across execution models from
+  inherently chain-specific ones. Falsifiable hypotheses, measurable exit criteria, and
+  explicit negative-result paths are in
+  [Unified Cross-Chain Security Intelligence](research/UNIFIED_CROSSCHAIN_INTELLIGENCE_RESEARCH_20261113.md).
 
 ## Longer-term
 

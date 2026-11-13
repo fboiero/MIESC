@@ -220,7 +220,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: fboiero/MIESC@v6.0.0
+      - uses: fboiero/MIESC@v6.8.0
         with:
           path: contracts/
           mode: scan
@@ -278,8 +278,10 @@ Consultá la [Guía de Empaquetado para Investigadores](./docs/guides/RESEARCHER
 
 ```bash
 miesc analyze Token.sol           # EVM (Solidity/Vyper) — producción
-# Las no-EVM (Cairo/Solana/Move/NEAR/Stellar/Algorand/Cardano) están en el ROADMAP:
-# existe código de adapter experimental pero todavía no está validado para producción.
+# Polkadot/PolkaVM y Cairo/Starknet son EXPERIMENTALES: hay un analizador real
+# integrado (no solo patrones), pero recall/precisión no están validados con benchmark.
+# Solana/Move/NEAR/Stellar/Algorand/Cardano están en el ROADMAP: existe código de
+# adapter basado en patrones, todavía no validado para producción.
 ```
 
 **77 tipos de vulnerabilidades** en 4 ecosistemas, basados en exploits reales de 2024-2026 (zkLend $9.6M, Braavos, Wormhole $320M, Ronin $624M).
@@ -490,7 +492,7 @@ miesc detectors list                         # Listar todos los detectores dispo
 # Pre-commit hook (.pre-commit-config.yaml)
 repos:
   - repo: https://github.com/fboiero/MIESC
-    rev: v6.0.0
+    rev: v6.8.0
     hooks:
       - id: miesc-quick
         args: ['--ci']
@@ -573,17 +575,20 @@ licenciamiento y los clientes IDE viven ahora en la capa de plataforma.
 | Chain | Estado | Lenguajes |
 |-------|--------|-----------|
 | **EVM** (Ethereum, Polygon, BSC, Arbitrum, etc.) | **Producción** | Solidity, Vyper |
+| Polkadot / PolkaVM (`pallet-revive`) | Experimental | Solidity (vía `resolc`) |
+| Starknet/Cairo | Experimental | Cairo |
 | Solana | Roadmap | Rust/Anchor |
 | NEAR | Roadmap | Rust |
 | Move (Sui, Aptos) | Roadmap | Move |
 | Stellar/Soroban | Roadmap | Rust |
 | Algorand | Roadmap | TEAL, PyTeal |
 | Cardano | Roadmap | Plutus, Aiken |
-| Starknet/Cairo | Roadmap | Cairo |
 
-> **El análisis EVM (50 herramientas, 9 capas) está listo para producción.** Las cadenas
-> no-EVM están en el ROADMAP: existe código de adapter temprano pero es experimental y todavía
-> no está validado para producción.
+> **El análisis EVM (50 herramientas, 9 capas) está listo para producción.** Polkadot/PolkaVM
+> y Cairo/Starknet son **experimentales** — hay un analizador externo real integrado, pero
+> recall/precisión todavía no están validados con benchmark. El resto de las cadenas no-EVM
+> están en el **roadmap**: existe código de adapter basado en patrones, no validado para
+> producción. Ver [docs/MULTICHAIN.md](./docs/MULTICHAIN.md) para la leyenda de estado por cadena.
 
 ---
 

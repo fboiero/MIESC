@@ -253,7 +253,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: fboiero/MIESC@v6.0.0
+      - uses: fboiero/MIESC@v6.8.0
         with:
           path: contracts/
           mode: scan
@@ -322,8 +322,10 @@ See [Researcher Packaging Guide](./docs/guides/RESEARCHER_PACKAGING.md) for the 
 
 ```bash
 miesc analyze Token.sol           # EVM (Solidity/Vyper) — production
-# Non-EVM (Cairo/Solana/Move/NEAR/Stellar/Algorand/Cardano) is on the ROADMAP:
-# experimental adapter code exists but is not production-validated yet.
+# Polkadot/PolkaVM and Cairo/Starknet are EXPERIMENTAL: a real analyzer is
+# integrated (not just patterns), but recall/precision are not benchmark-validated.
+# Solana/Move/NEAR/Stellar/Algorand/Cardano are ROADMAP: pattern-based adapter
+# code exists but is not production-validated yet.
 ```
 
 **77 vulnerability types** across 4 ecosystems, informed by real 2024-2026 exploits (zkLend $9.6M, Braavos, Wormhole $320M, Ronin $624M).
@@ -619,16 +621,20 @@ clients now live in the platform layer.
 | Chain | Status | Languages |
 |-------|--------|-----------|
 | **EVM** (Ethereum, Polygon, BSC, Arbitrum, etc.) | **Production** | Solidity, Vyper |
+| Polkadot / PolkaVM (`pallet-revive`) | Experimental | Solidity (via `resolc`) |
+| Starknet/Cairo | Experimental | Cairo |
 | Solana | Roadmap | Rust/Anchor |
 | NEAR | Roadmap | Rust |
 | Move (Sui, Aptos) | Roadmap | Move |
 | Stellar/Soroban | Roadmap | Rust |
 | Algorand | Roadmap | TEAL, PyTeal |
 | Cardano | Roadmap | Plutus, Aiken |
-| Starknet/Cairo | Roadmap | Cairo |
 
-> **EVM analysis (50 tools, 9 layers) is production-ready.** Non-EVM chains are on the
-> roadmap: early adapter code exists but is experimental and not yet production-validated.
+> **EVM analysis (50 tools, 9 layers) is production-ready.** Polkadot/PolkaVM and
+> Cairo/Starknet are **experimental** — a real external analyzer is integrated, but
+> recall/precision are not yet benchmark-validated. The remaining non-EVM chains are on
+> the **roadmap**: pattern-based adapter code exists but is not production-validated. See
+> [docs/MULTICHAIN.md](./docs/MULTICHAIN.md) for the per-chain status legend.
 
 ---
 

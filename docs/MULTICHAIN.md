@@ -339,10 +339,15 @@ Non-EVM analyzers are useful for:
 
 | Phase | Chains | Target |
 |-------|--------|--------|
-| Current (v6.0.0) | EVM | Production (9 layers, 50 tools) |
+| Current (v6.8.0) | EVM | Production (9 layers, 50 tools) |
 | Next | Solana, NEAR | Experimental adapters → validated analysis |
 | Later | Move, Stellar | Formal-verification research |
 | Future | All chains | Production-grade multi-chain |
+
+> The unifying research direction behind this roadmap — a shared intelligence core
+> (methodology + class-indexed RAG + calibration) across chains, with falsifiable
+> hypotheses, measurable exit criteria, and explicit negative-result paths — is set out
+> in [Unified Cross-Chain Security Intelligence (2027 research program)](research/UNIFIED_CROSSCHAIN_INTELLIGENCE_RESEARCH_20261113.md).
 
 ---
 
