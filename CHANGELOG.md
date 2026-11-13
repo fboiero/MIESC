@@ -40,9 +40,23 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   gates on Foundry (`forge`) while upstream drives Truffle/Hardhat — experimental; **DA-GNN** needs
   `pip3 install torch torch-geometric scikit-learn networkx` plus Slither, with a heuristic fallback
   (the row previously said only "Built-in"/"Incluido", which implied zero setup).
+- **Multi-chain status and version pins corrected in the READMEs.** `README.md` and
+  `README_ES.md` now show **Polkadot/PolkaVM** and **Cairo/Starknet** as *Experimental*
+  (a real external analyzer is integrated) instead of omitting or down-listing them,
+  matching the per-chain legend in `docs/MULTICHAIN.md`; the GitHub Action and
+  pre-commit pins were updated from `v6.0.0` to `v6.8.0`. No benchmark figures changed.
 
 ### Added
 
+- **Cross-chain security research whitepaper + architecture figure.**
+  `docs/research/UNIFIED_CROSSCHAIN_INTELLIGENCE_RESEARCH_20261113.md` sets out a
+  falsifiable 2027 research program for a shared intelligence core (methodology +
+  class-indexed RAG + calibration) across chains, with measurable exit criteria and an
+  explicit negative-result path per track. It separates vulnerability classes that recur
+  across execution models (shared) from inherently chain-specific ones, grounded in
+  `miesc/core/finding_taxonomy.py` and the per-chain adapters — no projected numbers.
+  Figure: `docs/figures/unified_crosschain_intelligence_2027.svg`. Linked from
+  `docs/ROADMAP.md` and `docs/MULTICHAIN.md`.
 - **PolkaVM class-(A) compile-compatibility adapter (`polkavm_resolc`).** New
   `miesc/adapters/polkavm_resolc_adapter.py` runs the Parity **revive compiler** (`resolc`) on a
   Solidity contract targeting PolkaVM / `pallet-revive` and surfaces the opcodes `resolc` **rejects
