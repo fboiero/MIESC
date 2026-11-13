@@ -43,6 +43,19 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **PolkaVM class-(B) check: inline-assembly manual deployment (`polkavm-asm-manual-deploy`).** New
+  rule in `miesc/adapters/polkavm_diff_adapter.py` flags a hand-rolled `create` / `create2` inside an
+  inline-assembly block (the EIP-1167 clone / CREATE3 idiom). On PolkaVM the deploy opcode takes a
+  code-hash buffer plus a separate constructor-arguments buffer, not the EVM's concatenated deploy
+  code. The revive compiler book warns this "might fall apart in code creating contracts inside
+  assembly blocks" and strongly discourages manually crafting deployments there, so EVM-style
+  `CREATE2` address precomputation does not hold. **Measured** against `resolc` 1.5.0: the pattern
+  compiles **silently** (exit 0, no diagnostic), so it is **not** a compile-time (class-A) rejection;
+  the runtime divergence rests on the book and is not independently confirmed here. Scoped to the
+  brace-matched assembly block (a Solidity-level `create`, a function named `create`, or an
+  `assembly ("memory-safe")` block all handled correctly); the `type(T).creationCode`-fed form is
+  left to `polkavm-create2-address-assumption`, so there is no double-report. Fixture
+  `AsmManualDeploy.sol` (verified to compile with `resolc`) + overlap and true-negative guards.
 - **PolkaVM class-(A) compile-compatibility adapter (`polkavm_resolc`).** New
   `miesc/adapters/polkavm_resolc_adapter.py` runs the Parity **revive compiler** (`resolc`) on a
   Solidity contract targeting PolkaVM / `pallet-revive` and surfaces the opcodes `resolc` **rejects

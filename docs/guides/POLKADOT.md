@@ -51,6 +51,7 @@ behaves differently on PolkaVM.
 | `polkavm-predictable-prevrandao` | `block.prevrandao` / `difficulty` is a constant on PolkaVM → predictable randomness |
 | `polkavm-constructor-init-order` | Under via-ir, base constructors run before derived state-variable initializers |
 | `polkavm-selfdestruct-semantics` | `selfdestruct` compiles under `resolc` (verified); flagged because its runtime behaviour on `pallet-revive` may differ from the EVM (runtime semantics not independently confirmed) |
+| `polkavm-asm-manual-deploy` | Inline-assembly `create` / `create2` with a hand-built initcode buffer (the EIP-1167 clone / CREATE3 idiom); PolkaVM's deploy opcode takes a code-hash buffer, and the revive book "strongly discourages manually crafting deployments in assembly blocks" (it "might fall apart"), so EVM `CREATE2` address precomputation does not hold. Measured: compiles silently under `resolc` 1.5.0 (not a class-A rejection); runtime not independently confirmed. The `new X{salt:}` and `type(T).creationCode` forms are covered by `polkavm-create2-address-assumption` |
 
 ## What `polkavm_resolc` checks
 

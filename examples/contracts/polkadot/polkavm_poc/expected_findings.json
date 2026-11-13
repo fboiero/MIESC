@@ -92,6 +92,26 @@
       ]
     },
     {
+      "file": "vulnerable/AsmManualDeploy.sol",
+      "compiles_with_resolc": true,
+      "expected": [
+        {
+          "check": "polkavm-asm-manual-deploy",
+          "function": "clone",
+          "severity": "Medium",
+          "difference_class": "B",
+          "rationale": "Inline-assembly `create` with a hand-built EIP-1167 initcode buffer; on PolkaVM the deploy opcode takes a code-hash buffer, so the manually assembled deployment may break (runtime not independently confirmed)."
+        },
+        {
+          "check": "polkavm-asm-manual-deploy",
+          "function": "cloneDeterministic",
+          "severity": "Medium",
+          "difference_class": "B",
+          "rationale": "Inline-assembly `create2` deterministic clone; EVM CREATE2 address precomputation does not hold on PolkaVM (address derives from the code hash)."
+        }
+      ]
+    },
+    {
       "file": "clean/Counter.sol",
       "compiles_with_resolc": true,
       "expected": []
