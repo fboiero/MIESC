@@ -94,7 +94,7 @@
   <text x="850" y="296" text-anchor="middle" font-size="11" fill="#1f2328">Cardano — eUTXO double-satisfaction</text>
   <text x="850" y="318" text-anchor="middle" font-size="11" fill="#1f2328">Algorand — rekey / close-to</text>
   <text x="850" y="340" text-anchor="middle" font-size="11" fill="#1f2328">Stellar — TTL / i128 overflow</text>
-  <text x="850" y="362" text-anchor="middle" font-size="11" fill="#1f2328">Cairo — felt / L1-L2 message</text>
+  <text x="850" y="362" text-anchor="middle" font-size="11" fill="#1f2328">Cairo — L1-L2 message / syscall</text>
 
   <text x="850" y="396" text-anchor="middle" font-size="10.5" fill="#6639ba" font-weight="600">expected NOT to transfer —</text>
   <text x="850" y="412" text-anchor="middle" font-size="10.5" fill="#6639ba" font-weight="600">stay in per-chain detectors</text>
@@ -108,7 +108,7 @@
 
   <!-- ===== Hypothesis banner ===== -->
   <rect x="120" y="600" width="880" height="54" rx="10" fill="#f6f8fa" stroke="#d0d7de" stroke-width="1.4"/>
-  <text x="138" y="622" font-size="12" font-weight="700" fill="#1f2328">H0 (falsifiable):</text>
+  <text x="138" y="622" font-size="12" font-weight="700" fill="#1f2328">H1 (the bet; null H0 = no transfer):</text>
   <text x="138" y="640" font-size="11.5" fill="#1f2328">a subset of classes is chain-agnostic, so shared context/calibration transfers. Negative-result path is explicit: no measured lift -&gt; record the null, keep that class per-chain.</text>
 
   <!-- ===== Legend ===== -->

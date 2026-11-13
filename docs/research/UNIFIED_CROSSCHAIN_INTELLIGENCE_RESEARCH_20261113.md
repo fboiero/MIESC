@@ -56,15 +56,16 @@ silo this program attacks.
 
 ## 2. Central hypothesis (falsifiable)
 
-> **H₀ (the bet).** A *subset* of smart-contract vulnerability classes is
+> **H₁ (the bet).** A *subset* of smart-contract vulnerability classes is
 > **semantically chain-agnostic**. For that subset, detection *context* (RAG
 > evidence, severity calibration, FP reasoning) and *methodology* (defense-in-depth,
 > recall-first triage, reproducible evaluation) can be **shared** across chains, so
-> that enriching the core on one chain measurably benefits the others.
+> that enriching the core on one chain measurably benefits the others. The null
+> (**H₀**) is the opposite: that sharing yields no measurable benefit.
 
-The repository already contains the empirical material to test this — not assert
-it. Reading each chain adapter's own vulnerability enum, these classes **recur
-across three or more execution models**:
+A first look at each chain adapter's own vulnerability enum shows the same class
+*labels* recurring across three or more execution models — though, as the caveat below
+and Track **T1** make explicit, a declared label is not yet a working detector:
 
 | Shared class (candidate) | Appears in |
 |---|---|
@@ -74,7 +75,7 @@ across three or more execution models**:
 | Oracle manipulation | EVM, Solana, Move, Cairo |
 | Unchecked call / return | EVM, Solana, NEAR, Move, Stellar, Cairo |
 | Upgrade / proxy exposure | EVM, Solana, NEAR, Move, Cairo |
-| DoS / unbounded resource | EVM, NEAR, Stellar, Algorand, Cardano |
+| DoS / unbounded resource | EVM, NEAR, Stellar, Cardano |
 
 These overlaps are **nominal**: they are matching labels across each chain's (mostly
 pattern-based) adapter enum, **not demonstrated semantic equivalence**. Whether a Solana
@@ -92,10 +93,13 @@ and are **expected NOT to transfer**:
 | Cardano (eUTXO) | `double_satisfaction`, `datum_hijacking`, `redeemer_injection`, `utxo_contention` |
 | Algorand (TEAL) | `rekey_attack`, `close_to_attack`, `clawback_abuse`, `group_txn_validation` |
 | Stellar/Soroban | `ttl_not_extended`, `i128_conversion_overflow` |
-| Cairo/Starknet | `felt_overflow`, `l1_l2_message`, `unchecked_l1_call` |
+| Cairo/Starknet | `l1_l2_message`, `unchecked_l1_call` |
 
 **The program's job is to draw this line precisely and defend it with
-measurements**, not to pretend the line is not there.
+measurements**, not to pretend the line is not there. (Cairo's `felt_overflow` is
+deliberately *not* in this list: MIESC's taxonomy maps it to the shared ARITHMETIC
+class — it is the textbook case of a class that transfers while its mechanism, a
+252-bit prime field, does not.)
 
 ### The negative-result path (explicit)
 
@@ -105,10 +109,12 @@ version of it:
 1. The RAG KB, FP filter, and taxonomy are **100% EVM-rooted today** — there is no
    mechanism by which that knowledge "already transfers." Any transfer must be
    built and then **measured**.
-2. Pattern transfer across execution models is known to misfire. In this project's
-   own history, a Solana pattern detector fired **13 findings (10 High) on a clean
-   41-line Anchor program** before it was hardened — direct evidence that
-   EVM-style reasoning does **not** safely carry to a different account model.
+2. Hand-written per-chain pattern detectors are brittle on an unfamiliar model. In
+   this project's own history, a Solana pattern detector fired **13 findings (10 High)
+   on a clean 41-line Anchor program** before it was hardened — the root cause was
+   line-local regexes that could not see Anchor's `#[derive(Accounts)]` validation
+   struct, plus a lowercase `"signer"` substring test. A detector written for one
+   model's syntax does not safely carry to another's.
 3. Several large class families (the right-hand table above) are provably
    chain-specific.
 
@@ -221,9 +227,10 @@ such amortization by construction, and the program says so up front.
   *lower* precision — the exact failure mode behind the 13-FP Solana regression.
   The shared/chain-specific split (§2) is the guardrail.
 - **Falsification.** If, across the candidate shared classes, cross-chain context
-  and calibration yield no measurable lift on independent corpora, H₀ is rejected
-  and MIESC remains a federation of per-chain analyzers with a shared *methodology*
-  only — still a useful, honest outcome.
+  and calibration yield no measurable lift on independent corpora, the sharing
+  hypothesis (H₁) is rejected — the null (H₀) stands — and MIESC remains a federation
+  of per-chain analyzers with a shared *methodology* only, still a useful, honest
+  outcome.
 
 ---
 
