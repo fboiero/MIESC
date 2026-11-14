@@ -238,6 +238,14 @@ class DeepAuditAgent(BaseAgent):
         self.contract_path = contract_path
         source_code = Path(contract_path).read_text()
 
+        # Reproducibility: seed global RNGs once at the agentic entrypoint and
+        # record the seed (previously set_global_seeds had no runtime caller, so
+        # agentic runs were not reproducible).
+        from miesc.security.reproducibility import get_global_seed, set_global_seeds
+
+        set_global_seeds()
+        seed = get_global_seed()
+
         logger.info(f"DeepAuditAgent starting on {contract_path}")
         report: Dict[str, Any] = {
             "contract": contract_path,
@@ -245,7 +253,7 @@ class DeepAuditAgent(BaseAgent):
             "phases": {},
             "findings": [],
             "exploit_chains": [],
-            "metadata": {"config": self.config.__dict__.copy()},
+            "metadata": {"config": self.config.__dict__.copy(), "seed": seed},
         }
 
         # Phase 1: Reconnaissance
@@ -1211,15 +1219,35 @@ class DeepAuditAgent(BaseAgent):
     def _query_llm_verifier(
         self, finding: Dict, source_code: str, model: str, host: str
     ) -> Optional[Dict]:
-        """Query a specific Ollama model for finding verification. Returns parsed JSON or None."""
+        """Query a specific Ollama model for finding verification.
+
+        The contract code and finding text are sanitized against prompt injection
+        before being embedded; the reply is parsed with the hardened JSON
+        extractor; and an unparseable or verdict-less reply **abstains** (returns
+        ``None``) instead of inventing a confirmation, so a malformed reply never
+        perturbs the finding's confidence in either direction.
+        """
         import json as json_mod
         import urllib.request
 
-        title = finding.get("title", finding.get("type", "unknown"))
-        desc = finding.get("description", "")[:300]
+        from miesc.security.llm_output_validator import (
+            extract_json_from_text,
+            repair_common_json_errors,
+        )
+        from miesc.security.prompt_sanitizer import (
+            sanitize_code_for_prompt,
+            sanitize_finding_text,
+        )
+        from miesc.security.reproducibility import get_global_seed
+
+        title = sanitize_finding_text(str(finding.get("title", finding.get("type", "unknown"))))
+        desc = sanitize_finding_text(str(finding.get("description", "")))[:300]
         loc_obj = finding.get("location", {})
-        func = loc_obj.get("function", "unknown") if isinstance(loc_obj, dict) else ""
-        code_snippet = source_code[:3000]
+        raw_func = loc_obj.get("function", "unknown") if isinstance(loc_obj, dict) else ""
+        func = sanitize_finding_text(str(raw_func))
+        # Untrusted contract source: neutralize injection patterns, truncate, and
+        # wrap in delimiting tags before embedding it in the prompt.
+        code_block = sanitize_code_for_prompt(source_code, max_length=3000)
 
         prompt = f"""A security tool flagged this as CRITICAL. Verify whether it is a real vulnerability.
 
@@ -1227,19 +1255,26 @@ FINDING: {title}
 DESCRIPTION: {desc}
 FUNCTION: {func}
 
-CONTRACT CODE (first 3000 chars):
-{code_snippet}
+CONTRACT CODE (sanitized, truncated):
+{code_block}
 
 Respond ONLY with JSON of the shape:
 {{"confirmed": true|false, "reasoning": "<1-2 sentences>", "actual_severity": "CRITICAL|HIGH|MEDIUM|LOW"}}
 """
+        # Seed the generation when a global seed is set, so verifier runs are
+        # reproducible (the LLM is the main source of agentic non-determinism).
+        options: Dict[str, Any] = {"temperature": 0.1, "num_predict": 512}
+        seed = get_global_seed()
+        if seed is not None:
+            options["seed"] = seed
+
         try:
             payload = json_mod.dumps(
                 {
                     "model": model,
                     "prompt": prompt,
                     "stream": False,
-                    "options": {"temperature": 0.1, "num_predict": 512},
+                    "options": options,
                 }
             ).encode()
             req = urllib.request.Request(
@@ -1250,14 +1285,20 @@ Respond ONLY with JSON of the shape:
             with urllib.request.urlopen(req, timeout=30) as resp:
                 result = json_mod.loads(resp.read())
             text = result.get("response", "")
+            json_str = extract_json_from_text(text)
+            if not json_str:
+                logger.debug(f"LLM verifier ({model}): no JSON in reply; abstaining")
+                return None
             try:
-                start = text.index("{")
-                end = text.rindex("}") + 1
-                parsed = json_mod.loads(text[start:end])
-                parsed["_model"] = model
-                return cast(Optional[Dict[Any, Any]], parsed)
+                parsed = json_mod.loads(repair_common_json_errors(json_str))
             except (ValueError, json_mod.JSONDecodeError):
-                return {"confirmed": True, "reasoning": text[:200], "_model": model}
+                logger.debug(f"LLM verifier ({model}): unparseable JSON; abstaining")
+                return None
+            if not isinstance(parsed, dict) or "confirmed" not in parsed:
+                # No explicit verdict: abstain rather than guess a confirmation.
+                return None
+            parsed["_model"] = model
+            return cast(Optional[Dict[Any, Any]], parsed)
         except Exception as e:
             logger.debug(f"LLM verifier ({model}) failed: {e}")
             return None
