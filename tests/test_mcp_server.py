@@ -29,9 +29,11 @@ from miesc.mcp_server import (  # noqa: E402
     _run_tool_internal,
     _summarize_results,
     _validate_contract_path,
+    miesc_analyze_defi,
     miesc_apply_fix,
     miesc_correlate,
     miesc_filter_fp,
+    miesc_generate_report,
     miesc_get_status,
     miesc_get_tool_info,
     miesc_list_tools,
@@ -342,3 +344,80 @@ class TestMCPRuntimeBugRegressions:
         assert isinstance(out, list) and len(out) == 1
         # to_dict() shape, not the raw fallback dict.
         assert "type" in out[0]
+
+
+# =========================================================================
+# Correctness & honesty slice (SDD_MCP_RAG_AGENTIC_SURFACING_20261114)
+# =========================================================================
+class TestMCPCorrectnessSlice:
+    """Regression tests for the MCP-server correctness & honesty fixes."""
+
+    def test_analyze_defi_uses_valid_adapter_key(self, tmp_path):
+        """F4: the DeFi tool key must be 'defi' (an ADAPTER_MAP key), not the
+        non-existent 'defi_analyzer' that silently resolved to no_adapter."""
+        sol = tmp_path / "T.sol"
+        sol.write_text(SAMPLE_SOL)
+        with patch("miesc.mcp_server._run_tool_internal") as mock_run:
+            mock_run.return_value = {"tool": "defi", "status": "success", "findings": []}
+            asyncio.run(miesc_analyze_defi(str(sol)))
+        called_tools = [call.args[0] for call in mock_run.call_args_list]
+        assert "defi" in called_tools
+        assert "defi_analyzer" not in called_tools
+        # The valid key must be in the adapter map; the old key must not be.
+        adapter_map = _get_adapter_map()
+        assert "defi" in adapter_map
+        assert "defi_analyzer" not in adapter_map
+
+    def test_generate_report_markdown_routes_through_normalizer(self):
+        """F5: generate_report must normalize any MIESC result shape (incl. the
+        ML `audit full` dict that has no top-level 'results' key) instead of
+        reading audit_results['results'] directly."""
+        ml_shape = {
+            "contract": "/tmp/Token.sol",
+            "ml_enhanced": {"findings": [{"severity": "High", "message": "x"}]},
+            "summary": {"total_findings": 1},
+        }
+        with patch("miesc.cli.utils.results_from_result_file") as mock_norm:
+            mock_norm.return_value = [
+                {"tool": "slither", "findings": [{"severity": "High", "message": "reentrancy risk"}]}
+            ]
+            out = asyncio.run(
+                miesc_generate_report(json.dumps(ml_shape), format="markdown")
+            )
+        mock_norm.assert_called_once()
+        assert "reentrancy risk" in out
+
+    def test_generate_report_markdown_legacy_results_shape(self):
+        """Regression: the legacy {'results': [...]} shape still renders."""
+        legacy = {
+            "results": [
+                {"tool": "slither", "findings": [{"severity": "High", "message": "legacy finding"}]}
+            ],
+            "summary": {"total_findings": 1},
+        }
+        out = asyncio.run(miesc_generate_report(json.dumps(legacy), format="markdown"))
+        assert "legacy finding" in out
+
+    def test_generate_report_json_passthrough_unchanged(self):
+        """JSON format must still return the input verbatim."""
+        payload = {"results": [], "summary": {}}
+        out = json.loads(asyncio.run(miesc_generate_report(json.dumps(payload), format="json")))
+        assert out == payload
+
+    def test_mcp_shim_exposes_tool_registry(self):
+        """F6: the miesc.mcp shim must resolve ToolRegistry (aliased to
+        MCPToolRegistry) rather than silently importing to None."""
+        import miesc.mcp as shim
+        from miesc.mcp_core.tool_registry import MCPToolRegistry
+
+        assert shim.ToolRegistry is MCPToolRegistry
+        assert shim.ContextBus is not None
+
+    def test_websocket_server_docstring_is_honest(self):
+        """F6: the streaming WebSocket server must not claim to be MCP or
+        Claude-Desktop compatible."""
+        from miesc.mcp_core import websocket_server
+
+        doc = websocket_server.__doc__ or ""
+        assert "not" in doc.lower() and "model context protocol" in doc.lower()
+        assert "Compatible with Claude Desktop and other MCP clients" not in doc
