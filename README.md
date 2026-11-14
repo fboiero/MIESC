@@ -1,7 +1,7 @@
 <p align="center">
   <h1 align="center">MIESC</h1>
   <p align="center">
-    <strong>50 security tools. 9 defense layers. One command.</strong>
+    <strong>35 analysis modules. 9 defense layers. One command.</strong>
   </p>
   <p align="center">
     Enterprise-grade smart contract security, free and open to everyone.
@@ -105,7 +105,7 @@ OK gptscan: 4 findings in 49.7s
 | TOTAL    |    22 |
 +----------+-------+
 
-Tools executed: 12/50
+Tools executed: 12/35
 Report saved to results.json
 ```
 
@@ -155,7 +155,7 @@ separately as an end-to-end integration smoke run, not as a corpus-wide claim.
 | Flash Loan | 2 | 2 | **100%** | bZx $8.1M, Compound $80M |
 | Overall | 11 | 9 | **81.8%** | 95% Wilson CI: [52%, 95%] |
 
-> **81.8% recall on real-world exploits** — MIESC would have flagged 9 of 11 multi-million dollar exploits before deployment. [Paper 1 reproducibility](./paper/PAPER1_REPRODUCIBILITY.md) | [Exploit evaluation](./benchmarks/evaluate_exploits.py)
+> **81.8% recall on real-world exploits** — on DeFiHackLabs reproductions of 11 multi-million-dollar exploits, MIESC flagged the recorded vulnerability class in 9 (a preliminary case study on attack code, not the victim contracts; 95% Wilson CI [52%, 95%]). [Paper 1 reproducibility](./paper/PAPER1_REPRODUCIBILITY.md) | [Exploit recompute script](./benchmarks/evaluate_exploits.py)
 
 **Why recall matters more than precision for pre-audit triage**: High recall means fewer missed vulnerabilities. False positives are filtered in the triage step — missed vulnerabilities become exploits in production.
 
@@ -171,10 +171,11 @@ number recomputed from `benchmarks/results/paper1_claims_matrix.json` by `make r
 | Frontier API: Claude Sonnet 4.6 | 82.5 % | 34.0 % | 48.2 % | paid |
 | Ensemble (union of the providers above) | 92.5 % | — | — | paid |
 
-Read it as a trade: the free, fully local setup finds six in ten high-severity issues with
-the best precision of any single model; paying for a frontier API buys recall, not precision.
-On SmartBugs-curated (the academic corpus, LLM-free) the static profile alone reaches 143/143
-contracts at 22.4 % precision, see the table above.
+Read it as a trade: the free, fully local setup finds six in ten high-severity issues at $0;
+paying for a frontier API buys higher single-run recall, not better precision or F1 — in this
+comparison the best precision and F1 come from an open-weight model (DeepSeek-R1, see below),
+not from frontier scale. On SmartBugs-curated (the academic corpus, LLM-free) the static
+profile alone reaches 143/143 contracts at 22.4 % precision, see the table above.
 
 **Cost efficiency (EVMBench, 40 audits)**: detection does not require frontier prices. An open-weight model (DeepSeek-R1, MIT weights) reaches the best precision (88.5%) and F1 (78.7%) in the comparison at an estimated ~$0.08/audit — 15–69× cheaper than frontier APIs — while a fully-local 32B model reaches 59.2% recall at $0. Paying frontier prices buys higher single-run recall, not better precision/F1. See Paper 1 for the run-count-matched detail.
 
@@ -218,7 +219,7 @@ roadmap). The canonical layer definition lives in `miesc/cli/constants.py`.
 | **External security tools** | 13 | Slither, Mythril, Echidna, Foundry, Halmos, Aderyn, Semgrep |
 | **LLM analysis modules** | 6 | SmartLLM, GPTScan, PropertyGPT (via local Ollama) |
 | **Internal analyzers** | 16 | MEV detector, gas analyzer, threat model, clone detector |
-| **Total analysis modules** | **35** | 13 + 6 + 16, across 9 techniques. The "50 tools" headline counts the full adapter/layer stack in `miesc/cli/constants.py`; `miesc doctor` shows how many are usable on your machine. |
+| **Total analysis modules** | **35** | 13 + 6 + 16, across 9 techniques. The full adapter/layer stack in `miesc/cli/constants.py` has ~56 registered slots (tool variants and optional back-ends included); `miesc doctor` shows how many are usable on your machine. |
 
 ### vs. SmartBugs 2.0 (closest competitor)
 
@@ -372,7 +373,7 @@ release-status report (v5.4.2) are recorded in
 docker pull ghcr.io/fboiero/miesc:latest
 docker run --rm -v $(pwd):/contracts ghcr.io/fboiero/miesc:latest scan /contracts/MyContract.sol
 
-# Full image (~8GB, all 50 tools, amd64)
+# Full image (~8GB, full tool stack, amd64)
 docker pull ghcr.io/fboiero/miesc:full
 docker run --rm -v $(pwd):/contracts ghcr.io/fboiero/miesc:full audit full /contracts/MyContract.sol
 
@@ -630,7 +631,7 @@ clients now live in the platform layer.
 | Algorand | Roadmap | TEAL, PyTeal |
 | Cardano | Roadmap | Plutus, Aiken |
 
-> **EVM analysis (50 tools, 9 layers) is production-ready.** Polkadot/PolkaVM and
+> **EVM analysis (35 modules, 9 layers) is production-ready.** Polkadot/PolkaVM and
 > Cairo/Starknet are **experimental** — a real external analyzer is integrated, but
 > recall/precision are not yet benchmark-validated. The remaining non-EVM chains are on
 > the **roadmap**: pattern-based adapter code exists but is not production-validated. See
@@ -664,9 +665,9 @@ Contract.sol
  Report Generator --> JSON / SARIF / PDF / HTML / Markdown
 ```
 
-All code lives in the single `miesc/` package (pip-installable): CLI, adapters for the 50
-tools, ML pipeline, RAG, remediation and report generation. Run `miesc doctor` to see which
-tools are usable on your machine.
+All code lives in the single `miesc/` package (pip-installable): CLI, adapters for the full
+tool stack, ML pipeline, RAG, remediation and report generation. Run `miesc doctor` to see
+which tools are usable on your machine.
 
 See [ARCHITECTURE.md](./docs/ARCHITECTURE.md) for the full technical design with Mermaid diagrams.
 
