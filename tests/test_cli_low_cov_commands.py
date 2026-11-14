@@ -473,7 +473,10 @@ class TestServerMcp:
         ):
             result = runner.invoke(server, ["mcp", "-p", "9000", "-h", "0.0.0.0"])
         assert result.exit_code == 0
-        assert "mcp websocket server" in result.output.lower()
+        # Honest messaging: it is a WebSocket streaming server, and the output
+        # points MCP users to the real stdio server (miesc-mcp), not this one.
+        assert "websocket server" in result.output.lower()
+        assert "miesc-mcp" in result.output.lower()
 
     def test_mcp_import_error(self, runner):
         with patch(

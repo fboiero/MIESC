@@ -2,14 +2,22 @@
 """
 MIESC - WebSocket Server for Real-time Audit Streaming
 
-Provides real-time progress updates during multi-layer security audits.
-Implements the Model Context Protocol (MCP) over WebSocket for agent integration.
+Provides real-time progress updates during multi-layer security audits over a
+custom WebSocket event protocol (``{"command": ...}`` / event JSON frames). This
+is MIESC's own internal streaming channel for dashboards and agent integrations;
+it is **not** the Model Context Protocol and is **not** usable by MCP clients such
+as Claude Desktop. The MCP stdio server is ``miesc.mcp_server`` (console script
+``miesc-mcp``).
+
+Note: the audit driven here streams representative progress events and currently
+runs a simplified detector pass per layer (see ``_run_audit``). It is a
+demonstration/streaming surface, not the full 9-layer pipeline that
+``miesc audit`` executes.
 
 Features:
 - Real-time layer-by-layer progress events
 - Finding notifications as they're discovered
 - Support for multiple concurrent audit sessions
-- Compatible with Claude Desktop and other MCP clients
 
 Author: Fernando Boiero
 Institution: UNDEF - IUA

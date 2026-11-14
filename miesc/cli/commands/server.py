@@ -52,18 +52,20 @@ def server_rest(port: int, host: str, debug: bool) -> None:
 @click.option("--port", "-p", type=int, default=8765, help="WebSocket port number")
 @click.option("--host", "-h", type=str, default="localhost", help="Host to bind to")
 def server_mcp(port: int, host: str) -> None:
-    """Start the MCP WebSocket server for AI agent integration.
+    """Start the real-time audit-streaming WebSocket server.
 
-    The MCP (Model Context Protocol) server enables real-time communication
-    with AI agents like Claude Desktop for collaborative security analysis.
+    This serves MIESC's own WebSocket event stream (progress and findings) for
+    dashboards and agent integrations over a custom protocol. It is NOT the Model
+    Context Protocol and is not usable by MCP clients such as Claude Desktop; for
+    MCP, use the stdio server ``miesc-mcp`` (``python -m miesc.mcp_server``).
 
     Example:
         miesc server mcp
         miesc server mcp --port 9000 --host 0.0.0.0
     """
     print_banner()
-    info(f"Starting MCP WebSocket server on ws://{host}:{port}")
-    info("Compatible with Claude Desktop and other MCP clients")
+    info(f"Starting MIESC audit-streaming WebSocket server on ws://{host}:{port}")
+    info("Custom WebSocket event protocol (not MCP; for MCP use `miesc-mcp`)")
 
     try:
         import asyncio
