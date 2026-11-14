@@ -94,7 +94,7 @@ watch = [
 # miesc.mcp_server targets the 1.x SDK (mcp.server.fastmcp.FastMCP). The 2.x SDK
 # renamed FastMCP to MCPServer and changed APIs, so keep the extra on 1.x.
 mcp = [
-    "mcp[cli]>=1.2.0,<2",
+    "mcp[cli]>=1.2.0,<3",
 ]
 # Built-in ML detectors (smartbugs_ml, peculiar pattern fallback). Part of the
 # Paper 1 reproducible profile (layers 1,6,7); see REPRODUCE.md.
