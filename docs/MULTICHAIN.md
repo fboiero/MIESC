@@ -344,10 +344,10 @@ Non-EVM analyzers are useful for:
 | Later | Move, Stellar | Formal-verification research |
 | Future | All chains | Production-grade multi-chain |
 
-> The unifying research direction behind this roadmap — a shared intelligence core
-> (methodology + class-indexed RAG + calibration) across chains, with falsifiable
-> hypotheses, measurable exit criteria, and explicit negative-result paths — is set out
-> in [Unified Cross-Chain Security Intelligence (2027 research program)](research/UNIFIED_CROSSCHAIN_INTELLIGENCE_RESEARCH_20261113.md).
+> The research direction behind this roadmap — whether detection intelligence transfers
+> *across execution models*, with an invariant theory that predicts the boundary and
+> independent per-chain corpora to measure it — is set out in
+> [Does Security Intelligence Transfer Across Execution Models? (2027 research program)](research/UNIFIED_CROSSCHAIN_INTELLIGENCE_RESEARCH_20261113.md).
 
 ---
 
