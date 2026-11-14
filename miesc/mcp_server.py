@@ -349,7 +349,7 @@ async def miesc_analyze_defi(
     """
     contract_path = _validate_contract_path(contract_path)
 
-    defi_tools = ["defi_analyzer", "mev_detector", "advanced_detector"]
+    defi_tools = ["defi", "mev_detector", "advanced_detector"]
     results = []
     for tool in defi_tools:
         r = _run_tool_internal(tool, contract_path, timeout, protocol_type=protocol_type)
@@ -597,11 +597,20 @@ async def miesc_generate_report(
     if format == "json":
         return json.dumps(audit_results, indent=2, default=str)
 
+    # Normalize to the per-tool results shape before rendering. The ML
+    # `audit full` output has no top-level "results" key (it uses
+    # raw_findings/ml_enhanced), so a bare audit_results.get("results") would
+    # render an empty SARIF/markdown report. results_from_result_file handles
+    # every result shape MIESC writes.
+    from miesc.cli.utils import results_from_result_file
+
+    contract = str(audit_results.get("contract") or audit_results.get("contract_path") or "")
+    results = results_from_result_file(audit_results, contract)
+
     if format == "sarif":
         try:
             from miesc.cli.commands.audit import _to_sarif
 
-            results = audit_results.get("results", [])
             sarif = _to_sarif(results)
             return json.dumps(sarif, indent=2, default=str)
         except ImportError:
@@ -616,7 +625,6 @@ async def miesc_generate_report(
         for k, v in summary.items():
             lines.append(f"- **{k}:** {v}")
 
-        results = audit_results.get("results", [])
         for result in results:
             tool = result.get("tool", "unknown")
             findings = result.get("findings", [])
