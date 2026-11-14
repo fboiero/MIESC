@@ -9,6 +9,23 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **Cross-chain whitepaper reformatted as a scientific preprint.**
+  `docs/research/UNIFIED_CROSSCHAIN_INTELLIGENCE_RESEARCH_20261113.md` was restructured
+  into an arXiv-style preprint: an Abstract and Keywords, numbered `[n]` citations backed
+  by a numbered References section (each external reference checked against a primary or
+  authoritative source — VRust at CCS 2022, the Move Prover at CAV 2020, Caracal, Tealer,
+  the SWC Registry, OpenSCV), numbered and captioned figures and tables, and a renamed
+  "Contributions and threats to validity" section. Four new vector figures accompany the
+  invariant matrix: the EVM/non-EVM tooling asymmetry (`exec_transfer_asymmetry_2027.svg`),
+  the
+  class/mechanism/calibration decomposition (`exec_transfer_decomposition_2027.svg`), the
+  research-program dependency DAG with the T4 gate (`exec_transfer_program_dag_2027.svg`),
+  and the falsification ablation design (`exec_transfer_ablation_2027.svg`); the invariant
+  matrix figure was trimmed so its caption carries the title. The reentrancy row was
+  reconciled across the table and the matrix (EVM, Solana and Cairo realize it; Move,
+  eUTXO and Algorand do not). The substantive claims are unchanged; no benchmark figures
+  changed.
+
 - **Cross-chain research whitepaper reframed around a falsifiable research question.**
   `docs/research/UNIFIED_CROSSCHAIN_INTELLIGENCE_RESEARCH_20261113.md` was rewritten from
   the "unified intelligence core" framing to a sharper, more defensible thesis — *does

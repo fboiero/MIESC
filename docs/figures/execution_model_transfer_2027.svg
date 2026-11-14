@@ -1,48 +1,58 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 596" font-family="'Segoe UI',system-ui,-apple-system,Roboto,sans-serif" role="img" aria-label="An invariant theory of cross-execution-model transfer: for each vulnerability family and the invariant it violates, a matrix marks which execution models can realize that invariant and the predicted transfer, as a prediction to be verified by Tracks T1 to T4.">
-  <rect x="0" y="0" width="1040" height="596" rx="14" fill="#ffffff" stroke="#d0d7de" stroke-width="1.5"/>
-
-  <text x="520" y="34" text-anchor="middle" font-size="21" font-weight="700" fill="#1f2328">An Invariant Theory of Cross-Execution-Model Transfer</text>
-  <text x="520" y="55" text-anchor="middle" font-size="12.5" fill="#57606a">A vulnerability transfers only as far as both models can host the invariant it violates. Prediction to be measured by T1–T4, not an established result.</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 520" font-family="'Segoe UI',system-ui,-apple-system,Roboto,sans-serif" role="img" aria-label="An invariant theory of cross-execution-model transfer: for each vulnerability family and the invariant it violates, a matrix marks which execution models can realize that invariant and the predicted transfer, as a prediction to be verified by Tracks T1 to T4.">
+  <rect x="0" y="0" width="1040" height="520" rx="14" fill="#ffffff" stroke="#d0d7de" stroke-width="1.5"/>
 
   <!-- column header band -->
-  <rect x="40" y="78" width="970" height="30" fill="#f6f8fa"/>
-  <text x="46" y="98" font-size="11.5" font-weight="700" fill="#57606a">Vulnerability family · invariant it violates</text>
-  <text x="362" y="98" text-anchor="middle" font-size="11" font-weight="700" fill="#1f2328">EVM</text>
-  <text x="447" y="98" text-anchor="middle" font-size="11" font-weight="700" fill="#1f2328">Solana</text>
-  <text x="532" y="98" text-anchor="middle" font-size="11" font-weight="700" fill="#1f2328">Move</text>
-  <text x="617" y="98" text-anchor="middle" font-size="11" font-weight="700" fill="#1f2328">Cardano</text>
-  <text x="702" y="98" text-anchor="middle" font-size="11" font-weight="700" fill="#1f2328">Cairo</text>
-  <text x="787" y="98" text-anchor="middle" font-size="11" font-weight="700" fill="#1f2328">Algorand</text>
-  <text x="925" y="98" text-anchor="middle" font-size="11" font-weight="700" fill="#57606a">Predicted transfer</text>
+  <rect x="40" y="30" width="970" height="30" fill="#f6f8fa"/>
+  <text x="46" y="50" font-size="11.5" font-weight="700" fill="#57606a">Vulnerability family · invariant it violates</text>
+  <text x="362" y="50" text-anchor="middle" font-size="11" font-weight="700" fill="#1f2328">EVM</text>
+  <text x="447" y="50" text-anchor="middle" font-size="11" font-weight="700" fill="#1f2328">Solana</text>
+  <text x="532" y="50" text-anchor="middle" font-size="11" font-weight="700" fill="#1f2328">Move</text>
+  <text x="617" y="50" text-anchor="middle" font-size="11" font-weight="700" fill="#1f2328">Cardano</text>
+  <text x="702" y="50" text-anchor="middle" font-size="11" font-weight="700" fill="#1f2328">Cairo</text>
+  <text x="787" y="50" text-anchor="middle" font-size="11" font-weight="700" fill="#1f2328">Algorand</text>
+  <text x="925" y="50" text-anchor="middle" font-size="11" font-weight="700" fill="#57606a">Predicted transfer</text>
 
   <!-- ===== Row 1: Arithmetic ===== -->
-  <text x="46" y="140" font-size="12.5" font-weight="600" fill="#1f2328">Arithmetic / overflow</text>
-  <text x="46" y="156" font-size="10" fill="#57606a">integer / field-width soundness</text>
-  <circle cx="362" cy="148" r="7" fill="#2da44e"/>
-  <circle cx="447" cy="148" r="7" fill="#2da44e"/>
-  <circle cx="532" cy="148" r="7" fill="#2da44e"/>
-  <circle cx="617" cy="148" r="7" fill="#2da44e"/>
-  <circle cx="702" cy="148" r="7" fill="#2da44e"/>
-  <circle cx="787" cy="148" r="7" fill="#2da44e"/>
-  <rect x="845" y="136" width="160" height="24" rx="6" fill="#eafaf0" stroke="#2da44e" stroke-width="1.2"/>
-  <text x="925" y="152" text-anchor="middle" font-size="10.5" font-weight="700" fill="#1a7f37">Strong (class)</text>
+  <text x="46" y="92" font-size="12.5" font-weight="600" fill="#1f2328">Arithmetic / overflow</text>
+  <text x="46" y="108" font-size="10" fill="#57606a">integer / field-width soundness</text>
+  <circle cx="362" cy="100" r="7" fill="#2da44e"/>
+  <circle cx="447" cy="100" r="7" fill="#2da44e"/>
+  <circle cx="532" cy="100" r="7" fill="#2da44e"/>
+  <circle cx="617" cy="100" r="7" fill="#2da44e"/>
+  <circle cx="702" cy="100" r="7" fill="#2da44e"/>
+  <circle cx="787" cy="100" r="7" fill="#2da44e"/>
+  <rect x="845" y="88" width="160" height="24" rx="6" fill="#eafaf0" stroke="#2da44e" stroke-width="1.2"/>
+  <text x="925" y="104" text-anchor="middle" font-size="10.5" font-weight="700" fill="#1a7f37">Strong (class)</text>
 
   <!-- ===== Row 2: Reentrancy ===== -->
-  <rect x="40" y="168" width="970" height="48" fill="#fafbfc"/>
-  <text x="46" y="192" font-size="12.5" font-weight="600" fill="#1f2328">Reentrancy</text>
-  <text x="46" y="208" font-size="10" fill="#57606a">effects-before-interaction, shared mutable state</text>
-  <circle cx="362" cy="196" r="7" fill="#2da44e"/>
-  <circle cx="447" cy="196" r="7" fill="#2da44e"/>
-  <circle cx="532" cy="196" r="7" fill="none" stroke="#8c959f" stroke-width="1.6"/>
-  <circle cx="617" cy="196" r="7" fill="none" stroke="#8c959f" stroke-width="1.6"/>
-  <circle cx="702" cy="196" r="7" fill="#2da44e"/>
-  <circle cx="787" cy="196" r="7" fill="none" stroke="#8c959f" stroke-width="1.6"/>
-  <rect x="845" y="184" width="160" height="24" rx="6" fill="#fff8e6" stroke="#bf8700" stroke-width="1.2"/>
-  <text x="925" y="200" text-anchor="middle" font-size="10.5" font-weight="700" fill="#9a6700">Partial</text>
+  <rect x="40" y="120" width="970" height="48" fill="#fafbfc"/>
+  <text x="46" y="144" font-size="12.5" font-weight="600" fill="#1f2328">Reentrancy</text>
+  <text x="46" y="160" font-size="10" fill="#57606a">effects-before-interaction, shared mutable state</text>
+  <circle cx="362" cy="148" r="7" fill="#2da44e"/>
+  <circle cx="447" cy="148" r="7" fill="#2da44e"/>
+  <circle cx="532" cy="148" r="7" fill="none" stroke="#8c959f" stroke-width="1.6"/>
+  <circle cx="617" cy="148" r="7" fill="none" stroke="#8c959f" stroke-width="1.6"/>
+  <circle cx="702" cy="148" r="7" fill="#2da44e"/>
+  <circle cx="787" cy="148" r="7" fill="none" stroke="#8c959f" stroke-width="1.6"/>
+  <rect x="845" y="136" width="160" height="24" rx="6" fill="#fff8e6" stroke="#bf8700" stroke-width="1.2"/>
+  <text x="925" y="152" text-anchor="middle" font-size="10.5" font-weight="700" fill="#9a6700">Partial</text>
 
   <!-- ===== Row 3: Access control ===== -->
-  <text x="46" y="240" font-size="12.5" font-weight="600" fill="#1f2328">Access control</text>
-  <text x="46" y="256" font-size="10" fill="#57606a">only authorized principals mutate guarded state</text>
+  <text x="46" y="192" font-size="12.5" font-weight="600" fill="#1f2328">Access control</text>
+  <text x="46" y="208" font-size="10" fill="#57606a">only authorized principals mutate guarded state</text>
+  <circle cx="362" cy="200" r="7" fill="#2da44e"/>
+  <circle cx="447" cy="200" r="7" fill="#2da44e"/>
+  <circle cx="532" cy="200" r="7" fill="#2da44e"/>
+  <circle cx="617" cy="200" r="7" fill="#2da44e"/>
+  <circle cx="702" cy="200" r="7" fill="#2da44e"/>
+  <circle cx="787" cy="200" r="7" fill="#2da44e"/>
+  <rect x="845" y="188" width="160" height="24" rx="6" fill="#fff8e6" stroke="#bf8700" stroke-width="1.2"/>
+  <text x="925" y="204" text-anchor="middle" font-size="10" font-weight="700" fill="#9a6700">Class only (not mechanism)</text>
+
+  <!-- ===== Row 4: Oracle ===== -->
+  <rect x="40" y="220" width="970" height="48" fill="#fafbfc"/>
+  <text x="46" y="244" font-size="12.5" font-weight="600" fill="#1f2328">Oracle / price manipulation</text>
+  <text x="46" y="260" font-size="10" fill="#57606a">external value must be trust-minimized</text>
   <circle cx="362" cy="248" r="7" fill="#2da44e"/>
   <circle cx="447" cy="248" r="7" fill="#2da44e"/>
   <circle cx="532" cy="248" r="7" fill="#2da44e"/>
@@ -50,64 +60,49 @@
   <circle cx="702" cy="248" r="7" fill="#2da44e"/>
   <circle cx="787" cy="248" r="7" fill="#2da44e"/>
   <rect x="845" y="236" width="160" height="24" rx="6" fill="#fff8e6" stroke="#bf8700" stroke-width="1.2"/>
-  <text x="925" y="252" text-anchor="middle" font-size="10.5" font-weight="700" fill="#9a6700">Class only (not mechanism)</text>
-
-  <!-- ===== Row 4: Oracle ===== -->
-  <rect x="40" y="268" width="970" height="48" fill="#fafbfc"/>
-  <text x="46" y="292" font-size="12.5" font-weight="600" fill="#1f2328">Oracle / price manipulation</text>
-  <text x="46" y="308" font-size="10" fill="#57606a">external value must be trust-minimized</text>
-  <circle cx="362" cy="296" r="7" fill="#2da44e"/>
-  <circle cx="447" cy="296" r="7" fill="#2da44e"/>
-  <circle cx="532" cy="296" r="7" fill="#2da44e"/>
-  <circle cx="617" cy="296" r="7" fill="#2da44e"/>
-  <circle cx="702" cy="296" r="7" fill="#2da44e"/>
-  <circle cx="787" cy="296" r="7" fill="#2da44e"/>
-  <rect x="845" y="284" width="160" height="24" rx="6" fill="#fff8e6" stroke="#bf8700" stroke-width="1.2"/>
-  <text x="925" y="300" text-anchor="middle" font-size="10.5" font-weight="700" fill="#9a6700">Design-level</text>
+  <text x="925" y="252" text-anchor="middle" font-size="10.5" font-weight="700" fill="#9a6700">Design-level</text>
 
   <!-- ===== Row 5: Resource / linearity ===== -->
-  <text x="46" y="340" font-size="12.5" font-weight="600" fill="#1f2328">Resource / linearity</text>
-  <text x="46" y="356" font-size="10" fill="#57606a">linear resources never duplicated nor dropped</text>
+  <text x="46" y="292" font-size="12.5" font-weight="600" fill="#1f2328">Resource / linearity</text>
+  <text x="46" y="308" font-size="10" fill="#57606a">linear resources never duplicated nor dropped</text>
+  <circle cx="362" cy="300" r="7" fill="none" stroke="#8c959f" stroke-width="1.6"/>
+  <circle cx="447" cy="300" r="7" fill="none" stroke="#8c959f" stroke-width="1.6"/>
+  <circle cx="532" cy="300" r="7" fill="#2da44e"/>
+  <circle cx="617" cy="300" r="7" fill="none" stroke="#8c959f" stroke-width="1.6"/>
+  <circle cx="702" cy="300" r="7" fill="none" stroke="#8c959f" stroke-width="1.6"/>
+  <circle cx="787" cy="300" r="7" fill="none" stroke="#8c959f" stroke-width="1.6"/>
+  <rect x="845" y="288" width="160" height="24" rx="6" fill="#fbf7ff" stroke="#8250df" stroke-width="1.2"/>
+  <text x="925" y="304" text-anchor="middle" font-size="10.5" font-weight="700" fill="#6639ba">Move-only</text>
+
+  <!-- ===== Row 6: eUTXO integrity ===== -->
+  <rect x="40" y="320" width="970" height="48" fill="#fafbfc"/>
+  <text x="46" y="344" font-size="12.5" font-weight="600" fill="#1f2328">eUTXO integrity</text>
+  <text x="46" y="360" font-size="10" fill="#57606a">each output / validator satisfied exactly once</text>
   <circle cx="362" cy="348" r="7" fill="none" stroke="#8c959f" stroke-width="1.6"/>
   <circle cx="447" cy="348" r="7" fill="none" stroke="#8c959f" stroke-width="1.6"/>
-  <circle cx="532" cy="348" r="7" fill="#2da44e"/>
-  <circle cx="617" cy="348" r="7" fill="none" stroke="#8c959f" stroke-width="1.6"/>
+  <circle cx="532" cy="348" r="7" fill="none" stroke="#8c959f" stroke-width="1.6"/>
+  <circle cx="617" cy="348" r="7" fill="#2da44e"/>
   <circle cx="702" cy="348" r="7" fill="none" stroke="#8c959f" stroke-width="1.6"/>
   <circle cx="787" cy="348" r="7" fill="none" stroke="#8c959f" stroke-width="1.6"/>
   <rect x="845" y="336" width="160" height="24" rx="6" fill="#fbf7ff" stroke="#8250df" stroke-width="1.2"/>
-  <text x="925" y="352" text-anchor="middle" font-size="10.5" font-weight="700" fill="#6639ba">Move-only</text>
-
-  <!-- ===== Row 6: eUTXO integrity ===== -->
-  <rect x="40" y="368" width="970" height="48" fill="#fafbfc"/>
-  <text x="46" y="392" font-size="12.5" font-weight="600" fill="#1f2328">eUTXO integrity</text>
-  <text x="46" y="408" font-size="10" fill="#57606a">each output / validator satisfied exactly once</text>
-  <circle cx="362" cy="396" r="7" fill="none" stroke="#8c959f" stroke-width="1.6"/>
-  <circle cx="447" cy="396" r="7" fill="none" stroke="#8c959f" stroke-width="1.6"/>
-  <circle cx="532" cy="396" r="7" fill="none" stroke="#8c959f" stroke-width="1.6"/>
-  <circle cx="617" cy="396" r="7" fill="#2da44e"/>
-  <circle cx="702" cy="396" r="7" fill="none" stroke="#8c959f" stroke-width="1.6"/>
-  <circle cx="787" cy="396" r="7" fill="none" stroke="#8c959f" stroke-width="1.6"/>
-  <rect x="845" y="384" width="160" height="24" rx="6" fill="#fbf7ff" stroke="#8250df" stroke-width="1.2"/>
-  <text x="925" y="400" text-anchor="middle" font-size="10.5" font-weight="700" fill="#6639ba">Cardano-only</text>
+  <text x="925" y="352" text-anchor="middle" font-size="10.5" font-weight="700" fill="#6639ba">Cardano-only</text>
 
   <!-- column separators (light) -->
-  <line x1="320" y1="78" x2="320" y2="416" stroke="#e5e8eb" stroke-width="1"/>
-  <line x1="830" y1="78" x2="830" y2="416" stroke="#e5e8eb" stroke-width="1"/>
+  <line x1="320" y1="30" x2="320" y2="368" stroke="#e5e8eb" stroke-width="1"/>
+  <line x1="830" y1="30" x2="830" y2="368" stroke="#e5e8eb" stroke-width="1"/>
 
   <!-- ===== Legend ===== -->
-  <circle cx="52" cy="446" r="7" fill="#2da44e"/>
-  <text x="66" y="450" font-size="11" fill="#1f2328">invariant realizable — the class can exist</text>
-  <circle cx="360" cy="446" r="7" fill="none" stroke="#8c959f" stroke-width="1.6"/>
-  <text x="374" y="450" font-size="11" fill="#1f2328">absent / structurally different — no analog</text>
+  <circle cx="52" cy="398" r="7" fill="#2da44e"/>
+  <text x="66" y="402" font-size="11" fill="#1f2328">invariant realizable — the class can exist</text>
+  <circle cx="360" cy="398" r="7" fill="none" stroke="#8c959f" stroke-width="1.6"/>
+  <text x="374" y="402" font-size="11" fill="#1f2328">absent / structurally different — no analog</text>
 
   <!-- ===== Reading of the matrix ===== -->
-  <rect x="40" y="466" width="970" height="64" rx="10" fill="#f3f8ff" stroke="#0969da" stroke-width="1.3"/>
-  <text x="54" y="486" font-size="11.5" font-weight="700" fill="#0a3069">The transferable core is small.</text>
-  <text x="54" y="503" font-size="11" fill="#1f2328">Arithmetic transfers as a class (mechanism is substrate-specific); resource and eUTXO families never transfer. The</text>
-  <text x="54" y="519" font-size="11" fill="#1f2328">access-control / oracle middle transfers as a class but needs per-model mechanism and data — where a naive unified tool loses precision.</text>
+  <rect x="40" y="418" width="970" height="64" rx="10" fill="#f3f8ff" stroke="#0969da" stroke-width="1.3"/>
+  <text x="54" y="438" font-size="11.5" font-weight="700" fill="#0a3069">The transferable core is small.</text>
+  <text x="54" y="455" font-size="11" fill="#1f2328">Arithmetic transfers as a class (mechanism is substrate-specific); resource and eUTXO families never transfer. The</text>
+  <text x="54" y="471" font-size="11" fill="#1f2328">access-control / oracle middle transfers as a class but needs per-model mechanism and data — where a naive unified tool loses precision.</text>
 
   <!-- ===== Hypothesis ===== -->
-  <text x="40" y="548" font-size="11" fill="#1f2328"><tspan font-weight="700">H1 (the bet):</tspan> detection transfer tracks the invariant. <tspan font-weight="700">Null H0:</tspan> it does not — invariant-shared and invariant-absent classes transfer alike. Tested by ablation on an independent corpus (T4).</text>
-
-  <text x="1000" y="576" text-anchor="end" font-size="10" fill="#8c959f">MIESC — cross-execution-model transfer (2027 research program). Prediction from execution-model semantics; verified against source 2026-11-13.</text>
+  <text x="40" y="502" font-size="11" fill="#1f2328"><tspan font-weight="700">H1 (the bet):</tspan> detection transfer tracks the invariant. <tspan font-weight="700">Null H0:</tspan> it does not — invariant-shared and invariant-absent classes transfer alike. Tested by ablation on an independent corpus (T4).</text>
 </svg>
