@@ -347,7 +347,7 @@ Non-EVM analyzers are useful for:
 > The research direction behind this roadmap — whether detection intelligence transfers
 > *across execution models*, with an invariant theory that predicts the boundary and
 > independent per-chain corpora to measure it — is set out in
-> [Does Security Intelligence Transfer Across Execution Models? (2027 research program)](research/UNIFIED_CROSSCHAIN_INTELLIGENCE_RESEARCH_20261113.md).
+> [Does Security Intelligence Transfer Across Execution Models? — A 2027 Research Program](research/UNIFIED_CROSSCHAIN_INTELLIGENCE_RESEARCH_20261113.md).
 
 ---
 

@@ -49,7 +49,7 @@ MIESC is feature-complete and in active maintenance. Highlights of the 5.x line:
   whether vulnerability-detection intelligence transfers *across execution models* — with
   an invariant theory that predicts the transfer boundary, independent per-chain corpora
   to measure it, and an honest negative-result path. See
-  [Does Security Intelligence Transfer Across Execution Models?](research/UNIFIED_CROSSCHAIN_INTELLIGENCE_RESEARCH_20261113.md).
+  [Does Security Intelligence Transfer Across Execution Models? — A 2027 Research Program](research/UNIFIED_CROSSCHAIN_INTELLIGENCE_RESEARCH_20261113.md).
 
 ## Longer-term
 
