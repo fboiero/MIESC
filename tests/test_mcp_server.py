@@ -379,11 +379,12 @@ class TestMCPCorrectnessSlice:
         }
         with patch("miesc.cli.utils.results_from_result_file") as mock_norm:
             mock_norm.return_value = [
-                {"tool": "slither", "findings": [{"severity": "High", "message": "reentrancy risk"}]}
+                {
+                    "tool": "slither",
+                    "findings": [{"severity": "High", "message": "reentrancy risk"}],
+                }
             ]
-            out = asyncio.run(
-                miesc_generate_report(json.dumps(ml_shape), format="markdown")
-            )
+            out = asyncio.run(miesc_generate_report(json.dumps(ml_shape), format="markdown"))
         mock_norm.assert_called_once()
         assert "reentrancy risk" in out
 
