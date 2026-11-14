@@ -1,0 +1,363 @@
+{
+  "ensemble_type_aware": 25,
+  "total_vulns": 29,
+  "per_model": {
+    "qwen": 13,
+    "Sonnet": 21,
+    "GPT-4o": 21,
+    "Opus": 21,
+    "GPT-5": 15,
+    "DeepSeek-flash": 16,
+    "DeepSeek-pro": 18,
+    "Slither": 17
+  },
+  "per_vuln": [
+    {
+      "contract": "VulnerableBank",
+      "line": 34,
+      "type": "reentran",
+      "caught_by": [
+        "qwen",
+        "Sonnet",
+        "GPT-4o",
+        "Opus",
+        "GPT-5",
+        "DeepSeek-flash",
+        "DeepSeek-pro",
+        "Slither"
+      ]
+    },
+    {
+      "contract": "VulnerableBank",
+      "line": 51,
+      "type": "reentran",
+      "caught_by": [
+        "qwen",
+        "Sonnet",
+        "GPT-4o",
+        "Opus",
+        "GPT-5",
+        "DeepSeek-flash",
+        "DeepSeek-pro",
+        "Slither"
+      ]
+    },
+    {
+      "contract": "UnsafeToken",
+      "line": 32,
+      "type": "zero",
+      "caught_by": [
+        "Sonnet",
+        "Opus"
+      ]
+    },
+    {
+      "contract": "UnsafeToken",
+      "line": 44,
+      "type": "approve",
+      "caught_by": [
+        "qwen",
+        "Sonnet",
+        "GPT-4o",
+        "Opus",
+        "GPT-5",
+        "DeepSeek-flash",
+        "DeepSeek-pro"
+      ]
+    },
+    {
+      "contract": "UnsafeToken",
+      "line": 53,
+      "type": "return",
+      "caught_by": []
+    },
+    {
+      "contract": "UnsafeToken",
+      "line": 66,
+      "type": "access",
+      "caught_by": [
+        "Sonnet",
+        "DeepSeek-pro"
+      ]
+    },
+    {
+      "contract": "UnsafeToken",
+      "line": 77,
+      "type": "access",
+      "caught_by": [
+        "Sonnet",
+        "GPT-4o",
+        "Opus",
+        "DeepSeek-pro"
+      ]
+    },
+    {
+      "contract": "UnsafeToken",
+      "line": 88,
+      "type": "reentran",
+      "caught_by": [
+        "Sonnet",
+        "GPT-4o",
+        "Opus",
+        "DeepSeek-pro",
+        "Slither"
+      ]
+    },
+    {
+      "contract": "UnsafeToken",
+      "line": 101,
+      "type": "dos",
+      "caught_by": [
+        "qwen",
+        "Sonnet",
+        "GPT-4o",
+        "Opus",
+        "GPT-5",
+        "DeepSeek-flash",
+        "DeepSeek-pro"
+      ]
+    },
+    {
+      "contract": "UnsafeToken",
+      "line": 109,
+      "type": "timestamp",
+      "caught_by": [
+        "qwen",
+        "Sonnet",
+        "GPT-4o",
+        "Opus",
+        "GPT-5",
+        "DeepSeek-flash",
+        "DeepSeek-pro",
+        "Slither"
+      ]
+    },
+    {
+      "contract": "UnsafeToken",
+      "line": 115,
+      "type": "random",
+      "caught_by": [
+        "qwen",
+        "Sonnet",
+        "GPT-4o",
+        "Opus",
+        "GPT-5",
+        "DeepSeek-flash",
+        "DeepSeek-pro",
+        "Slither"
+      ]
+    },
+    {
+      "contract": "UnsafeToken",
+      "line": 138,
+      "type": "ether",
+      "caught_by": [
+        "Slither"
+      ]
+    },
+    {
+      "contract": "AccessControlFlawed",
+      "line": 27,
+      "type": "access",
+      "caught_by": [
+        "qwen",
+        "Sonnet",
+        "GPT-4o",
+        "Opus",
+        "GPT-5",
+        "DeepSeek-flash",
+        "DeepSeek-pro",
+        "Slither"
+      ]
+    },
+    {
+      "contract": "AccessControlFlawed",
+      "line": 34,
+      "type": "origin",
+      "caught_by": [
+        "qwen",
+        "Sonnet",
+        "GPT-4o",
+        "Opus",
+        "GPT-5",
+        "DeepSeek-flash",
+        "DeepSeek-pro",
+        "Slither"
+      ]
+    },
+    {
+      "contract": "AccessControlFlawed",
+      "line": 45,
+      "type": "access",
+      "caught_by": [
+        "Sonnet",
+        "GPT-4o",
+        "Opus",
+        "DeepSeek-flash",
+        "Slither"
+      ]
+    },
+    {
+      "contract": "AccessControlFlawed",
+      "line": 52,
+      "type": "destruct",
+      "caught_by": [
+        "qwen",
+        "Sonnet",
+        "GPT-4o",
+        "Opus",
+        "GPT-5",
+        "DeepSeek-flash",
+        "DeepSeek-pro",
+        "Slither"
+      ]
+    },
+    {
+      "contract": "AccessControlFlawed",
+      "line": 59,
+      "type": "access",
+      "caught_by": [
+        "Sonnet",
+        "GPT-4o",
+        "Opus",
+        "Slither"
+      ]
+    },
+    {
+      "contract": "AccessControlFlawed",
+      "line": 65,
+      "type": "access",
+      "caught_by": [
+        "qwen",
+        "Sonnet",
+        "GPT-4o",
+        "Opus",
+        "GPT-5",
+        "DeepSeek-flash",
+        "DeepSeek-pro",
+        "Slither"
+      ]
+    },
+    {
+      "contract": "AccessControlFlawed",
+      "line": 74,
+      "type": "front",
+      "caught_by": [
+        "qwen",
+        "Sonnet",
+        "GPT-4o",
+        "Opus",
+        "GPT-5",
+        "DeepSeek-flash",
+        "DeepSeek-pro",
+        "Slither"
+      ]
+    },
+    {
+      "contract": "FlashLoanVault",
+      "line": 52,
+      "type": "oracle",
+      "caught_by": []
+    },
+    {
+      "contract": "FlashLoanVault",
+      "line": 58,
+      "type": "reentran",
+      "caught_by": [
+        "qwen",
+        "Sonnet",
+        "GPT-4o",
+        "Opus",
+        "GPT-5",
+        "DeepSeek-flash",
+        "DeepSeek-pro",
+        "Slither"
+      ]
+    },
+    {
+      "contract": "FlashLoanVault",
+      "line": 72,
+      "type": "unchecked",
+      "caught_by": [
+        "qwen",
+        "Sonnet",
+        "GPT-4o",
+        "Opus",
+        "GPT-5",
+        "DeepSeek-flash",
+        "DeepSeek-pro",
+        "Slither"
+      ]
+    },
+    {
+      "contract": "FlashLoanVault",
+      "line": 85,
+      "type": "price",
+      "caught_by": [
+        "GPT-4o"
+      ]
+    },
+    {
+      "contract": "FlashLoanVault",
+      "line": 92,
+      "type": "slippage",
+      "caught_by": [
+        "GPT-4o"
+      ]
+    },
+    {
+      "contract": "FlashLoanVault",
+      "line": 112,
+      "type": "deposit",
+      "caught_by": [
+        "Sonnet",
+        "GPT-4o",
+        "Opus",
+        "GPT-5",
+        "DeepSeek-flash",
+        "DeepSeek-pro",
+        "Slither"
+      ]
+    },
+    {
+      "contract": "FlashLoanVault",
+      "line": 125,
+      "type": "round",
+      "caught_by": []
+    },
+    {
+      "contract": "FlashLoanVault",
+      "line": 138,
+      "type": "borrow",
+      "caught_by": [
+        "Sonnet",
+        "GPT-4o",
+        "Opus",
+        "GPT-5",
+        "DeepSeek-flash",
+        "DeepSeek-pro",
+        "Slither"
+      ]
+    },
+    {
+      "contract": "FlashLoanVault",
+      "line": 156,
+      "type": "arith",
+      "caught_by": []
+    },
+    {
+      "contract": "FlashLoanVault",
+      "line": 167,
+      "type": "access",
+      "caught_by": [
+        "Opus"
+      ]
+    }
+  ],
+  "missed_by_all": [
+    "UnsafeToken:L53",
+    "FlashLoanVault:L52",
+    "FlashLoanVault:L125",
+    "FlashLoanVault:L156"
+  ]
+}

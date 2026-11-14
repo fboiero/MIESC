@@ -1,0 +1,237 @@
+{
+  "variant": "lever",
+  "model": "deepseek-reasoner",
+  "type_aware_recall": 0.3793,
+  "detected": 11,
+  "total": 29,
+  "per_contract": {
+    "VulnerableBank.sol": {
+      "hit": 2,
+      "total": 2,
+      "findings": 2
+    },
+    "UnsafeToken.sol": {
+      "hit": 2,
+      "total": 10,
+      "findings": 11
+    },
+    "AccessControlFlawed.sol": {
+      "hit": 5,
+      "total": 7,
+      "findings": 10
+    },
+    "FlashLoanVault.sol": {
+      "hit": 2,
+      "total": 10,
+      "findings": 8
+    }
+  },
+  "raw": {
+    "VulnerableBank.sol": {
+      "n_findings": 2,
+      "findings": [
+        {
+          "line": 32,
+          "type": "Reentrancy",
+          "swc": "SWC-107",
+          "severity": "critical"
+        },
+        {
+          "line": 49,
+          "type": "Reentrancy",
+          "swc": "SWC-107",
+          "severity": "critical"
+        }
+      ]
+    },
+    "UnsafeToken.sol": {
+      "n_findings": 11,
+      "findings": [
+        {
+          "line": 33,
+          "type": "missing-event",
+          "swc": "",
+          "severity": "low"
+        },
+        {
+          "line": 40,
+          "type": "zero-address-check",
+          "swc": "SWC-123",
+          "severity": "medium"
+        },
+        {
+          "line": 44,
+          "type": "race-condition",
+          "swc": "SWC-114",
+          "severity": "medium"
+        },
+        {
+          "line": 57,
+          "type": "access-control",
+          "swc": "SWC-101",
+          "severity": "critical"
+        },
+        {
+          "line": 70,
+          "type": "access-control",
+          "swc": "SWC-101",
+          "severity": "critical"
+        },
+        {
+          "line": 80,
+          "type": "arbitrary-call",
+          "swc": "SWC-105",
+          "severity": "critical"
+        },
+        {
+          "line": 86,
+          "type": "unchecked-return",
+          "swc": "SWC-104",
+          "severity": "medium"
+        },
+        {
+          "line": 89,
+          "type": "dos-gas",
+          "swc": "SWC-128",
+          "severity": "medium"
+        },
+        {
+          "line": 95,
+          "type": "timestamp-dependence",
+          "swc": "SWC-116",
+          "severity": "low"
+        },
+        {
+          "line": 100,
+          "type": "weak-randomness",
+          "swc": "SWC-120",
+          "severity": "low"
+        },
+        {
+          "line": 113,
+          "type": "locked-ether",
+          "swc": "SWC-106",
+          "severity": "medium"
+        }
+      ]
+    },
+    "AccessControlFlawed.sol": {
+      "n_findings": 10,
+      "findings": [
+        {
+          "line": 28,
+          "type": "access control",
+          "swc": "SWC-123",
+          "severity": "high"
+        },
+        {
+          "line": 35,
+          "type": "authorization",
+          "swc": "SWC-115",
+          "severity": "high"
+        },
+        {
+          "line": 46,
+          "type": "access control",
+          "swc": "SWC-123",
+          "severity": "medium"
+        },
+        {
+          "line": 53,
+          "type": "access control",
+          "swc": "SWC-123",
+          "severity": "critical"
+        },
+        {
+          "line": 60,
+          "type": "access control",
+          "swc": "SWC-123",
+          "severity": "medium"
+        },
+        {
+          "line": 68,
+          "type": "initialization",
+          "swc": "SWC-118",
+          "severity": "medium"
+        },
+        {
+          "line": 75,
+          "type": "front-running",
+          "swc": "SWC-114",
+          "severity": "medium"
+        },
+        {
+          "line": 82,
+          "type": "rounding error",
+          "swc": "",
+          "severity": "low"
+        },
+        {
+          "line": 84,
+          "type": "accounting error",
+          "swc": "",
+          "severity": "critical"
+        },
+        {
+          "line": 89,
+          "type": "reentrancy",
+          "swc": "SWC-107",
+          "severity": "high"
+        }
+      ]
+    },
+    "FlashLoanVault.sol": {
+      "n_findings": 8,
+      "findings": [
+        {
+          "line": 46,
+          "type": "oracle-manipulation",
+          "swc": "SWC-120",
+          "severity": "critical"
+        },
+        {
+          "line": 63,
+          "type": "reentrancy",
+          "swc": "SWC-107",
+          "severity": "critical"
+        },
+        {
+          "line": 74,
+          "type": "oracle-manipulation",
+          "swc": "SWC-120",
+          "severity": "high"
+        },
+        {
+          "line": 81,
+          "type": "missing-payment",
+          "swc": "SWC-115",
+          "severity": "critical"
+        },
+        {
+          "line": 135,
+          "type": "flash-loan-state-manipulation",
+          "swc": "SWC-130",
+          "severity": "high"
+        },
+        {
+          "line": 158,
+          "type": "centralization-risk",
+          "swc": "SWC-131",
+          "severity": "high"
+        },
+        {
+          "line": 180,
+          "type": "oracle-manipulation",
+          "swc": "SWC-120",
+          "severity": "medium"
+        },
+        {
+          "line": 213,
+          "type": "access-control",
+          "swc": "SWC-130",
+          "severity": "critical"
+        }
+      ]
+    }
+  }
+}

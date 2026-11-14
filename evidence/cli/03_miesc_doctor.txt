@@ -1,0 +1,20 @@
+$ miesc doctor
+
+╔═══════════════════════════════════════════════════════════╗
+║  MIESC v4.0.0 - Multi-layer Intelligent Evaluation      ║
+║  for Smart Contracts                                      ║
+║  Defense-in-Depth Security Analysis Framework             ║
+╚═══════════════════════════════════════════════════════════╝
+
+ℹ Checking tool availability...
+
+⚠ slither: not working
+✗ mythril: not installed
+✓ echidna: available
+✓ solhint: available
+✓ aderyn: available
+✓ foundry: available
+✗ halmos: not installed
+✓ medusa: available
+
+Summary: 5/8 tools available

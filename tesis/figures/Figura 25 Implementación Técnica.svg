@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" font-family="Arial, Helvetica, sans-serif">
+  <!-- Background -->
+  <rect width="800" height="500" fill="#ffffff"/>
+  
+  <!-- Title -->
+  <text x="400" y="30" text-anchor="middle" font-size="20" font-weight="bold" fill="#2c3e50">
+    Arquitectura del Servidor MCP - MIESC
+  </text>
+  
+  <!-- Claude Desktop -->
+  <rect x="30" y="60" width="120" height="55" fill="#9b59b6" rx="8"/>
+  <text x="90" y="85" text-anchor="middle" font-size="14" font-weight="bold" fill="white">Claude</text>
+  <text x="90" y="102" text-anchor="middle" font-size="11" fill="#e8daef">Desktop</text>
+  
+  <!-- Arrow -->
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#555"/>
+    </marker>
+  </defs>
+  
+  <!-- stdio label -->
+  <line x1="150" y1="87" x2="195" y2="87" stroke="#555" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="172" y="80" text-anchor="middle" font-size="10" fill="#777">stdio</text>
+  
+  <!-- Main Server Box -->
+  <rect x="210" y="50" width="560" height="430" fill="#f0faf8" rx="10" stroke="#1abc9c" stroke-width="2"/>
+  
+  <!-- Server Header -->
+  <rect x="210" y="50" width="560" height="40" fill="#1abc9c" rx="10"/>
+  <rect x="210" y="80" width="560" height="10" fill="#1abc9c"/>
+  <text x="490" y="77" text-anchor="middle" font-size="16" font-weight="bold" fill="white">Server("miesc-security")</text>
+  
+  <!-- Row 1: Endpoints -->
+  <text x="230" y="115" font-size="12" font-weight="bold" fill="#1e8449">MCP Endpoints</text>
+  
+  <rect x="230" y="125" width="130" height="50" fill="#3498db" rx="6"/>
+  <text x="295" y="150" text-anchor="middle" font-size="11" font-weight="bold" fill="white">@list_tools()</text>
+  <text x="295" y="166" text-anchor="middle" font-size="9" fill="#d6eaf8">→ list[Tool]</text>
+  
+  <rect x="370" y="125" width="130" height="50" fill="#e74c3c" rx="6"/>
+  <text x="435" y="150" text-anchor="middle" font-size="11" font-weight="bold" fill="white">@call_tool()</text>
+  <text x="435" y="166" text-anchor="middle" font-size="9" fill="#fdedec">→ TextContent</text>
+  
+  <rect x="510" y="125" width="130" height="50" fill="#f39c12" rx="6"/>
+  <text x="575" y="150" text-anchor="middle" font-size="11" font-weight="bold" fill="white">@list_resources()</text>
+  <text x="575" y="166" text-anchor="middle" font-size="9" fill="#fef9e7">→ list[Resource]</text>
+  
+  <rect x="650" y="125" width="105" height="50" fill="#f39c12" rx="6"/>
+  <text x="702" y="150" text-anchor="middle" font-size="11" font-weight="bold" fill="white">@read_resource()</text>
+  <text x="702" y="166" text-anchor="middle" font-size="9" fill="#fef9e7">→ str</text>
+  
+  <!-- Row 2: Handlers -->
+  <text x="230" y="200" font-size="12" font-weight="bold" fill="#1e8449">Handlers</text>
+  
+  <rect x="230" y="210" width="200" height="45" fill="#27ae60" rx="6"/>
+  <text x="330" y="238" text-anchor="middle" font-size="13" font-weight="bold" fill="white">MIESCToolHandler</text>
+  
+  <rect x="450" y="210" width="200" height="45" fill="#27ae60" rx="6"/>
+  <text x="550" y="238" text-anchor="middle" font-size="13" font-weight="bold" fill="white">MIESCResourceHandler</text>
+  
+  <!-- Row 3: Security -->
+  <text x="230" y="280" font-size="12" font-weight="bold" fill="#1e8449">Security</text>
+  
+  <rect x="230" y="290" width="525" height="40" fill="#c0392b" rx="6"/>
+  <text x="492" y="315" text-anchor="middle" font-size="13" font-weight="bold" fill="white">validate_contract_path() → SecurityError</text>
+  
+  <!-- Row 4: Adapters -->
+  <text x="230" y="355" font-size="12" font-weight="bold" fill="#1e8449">Adapter Registry</text>
+  
+  <rect x="230" y="365" width="525" height="55" fill="#2c3e50" rx="6"/>
+  
+  <rect x="245" y="380" width="75" height="30" fill="#27ae60" rx="4"/>
+  <text x="282" y="400" text-anchor="middle" font-size="11" font-weight="bold" fill="white">Slither</text>
+  
+  <rect x="330" y="380" width="75" height="30" fill="#9b59b6" rx="4"/>
+  <text x="367" y="400" text-anchor="middle" font-size="11" font-weight="bold" fill="white">Mythril</text>
+  
+  <rect x="415" y="380" width="75" height="30" fill="#e74c3c" rx="4"/>
+  <text x="452" y="400" text-anchor="middle" font-size="11" font-weight="bold" fill="white">Echidna</text>
+  
+  <rect x="500" y="380" width="75" height="30" fill="#f39c12" rx="4"/>
+  <text x="537" y="400" text-anchor="middle" font-size="11" font-weight="bold" fill="white">GPTScan</text>
+  
+  <rect x="585" y="380" width="75" height="30" fill="#1abc9c" rx="4"/>
+  <text x="622" y="400" text-anchor="middle" font-size="11" font-weight="bold" fill="white">Halmos</text>
+  
+  <rect x="670" y="380" width="40" height="30" fill="#95a5a6" rx="4"/>
+  <text x="690" y="400" text-anchor="middle" font-size="11" font-weight="bold" fill="white">...</text>
+  
+  <!-- Entry point -->
+  <rect x="230" y="435" width="525" height="35" fill="#34495e" rx="6"/>
+  <text x="492" y="458" text-anchor="middle" font-size="12" font-weight="bold" fill="white">
+    main() → stdio_server() → app.run()
+  </text>
+</svg>

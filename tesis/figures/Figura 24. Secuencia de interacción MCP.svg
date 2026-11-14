@@ -1,0 +1,131 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 950" font-family="Arial, Helvetica, sans-serif">
+  <!-- Background -->
+  <rect width="1200" height="950" fill="#ffffff"/>
+  
+  <!-- Title -->
+  <text x="600" y="35" text-anchor="middle" font-size="26" font-weight="bold" fill="#2c3e50">
+    Diagrama de Secuencia - Interacción MCP
+  </text>
+  
+  <!-- Actor boxes at top -->
+  <!-- Usuario -->
+  <rect x="80" y="60" width="120" height="50" fill="#3498db" rx="8" stroke="#2980b9" stroke-width="2"/>
+  <text x="140" y="92" text-anchor="middle" font-size="16" font-weight="bold" fill="white">Usuario</text>
+  
+  <!-- Claude -->
+  <rect x="280" y="60" width="120" height="50" fill="#9b59b6" rx="8" stroke="#8e44ad" stroke-width="2"/>
+  <text x="340" y="92" text-anchor="middle" font-size="16" font-weight="bold" fill="white">Claude</text>
+  
+  <!-- MCP Client -->
+  <rect x="480" y="60" width="140" height="50" fill="#f39c12" rx="8" stroke="#d68910" stroke-width="2"/>
+  <text x="550" y="92" text-anchor="middle" font-size="16" font-weight="bold" fill="white">MCP Client</text>
+  
+  <!-- MIESC Server -->
+  <rect x="700" y="60" width="160" height="50" fill="#1abc9c" rx="8" stroke="#16a085" stroke-width="2"/>
+  <text x="780" y="92" text-anchor="middle" font-size="16" font-weight="bold" fill="white">MIESC Server</text>
+  
+  <!-- Slither -->
+  <rect x="940" y="60" width="120" height="50" fill="#27ae60" rx="8" stroke="#1e8449" stroke-width="2"/>
+  <text x="1000" y="92" text-anchor="middle" font-size="16" font-weight="bold" fill="white">Slither</text>
+  
+  <!-- Lifelines -->
+  <line x1="140" y1="110" x2="140" y2="900" stroke="#3498db" stroke-width="2" stroke-dasharray="8,4"/>
+  <line x1="340" y1="110" x2="340" y2="900" stroke="#9b59b6" stroke-width="2" stroke-dasharray="8,4"/>
+  <line x1="550" y1="110" x2="550" y2="900" stroke="#f39c12" stroke-width="2" stroke-dasharray="8,4"/>
+  <line x1="780" y1="110" x2="780" y2="900" stroke="#1abc9c" stroke-width="2" stroke-dasharray="8,4"/>
+  <line x1="1000" y1="110" x2="1000" y2="900" stroke="#27ae60" stroke-width="2" stroke-dasharray="8,4"/>
+  
+  <!-- Arrow markers -->
+  <defs>
+    <marker id="arrowBlack" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <polygon points="0 0, 10 4, 0 8" fill="#333"/>
+    </marker>
+    <marker id="arrowGreen" markerWidth="10" markerHeight="8" refX="1" refY="4" orient="auto">
+      <polygon points="10 0, 0 4, 10 8" fill="#27ae60"/>
+    </marker>
+  </defs>
+  
+  <!-- Interaction 1: Usuario -> Claude -->
+  <rect x="145" y="140" width="190" height="45" fill="#e8f4fc" rx="4" stroke="#3498db" stroke-width="1"/>
+  <text x="155" y="160" font-size="12" fill="#2c3e50" font-weight="bold">"Analiza mi</text>
+  <text x="155" y="177" font-size="12" fill="#2c3e50" font-weight="bold"> VulnerableBank"</text>
+  <line x1="140" y1="165" x2="330" y2="165" stroke="#333" stroke-width="2" marker-end="url(#arrowBlack)"/>
+  
+  <!-- Interaction 2: Claude -> MCP Client (tools/list) -->
+  <line x1="340" y1="220" x2="540" y2="220" stroke="#333" stroke-width="2" marker-end="url(#arrowBlack)"/>
+  <rect x="380" y="200" width="120" height="25" fill="#fff3cd" rx="4"/>
+  <text x="440" y="218" text-anchor="middle" font-size="13" fill="#856404" font-weight="bold">tools/list</text>
+  
+  <!-- Interaction 3: MCP Client -> MIESC Server (getTools) -->
+  <line x1="550" y1="260" x2="770" y2="260" stroke="#333" stroke-width="2" marker-end="url(#arrowBlack)"/>
+  <rect x="600" y="240" width="120" height="25" fill="#d4edda" rx="4"/>
+  <text x="660" y="258" text-anchor="middle" font-size="13" fill="#155724" font-weight="bold">getTools()</text>
+  
+  <!-- Response: MIESC -> MCP Client -->
+  <line x1="770" y1="300" x2="560" y2="300" stroke="#27ae60" stroke-width="2" stroke-dasharray="5,3" marker-end="url(#arrowGreen)"/>
+  
+  <!-- Response: MCP Client -> Claude -->
+  <line x1="550" y1="340" x2="350" y2="340" stroke="#27ae60" stroke-width="2" stroke-dasharray="5,3" marker-end="url(#arrowGreen)"/>
+  <rect x="355" y="320" width="190" height="25" fill="#d4edda" rx="4"/>
+  <text x="450" y="338" text-anchor="middle" font-size="11" fill="#155724">[analyze_contract, run_slither, ...]</text>
+  
+  <!-- Interaction 4: Claude -> MCP Client (tools/call) -->
+  <line x1="340" y1="400" x2="540" y2="400" stroke="#333" stroke-width="2" marker-end="url(#arrowBlack)"/>
+  <rect x="350" y="370" width="180" height="55" fill="#fff3cd" rx="4"/>
+  <text x="440" y="390" text-anchor="middle" font-size="13" fill="#856404" font-weight="bold">tools/call</text>
+  <text x="440" y="407" text-anchor="middle" font-size="11" fill="#856404">analyze_contract</text>
+  <text x="440" y="422" text-anchor="middle" font-size="10" fill="#856404">{"path": "VulnerableBank.sol"}</text>
+  
+  <!-- Interaction 5: MCP Client -> MIESC Server (callTool) -->
+  <line x1="550" y1="460" x2="770" y2="460" stroke="#333" stroke-width="2" marker-end="url(#arrowBlack)"/>
+  <rect x="600" y="440" width="120" height="25" fill="#d4edda" rx="4"/>
+  <text x="660" y="458" text-anchor="middle" font-size="13" fill="#155724" font-weight="bold">callTool()</text>
+  
+  <!-- Interaction 6: MIESC Server -> Slither (analyze) -->
+  <line x1="780" y1="510" x2="990" y2="510" stroke="#333" stroke-width="2" marker-end="url(#arrowBlack)"/>
+  <rect x="830" y="490" width="110" height="25" fill="#c3e6cb" rx="4"/>
+  <text x="885" y="508" text-anchor="middle" font-size="13" fill="#155724" font-weight="bold">analyze()</text>
+  
+  <!-- Response: Slither -> MIESC Server -->
+  <line x1="990" y1="570" x2="790" y2="570" stroke="#27ae60" stroke-width="2" stroke-dasharray="5,3" marker-end="url(#arrowGreen)"/>
+  <rect x="830" y="550" width="150" height="25" fill="#d4edda" rx="4"/>
+  <text x="905" y="568" text-anchor="middle" font-size="11" fill="#155724">{findings: [...]}</text>
+  
+  <!-- Response: MIESC Server -> MCP Client -->
+  <line x1="770" y1="630" x2="560" y2="630" stroke="#27ae60" stroke-width="2" stroke-dasharray="5,3" marker-end="url(#arrowGreen)"/>
+  <rect x="580" y="605" width="180" height="35" fill="#d4edda" rx="4"/>
+  <text x="670" y="622" text-anchor="middle" font-size="11" fill="#155724">{findings: [...],</text>
+  <text x="670" y="636" text-anchor="middle" font-size="11" fill="#155724">summary: "..."}</text>
+  
+  <!-- Response: MCP Client -> Claude -->
+  <line x1="550" y1="680" x2="350" y2="680" stroke="#27ae60" stroke-width="2" stroke-dasharray="5,3" marker-end="url(#arrowGreen)"/>
+  
+  <!-- Final Response: Claude -> Usuario -->
+  <line x1="340" y1="740" x2="150" y2="740" stroke="#27ae60" stroke-width="2" stroke-dasharray="5,3" marker-end="url(#arrowGreen)"/>
+  <rect x="155" y="710" width="180" height="85" fill="#d4edda" rx="6" stroke="#27ae60" stroke-width="2"/>
+  <text x="165" y="732" font-size="12" fill="#155724" font-weight="bold">"Encontré 5</text>
+  <text x="165" y="750" font-size="12" fill="#155724" font-weight="bold"> vulnerabilidades:</text>
+  <text x="165" y="768" font-size="12" fill="#155724"> 1. Reentrancy</text>
+  <text x="165" y="786" font-size="12" fill="#155724">    en withdraw() ..."</text>
+  
+  <!-- Legend -->
+  <rect x="50" y="850" width="1100" height="80" fill="#f8f9fa" rx="8" stroke="#ddd" stroke-width="1"/>
+  <text x="100" y="880" font-size="14" font-weight="bold" fill="#2c3e50">Leyenda:</text>
+  
+  <line x1="180" y1="875" x2="250" y2="875" stroke="#333" stroke-width="2" marker-end="url(#arrowBlack)"/>
+  <text x="260" y="880" font-size="13" fill="#555">Request</text>
+  
+  <line x1="350" y1="875" x2="420" y2="875" stroke="#27ae60" stroke-width="2" stroke-dasharray="5,3" marker-end="url(#arrowGreen)"/>
+  <text x="430" y="880" font-size="13" fill="#555">Response</text>
+  
+  <rect x="520" y="865" width="80" height="20" fill="#fff3cd" rx="4"/>
+  <text x="560" y="880" text-anchor="middle" font-size="12" fill="#856404">MCP Call</text>
+  
+  <rect x="620" y="865" width="80" height="20" fill="#d4edda" rx="4"/>
+  <text x="660" y="880" text-anchor="middle" font-size="12" fill="#155724">Internal</text>
+  
+  <text x="750" y="880" font-size="13" fill="#555">│</text>
+  <text x="780" y="880" font-size="13" fill="#2c3e50" font-weight="bold">Protocolo: JSON-RPC 2.0 sobre stdio</text>
+  
+  <text x="100" y="915" font-size="12" fill="#777">El usuario interactúa en lenguaje natural; Claude traduce a llamadas MCP; MIESC ejecuta las herramientas y devuelve resultados estructurados.</text>
+</svg>

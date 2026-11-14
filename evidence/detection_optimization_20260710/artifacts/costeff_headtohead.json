@@ -1,0 +1,510 @@
+{
+  "total_vulns": 27,
+  "corpus": "29-vuln corrected (27)",
+  "models": {
+    "qwen3-coder:30b": {
+      "provider": "ollama",
+      "n_runs": 5,
+      "single_recalls": [
+        0.3333,
+        0.3704,
+        0.6296,
+        0.5185,
+        0.4444
+      ],
+      "single_mean": 0.4593,
+      "single_min": 0.3333,
+      "single_max": 0.6296,
+      "ensemble_recall": 0.6296,
+      "ensemble_detected": 17,
+      "total_cost_usd": 0.0,
+      "recall_per_dollar": null,
+      "detected_vulns": [
+        [
+          "AccessControlFlawed.sol",
+          27
+        ],
+        [
+          "AccessControlFlawed.sol",
+          34
+        ],
+        [
+          "AccessControlFlawed.sol",
+          45
+        ],
+        [
+          "AccessControlFlawed.sol",
+          52
+        ],
+        [
+          "AccessControlFlawed.sol",
+          59
+        ],
+        [
+          "AccessControlFlawed.sol",
+          65
+        ],
+        [
+          "AccessControlFlawed.sol",
+          74
+        ],
+        [
+          "FlashLoanVault.sol",
+          58
+        ],
+        [
+          "FlashLoanVault.sol",
+          92
+        ],
+        [
+          "FlashLoanVault.sol",
+          156
+        ],
+        [
+          "UnsafeToken.sol",
+          53
+        ],
+        [
+          "UnsafeToken.sol",
+          66
+        ],
+        [
+          "UnsafeToken.sol",
+          77
+        ],
+        [
+          "UnsafeToken.sol",
+          88
+        ],
+        [
+          "UnsafeToken.sol",
+          115
+        ],
+        [
+          "VulnerableBank.sol",
+          34
+        ],
+        [
+          "VulnerableBank.sol",
+          51
+        ]
+      ]
+    },
+    "deepseek-reasoner": {
+      "provider": "deepseek",
+      "n_runs": 5,
+      "single_recalls": [
+        0.8889,
+        0.5926,
+        0.5556,
+        0.2222,
+        0.6667
+      ],
+      "single_mean": 0.5852,
+      "single_min": 0.2222,
+      "single_max": 0.8889,
+      "ensemble_recall": 0.9259,
+      "ensemble_detected": 25,
+      "total_cost_usd": 0.2017,
+      "recall_per_dollar": 4.591,
+      "detected_vulns": [
+        [
+          "AccessControlFlawed.sol",
+          27
+        ],
+        [
+          "AccessControlFlawed.sol",
+          34
+        ],
+        [
+          "AccessControlFlawed.sol",
+          45
+        ],
+        [
+          "AccessControlFlawed.sol",
+          52
+        ],
+        [
+          "AccessControlFlawed.sol",
+          59
+        ],
+        [
+          "AccessControlFlawed.sol",
+          65
+        ],
+        [
+          "AccessControlFlawed.sol",
+          74
+        ],
+        [
+          "FlashLoanVault.sol",
+          52
+        ],
+        [
+          "FlashLoanVault.sol",
+          58
+        ],
+        [
+          "FlashLoanVault.sol",
+          72
+        ],
+        [
+          "FlashLoanVault.sol",
+          85
+        ],
+        [
+          "FlashLoanVault.sol",
+          92
+        ],
+        [
+          "FlashLoanVault.sol",
+          138
+        ],
+        [
+          "FlashLoanVault.sol",
+          167
+        ],
+        [
+          "UnsafeToken.sol",
+          32
+        ],
+        [
+          "UnsafeToken.sol",
+          44
+        ],
+        [
+          "UnsafeToken.sol",
+          66
+        ],
+        [
+          "UnsafeToken.sol",
+          77
+        ],
+        [
+          "UnsafeToken.sol",
+          88
+        ],
+        [
+          "UnsafeToken.sol",
+          101
+        ],
+        [
+          "UnsafeToken.sol",
+          109
+        ],
+        [
+          "UnsafeToken.sol",
+          115
+        ],
+        [
+          "UnsafeToken.sol",
+          138
+        ],
+        [
+          "VulnerableBank.sol",
+          34
+        ],
+        [
+          "VulnerableBank.sol",
+          51
+        ]
+      ]
+    },
+    "gpt-5": {
+      "provider": "openai",
+      "n_runs": 3,
+      "single_recalls": [
+        0.8148,
+        0.8889,
+        0.8889
+      ],
+      "single_mean": 0.8642,
+      "single_min": 0.8148,
+      "single_max": 0.8889,
+      "ensemble_recall": 0.8889,
+      "ensemble_detected": 24,
+      "total_cost_usd": 0.5444,
+      "recall_per_dollar": 1.633,
+      "detected_vulns": [
+        [
+          "AccessControlFlawed.sol",
+          27
+        ],
+        [
+          "AccessControlFlawed.sol",
+          34
+        ],
+        [
+          "AccessControlFlawed.sol",
+          45
+        ],
+        [
+          "AccessControlFlawed.sol",
+          52
+        ],
+        [
+          "AccessControlFlawed.sol",
+          59
+        ],
+        [
+          "AccessControlFlawed.sol",
+          65
+        ],
+        [
+          "AccessControlFlawed.sol",
+          74
+        ],
+        [
+          "FlashLoanVault.sol",
+          52
+        ],
+        [
+          "FlashLoanVault.sol",
+          58
+        ],
+        [
+          "FlashLoanVault.sol",
+          72
+        ],
+        [
+          "FlashLoanVault.sol",
+          85
+        ],
+        [
+          "FlashLoanVault.sol",
+          138
+        ],
+        [
+          "FlashLoanVault.sol",
+          167
+        ],
+        [
+          "UnsafeToken.sol",
+          32
+        ],
+        [
+          "UnsafeToken.sol",
+          44
+        ],
+        [
+          "UnsafeToken.sol",
+          66
+        ],
+        [
+          "UnsafeToken.sol",
+          77
+        ],
+        [
+          "UnsafeToken.sol",
+          88
+        ],
+        [
+          "UnsafeToken.sol",
+          101
+        ],
+        [
+          "UnsafeToken.sol",
+          109
+        ],
+        [
+          "UnsafeToken.sol",
+          115
+        ],
+        [
+          "UnsafeToken.sol",
+          138
+        ],
+        [
+          "VulnerableBank.sol",
+          34
+        ],
+        [
+          "VulnerableBank.sol",
+          51
+        ]
+      ]
+    },
+    "gpt-4o": {
+      "provider": "openai",
+      "n_runs": 2,
+      "single_recalls": [
+        0.2222,
+        0.2222
+      ],
+      "single_mean": 0.2222,
+      "single_min": 0.2222,
+      "single_max": 0.2222,
+      "ensemble_recall": 0.3704,
+      "ensemble_detected": 10,
+      "total_cost_usd": 0.0488,
+      "recall_per_dollar": 7.588,
+      "detected_vulns": [
+        [
+          "AccessControlFlawed.sol",
+          27
+        ],
+        [
+          "AccessControlFlawed.sol",
+          45
+        ],
+        [
+          "FlashLoanVault.sol",
+          58
+        ],
+        [
+          "FlashLoanVault.sol",
+          138
+        ],
+        [
+          "FlashLoanVault.sol",
+          167
+        ],
+        [
+          "UnsafeToken.sol",
+          32
+        ],
+        [
+          "UnsafeToken.sol",
+          44
+        ],
+        [
+          "UnsafeToken.sol",
+          53
+        ],
+        [
+          "UnsafeToken.sol",
+          66
+        ],
+        [
+          "VulnerableBank.sol",
+          51
+        ]
+      ]
+    },
+    "claude-sonnet-4-6": {
+      "provider": "anthropic",
+      "n_runs": 2,
+      "single_recalls": [
+        0.7778,
+        0.8519
+      ],
+      "single_mean": 0.8148,
+      "single_min": 0.7778,
+      "single_max": 0.8519,
+      "ensemble_recall": 0.8519,
+      "ensemble_detected": 23,
+      "total_cost_usd": 0.187,
+      "recall_per_dollar": 4.556,
+      "detected_vulns": [
+        [
+          "AccessControlFlawed.sol",
+          27
+        ],
+        [
+          "AccessControlFlawed.sol",
+          34
+        ],
+        [
+          "AccessControlFlawed.sol",
+          45
+        ],
+        [
+          "AccessControlFlawed.sol",
+          52
+        ],
+        [
+          "AccessControlFlawed.sol",
+          59
+        ],
+        [
+          "AccessControlFlawed.sol",
+          65
+        ],
+        [
+          "AccessControlFlawed.sol",
+          74
+        ],
+        [
+          "FlashLoanVault.sol",
+          52
+        ],
+        [
+          "FlashLoanVault.sol",
+          58
+        ],
+        [
+          "FlashLoanVault.sol",
+          72
+        ],
+        [
+          "FlashLoanVault.sol",
+          138
+        ],
+        [
+          "FlashLoanVault.sol",
+          156
+        ],
+        [
+          "FlashLoanVault.sol",
+          167
+        ],
+        [
+          "UnsafeToken.sol",
+          32
+        ],
+        [
+          "UnsafeToken.sol",
+          44
+        ],
+        [
+          "UnsafeToken.sol",
+          66
+        ],
+        [
+          "UnsafeToken.sol",
+          77
+        ],
+        [
+          "UnsafeToken.sol",
+          88
+        ],
+        [
+          "UnsafeToken.sol",
+          101
+        ],
+        [
+          "UnsafeToken.sol",
+          109
+        ],
+        [
+          "UnsafeToken.sol",
+          115
+        ],
+        [
+          "VulnerableBank.sol",
+          34
+        ],
+        [
+          "VulnerableBank.sol",
+          51
+        ]
+      ]
+    },
+    "claude-fable-5": {
+      "provider": "anthropic",
+      "n_runs": 2,
+      "single_recalls": [
+        0.0,
+        0.0
+      ],
+      "single_mean": 0.0,
+      "single_min": 0.0,
+      "single_max": 0.0,
+      "ensemble_recall": 0.0,
+      "ensemble_detected": 0,
+      "total_cost_usd": 0.1795,
+      "recall_per_dollar": 0.0,
+      "detected_vulns": []
+    }
+  }
+}

@@ -1,0 +1,544 @@
+{
+  "off": {
+    "n": 29,
+    "recall": 0.931,
+    "detected": 27,
+    "precision": 0.525,
+    "total_findings": 600,
+    "tp": 315,
+    "fp": 285
+  },
+  "high": {
+    "n": 29,
+    "recall": 0.8966,
+    "detected": 26,
+    "precision": 0.3951,
+    "total_findings": 324,
+    "tp": 128,
+    "fp": 196
+  },
+  "rows": [
+    {
+      "contract": "0x01f8c4e3fa3edeb29e514cba738d87ce8c091d3f.sol",
+      "gt": "reentrancy",
+      "off": {
+        "detected": true,
+        "total": 28,
+        "tp": 22,
+        "fp": 6,
+        "fp_removed": 0
+      },
+      "high": {
+        "detected": true,
+        "total": 9,
+        "tp": 4,
+        "fp": 5,
+        "fp_removed": 19
+      }
+    },
+    {
+      "contract": "0x23a91059fdc9579a9fbd0edc5f2ea0bfdb70deb4.sol",
+      "gt": "reentrancy",
+      "off": {
+        "detected": true,
+        "total": 21,
+        "tp": 16,
+        "fp": 5,
+        "fp_removed": 0
+      },
+      "high": {
+        "detected": true,
+        "total": 7,
+        "tp": 3,
+        "fp": 4,
+        "fp_removed": 14
+      }
+    },
+    {
+      "contract": "0x4320e6f8c05b27ab4707cd1f6d5ce6f3e4b3a5a1.sol",
+      "gt": "reentrancy",
+      "off": {
+        "detected": true,
+        "total": 28,
+        "tp": 22,
+        "fp": 6,
+        "fp_removed": 0
+      },
+      "high": {
+        "detected": true,
+        "total": 9,
+        "tp": 4,
+        "fp": 5,
+        "fp_removed": 19
+      }
+    },
+    {
+      "contract": "0x4e73b32ed6c35f570686b89848e5f39f20ecc106.sol",
+      "gt": "reentrancy",
+      "off": {
+        "detected": true,
+        "total": 28,
+        "tp": 22,
+        "fp": 6,
+        "fp_removed": 0
+      },
+      "high": {
+        "detected": true,
+        "total": 9,
+        "tp": 4,
+        "fp": 5,
+        "fp_removed": 19
+      }
+    },
+    {
+      "contract": "0x561eac93c92360949ab1f1403323e6db345cbf31.sol",
+      "gt": "reentrancy",
+      "off": {
+        "detected": true,
+        "total": 30,
+        "tp": 24,
+        "fp": 6,
+        "fp_removed": 0
+      },
+      "high": {
+        "detected": true,
+        "total": 11,
+        "tp": 6,
+        "fp": 5,
+        "fp_removed": 19
+      }
+    },
+    {
+      "contract": "0x627fa62ccbb1c1b04ffaecd72a53e37fc0e17839.sol",
+      "gt": "reentrancy",
+      "off": {
+        "detected": true,
+        "total": 30,
+        "tp": 20,
+        "fp": 10,
+        "fp_removed": 0
+      },
+      "high": {
+        "detected": true,
+        "total": 17,
+        "tp": 8,
+        "fp": 9,
+        "fp_removed": 13
+      }
+    },
+    {
+      "contract": "BECToken.sol",
+      "gt": "arithmetic",
+      "off": {
+        "detected": true,
+        "total": 42,
+        "tp": 6,
+        "fp": 36,
+        "fp_removed": 0
+      },
+      "high": {
+        "detected": false,
+        "total": 12,
+        "tp": 0,
+        "fp": 12,
+        "fp_removed": 30
+      }
+    },
+    {
+      "contract": "insecure_transfer.sol",
+      "gt": "arithmetic",
+      "off": {
+        "detected": true,
+        "total": 8,
+        "tp": 6,
+        "fp": 2,
+        "fp_removed": 0
+      },
+      "high": {
+        "detected": true,
+        "total": 4,
+        "tp": 3,
+        "fp": 1,
+        "fp_removed": 4
+      }
+    },
+    {
+      "contract": "integer_overflow_1.sol",
+      "gt": "arithmetic",
+      "off": {
+        "detected": true,
+        "total": 5,
+        "tp": 4,
+        "fp": 1,
+        "fp_removed": 0
+      },
+      "high": {
+        "detected": true,
+        "total": 3,
+        "tp": 3,
+        "fp": 0,
+        "fp_removed": 2
+      }
+    },
+    {
+      "contract": "integer_overflow_add.sol",
+      "gt": "arithmetic",
+      "off": {
+        "detected": true,
+        "total": 4,
+        "tp": 3,
+        "fp": 1,
+        "fp_removed": 0
+      },
+      "high": {
+        "detected": true,
+        "total": 2,
+        "tp": 2,
+        "fp": 0,
+        "fp_removed": 2
+      }
+    },
+    {
+      "contract": "integer_overflow_benign_1.sol",
+      "gt": "arithmetic",
+      "off": {
+        "detected": true,
+        "total": 5,
+        "tp": 4,
+        "fp": 1,
+        "fp_removed": 0
+      },
+      "high": {
+        "detected": true,
+        "total": 2,
+        "tp": 2,
+        "fp": 0,
+        "fp_removed": 3
+      }
+    },
+    {
+      "contract": "integer_overflow_mapping_sym_1.sol",
+      "gt": "arithmetic",
+      "off": {
+        "detected": true,
+        "total": 5,
+        "tp": 3,
+        "fp": 2,
+        "fp_removed": 0
+      },
+      "high": {
+        "detected": true,
+        "total": 3,
+        "tp": 2,
+        "fp": 1,
+        "fp_removed": 2
+      }
+    },
+    {
+      "contract": "0x07f7ecb66d788ab01dc93b9b71a88401de7d0f2e.sol",
+      "gt": "unchecked_low_level_calls",
+      "off": {
+        "detected": true,
+        "total": 33,
+        "tp": 10,
+        "fp": 23,
+        "fp_removed": 0
+      },
+      "high": {
+        "detected": true,
+        "total": 27,
+        "tp": 6,
+        "fp": 21,
+        "fp_removed": 6
+      }
+    },
+    {
+      "contract": "0x0cbe050f75bc8f8c2d6c0d249fea125fd6e1acc9.sol",
+      "gt": "unchecked_low_level_calls",
+      "off": {
+        "detected": true,
+        "total": 5,
+        "tp": 3,
+        "fp": 2,
+        "fp_removed": 0
+      },
+      "high": {
+        "detected": true,
+        "total": 3,
+        "tp": 3,
+        "fp": 0,
+        "fp_removed": 2
+      }
+    },
+    {
+      "contract": "0x19cf8481ea15427a98ba3cdd6d9e14690011ab10.sol",
+      "gt": "unchecked_low_level_calls",
+      "off": {
+        "detected": true,
+        "total": 140,
+        "tp": 88,
+        "fp": 52,
+        "fp_removed": 0
+      },
+      "high": {
+        "detected": true,
+        "total": 85,
+        "tp": 41,
+        "fp": 44,
+        "fp_removed": 55
+      }
+    },
+    {
+      "contract": "0x2972d548497286d18e92b5fa1f8f9139e5653fd2.sol",
+      "gt": "unchecked_low_level_calls",
+      "off": {
+        "detected": true,
+        "total": 12,
+        "tp": 8,
+        "fp": 4,
+        "fp_removed": 0
+      },
+      "high": {
+        "detected": true,
+        "total": 8,
+        "tp": 6,
+        "fp": 2,
+        "fp_removed": 4
+      }
+    },
+    {
+      "contract": "0x39cfd754c85023648bf003bea2dd498c5612abfa.sol",
+      "gt": "unchecked_low_level_calls",
+      "off": {
+        "detected": true,
+        "total": 29,
+        "tp": 20,
+        "fp": 9,
+        "fp_removed": 0
+      },
+      "high": {
+        "detected": true,
+        "total": 16,
+        "tp": 9,
+        "fp": 7,
+        "fp_removed": 13
+      }
+    },
+    {
+      "contract": "0x3a0e9acd953ffc0dd18d63603488846a6b8b2b01.sol",
+      "gt": "unchecked_low_level_calls",
+      "off": {
+        "detected": true,
+        "total": 31,
+        "tp": 21,
+        "fp": 10,
+        "fp_removed": 0
+      },
+      "high": {
+        "detected": true,
+        "total": 17,
+        "tp": 9,
+        "fp": 8,
+        "fp_removed": 14
+      }
+    },
+    {
+      "contract": "ether_lotto.sol",
+      "gt": "time_manipulation",
+      "off": {
+        "detected": true,
+        "total": 14,
+        "tp": 2,
+        "fp": 12,
+        "fp_removed": 0
+      },
+      "high": {
+        "detected": true,
+        "total": 12,
+        "tp": 2,
+        "fp": 10,
+        "fp_removed": 2
+      }
+    },
+    {
+      "contract": "governmental_survey.sol",
+      "gt": "time_manipulation",
+      "off": {
+        "detected": false,
+        "total": 17,
+        "tp": 0,
+        "fp": 17,
+        "fp_removed": 0
+      },
+      "high": {
+        "detected": false,
+        "total": 13,
+        "tp": 0,
+        "fp": 13,
+        "fp_removed": 4
+      }
+    },
+    {
+      "contract": "lottopollo.sol",
+      "gt": "time_manipulation",
+      "off": {
+        "detected": true,
+        "total": 11,
+        "tp": 1,
+        "fp": 10,
+        "fp_removed": 0
+      },
+      "high": {
+        "detected": true,
+        "total": 8,
+        "tp": 1,
+        "fp": 7,
+        "fp_removed": 3
+      }
+    },
+    {
+      "contract": "roulette.sol",
+      "gt": "time_manipulation",
+      "off": {
+        "detected": true,
+        "total": 10,
+        "tp": 1,
+        "fp": 9,
+        "fp_removed": 0
+      },
+      "high": {
+        "detected": true,
+        "total": 8,
+        "tp": 1,
+        "fp": 7,
+        "fp_removed": 2
+      }
+    },
+    {
+      "contract": "timed_crowdsale.sol",
+      "gt": "time_manipulation",
+      "off": {
+        "detected": false,
+        "total": 4,
+        "tp": 0,
+        "fp": 4,
+        "fp_removed": 0
+      },
+      "high": {
+        "detected": false,
+        "total": 2,
+        "tp": 0,
+        "fp": 2,
+        "fp_removed": 2
+      }
+    },
+    {
+      "contract": "FibonacciBalance.sol",
+      "gt": "access_control",
+      "off": {
+        "detected": true,
+        "total": 19,
+        "tp": 2,
+        "fp": 17,
+        "fp_removed": 0
+      },
+      "high": {
+        "detected": true,
+        "total": 13,
+        "tp": 2,
+        "fp": 11,
+        "fp_removed": 6
+      }
+    },
+    {
+      "contract": "arbitrary_location_write_simple.sol",
+      "gt": "access_control",
+      "off": {
+        "detected": true,
+        "total": 13,
+        "tp": 3,
+        "fp": 10,
+        "fp_removed": 0
+      },
+      "high": {
+        "detected": true,
+        "total": 7,
+        "tp": 3,
+        "fp": 4,
+        "fp_removed": 6
+      }
+    },
+    {
+      "contract": "incorrect_constructor_name1.sol",
+      "gt": "access_control",
+      "off": {
+        "detected": true,
+        "total": 6,
+        "tp": 1,
+        "fp": 5,
+        "fp_removed": 0
+      },
+      "high": {
+        "detected": true,
+        "total": 3,
+        "tp": 1,
+        "fp": 2,
+        "fp_removed": 3
+      }
+    },
+    {
+      "contract": "incorrect_constructor_name2.sol",
+      "gt": "access_control",
+      "off": {
+        "detected": true,
+        "total": 5,
+        "tp": 1,
+        "fp": 4,
+        "fp_removed": 0
+      },
+      "high": {
+        "detected": true,
+        "total": 3,
+        "tp": 1,
+        "fp": 2,
+        "fp_removed": 2
+      }
+    },
+    {
+      "contract": "incorrect_constructor_name3.sol",
+      "gt": "access_control",
+      "off": {
+        "detected": true,
+        "total": 6,
+        "tp": 1,
+        "fp": 5,
+        "fp_removed": 0
+      },
+      "high": {
+        "detected": true,
+        "total": 3,
+        "tp": 1,
+        "fp": 2,
+        "fp_removed": 3
+      }
+    },
+    {
+      "contract": "mapping_write.sol",
+      "gt": "access_control",
+      "off": {
+        "detected": true,
+        "total": 11,
+        "tp": 1,
+        "fp": 10,
+        "fp_removed": 0
+      },
+      "high": {
+        "detected": true,
+        "total": 8,
+        "tp": 1,
+        "fp": 7,
+        "fp_removed": 3
+      }
+    }
+  ]
+}

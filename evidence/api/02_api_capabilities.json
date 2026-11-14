@@ -1,0 +1,51 @@
+{
+  "agent_id": "miesc-core-rest-v5.4.2",
+  "capabilities": {
+    "get_health": {
+      "description": "Query runtime health and availability",
+      "endpoint": "/api/v1/health/",
+      "method": "GET"
+    },
+    "list_tools": {
+      "description": "Discover available analysis tools",
+      "endpoint": "/api/v1/tools/",
+      "method": "GET"
+    },
+    "list_layers": {
+      "description": "Discover available analysis layers",
+      "endpoint": "/api/v1/layers/",
+      "method": "GET"
+    },
+    "quick_analysis": {
+      "description": "Execute quick smart contract analysis",
+      "endpoint": "/api/v1/analyze/quick/",
+      "method": "POST"
+    },
+    "full_analysis": {
+      "description": "Execute comprehensive multi-layer audit",
+      "endpoint": "/api/v1/analyze/full/",
+      "method": "POST"
+    }
+  },
+  "metadata": {
+    "author": "Fernando Boiero",
+    "frameworks": [
+      "ISO/IEC 27001:2022",
+      "ISO/IEC 42001:2023",
+      "NIST SP 800-218 (SSDF)",
+      "OWASP SAMM v2.0",
+      "OWASP Smart Contract Top 10"
+    ],
+    "institution": "UNDEF - Universidad de la Defensa Nacional",
+    "reproducible_benchmarks": {
+      "evmbench_ensemble_recall": 0.925,
+      "real_world_exploit_recall": 0.818,
+      "real_world_exploit_wilson_ci_95": [0.52, 0.95],
+      "smartbugs_curated_recall": 0.958,
+      "source": "benchmarks/results/paper1_claims_matrix.json"
+    },
+    "thesis": "Master's in Cyberdefense"
+  },
+  "protocol": "http/rest",
+  "version": "5.4.2"
+}
