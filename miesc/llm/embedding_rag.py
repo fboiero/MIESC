@@ -41,7 +41,13 @@ logger = logging.getLogger(__name__)
 _chromadb = None
 _sentence_transformers = None
 
-KNOWLEDGE_BASE_VERSION = "2026-05-06-paper1-source-review-v4"
+# Bumped for the additive `chain` provenance field: a persisted collection built
+# under an earlier version lacks the `chain` metadata, so a chain-scoped filter
+# would silently return nothing; the version change forces a one-time reindex
+# that stamps every document with its chain. Document embeddings are unchanged
+# (`chain` is metadata only, not part of `to_text()`), so EVM retrieval is
+# identical.
+KNOWLEDGE_BASE_VERSION = "2026-11-15-chain-provenance-v5"
 DEFAULT_COLLECTION_NAME = "miesc_vulnerabilities"
 _SAFE_COLLECTION_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{1,61}[A-Za-z0-9]$")
 
@@ -286,13 +292,17 @@ def _coerce_document_id(value: Any) -> str:
     return text
 
 
+_ALLOWED_FILTER_KEYS = frozenset({"category", "severity", "chain"})
+
+
 def _safe_metadata_filter(
     filter_category: Optional[str],
     filter_severity: Optional[str],
+    filter_chain: Optional[str] = None,
 ) -> Optional[Dict[str, Any]]:
     """Build a Chroma metadata filter only when it has a safe mapping shape."""
     try:
-        where_filter = build_metadata_filter(filter_category, filter_severity)
+        where_filter = build_metadata_filter(filter_category, filter_severity, filter_chain)
     except (TypeError, ValueError):
         return None
 
@@ -307,7 +317,7 @@ def _safe_metadata_filter(
             if not isinstance(condition, dict) or len(condition) != 1:
                 return None
             key, value = next(iter(condition.items()))
-            if key not in {"category", "severity"}:
+            if key not in _ALLOWED_FILTER_KEYS:
                 return None
             if not isinstance(value, str):
                 return None
@@ -320,7 +330,7 @@ def _safe_metadata_filter(
         return None
 
     key, value = next(iter(where_filter.items()))
-    if key not in {"category", "severity"} or not isinstance(value, str):
+    if key not in _ALLOWED_FILTER_KEYS or not isinstance(value, str):
         return None
     text = value.strip()
     if not text or any(_has_unsafe_text_char(ch) for ch in text):
@@ -688,6 +698,11 @@ class VulnerabilityDocument:
     references: List[str] = field(default_factory=list)
     source_tier: str = "curated"
     source_type: str = "pattern"
+    # Execution model this document's knowledge applies to. Defaults to "evm";
+    # the whole shipped knowledge base is EVM/Solidity today. Stored in metadata
+    # only (not in to_text()), so it labels and filters documents without
+    # changing their embeddings or EVM retrieval.
+    chain: str = "evm"
 
     def to_text(self) -> str:
         """Convert to searchable text representation."""
@@ -736,6 +751,7 @@ class VulnerabilityDocument:
             "references": ",".join(references),
             "source_tier": _coerce_metadata_text(self.source_tier) or "curated",
             "source_type": _coerce_metadata_text(self.source_type) or "pattern",
+            "chain": _coerce_metadata_text(self.chain) or "evm",
             "has_exploit": bool(_coerce_metadata_text(self.real_exploit)),
             "has_fix": bool(_coerce_metadata_text(self.fixed_code)),
         }
@@ -5194,11 +5210,13 @@ class EmbeddingRAG:
         filter_severity: Optional[str],
         n_results: int,
         strategy: str = "semantic",
+        filter_chain: Optional[str] = None,
     ) -> str:
         """Generate cache key for a search query."""
         query_text = _coerce_cache_query_text(query)
         category_filter = _coerce_filter_text(filter_category)
         severity_filter = _coerce_filter_text(filter_severity)
+        chain_filter = _coerce_filter_text(filter_chain)
         n = _coerce_result_count(n_results, self.top_k)
         strategy_text = _coerce_query_text(strategy).strip() or "semantic"
         return make_cache_key(
@@ -5206,6 +5224,7 @@ class EmbeddingRAG:
             query=query_text,
             filter_category=category_filter,
             filter_severity=severity_filter,
+            filter_chain=chain_filter,
             n_results=n,
             strategy=strategy_text,
         )
@@ -5466,6 +5485,7 @@ class EmbeddingRAG:
         filter_category: Optional[str] = None,
         filter_severity: Optional[str] = None,
         n_results: Optional[int] = None,
+        filter_chain: Optional[str] = None,
     ) -> List[RetrievalResult]:
         """
         Search for similar vulnerabilities using semantic similarity.
@@ -5475,6 +5495,8 @@ class EmbeddingRAG:
             filter_category: Filter by vulnerability category
             filter_severity: Filter by severity level
             n_results: Number of results (overrides top_k)
+            filter_chain: Filter by execution model (e.g. "evm"); ``None`` keeps
+                the default behaviour of searching across every chain
 
         Returns:
             List of RetrievalResult with matched documents and scores
@@ -5489,15 +5511,18 @@ class EmbeddingRAG:
         n = _coerce_result_count(n_results, self.top_k)
         category_filter = _coerce_filter_text(filter_category)
         severity_filter = _coerce_filter_text(filter_severity)
+        chain_filter = _coerce_filter_text(filter_chain)
 
         # Check cache first
-        cache_key = self._get_cache_key(query_text, category_filter, severity_filter, n)
+        cache_key = self._get_cache_key(
+            query_text, category_filter, severity_filter, n, filter_chain=chain_filter
+        )
         cached = self._get_cached_result(cache_key)
         if cached is not None:
             logger.debug(f"Cache hit for query (key={cache_key[:8]})")
             return cached
 
-        where_filter = _safe_metadata_filter(category_filter, severity_filter)
+        where_filter = _safe_metadata_filter(category_filter, severity_filter, chain_filter)
 
         # Query ChromaDB
         results = self._collection.query(
@@ -5562,6 +5587,7 @@ class EmbeddingRAG:
         filter_category: Optional[str] = None,
         filter_severity: Optional[str] = None,
         n_results: Optional[int] = None,
+        filter_chain: Optional[str] = None,
     ) -> List[RetrievalResult]:
         """
         Evidence-aware retrieval pipeline for reviewer-facing LLM context.
@@ -5576,10 +5602,16 @@ class EmbeddingRAG:
         n = _coerce_result_count(n_results, self.top_k)
         category_filter = _coerce_filter_text(filter_category)
         severity_filter = _coerce_filter_text(filter_severity)
+        chain_filter = _coerce_filter_text(filter_chain)
 
         query_text = _coerce_query_text(query)
         cache_key = self._get_cache_key(
-            query_text, category_filter, severity_filter, n, strategy="multi_step"
+            query_text,
+            category_filter,
+            severity_filter,
+            n,
+            strategy="multi_step",
+            filter_chain=chain_filter,
         )
         cached = self._get_cached_result(cache_key)
         if cached is not None:
@@ -5595,6 +5627,7 @@ class EmbeddingRAG:
                 filter_category=category_filter,
                 filter_severity=severity_filter,
                 n_results=max(n * 2, 6),
+                filter_chain=chain_filter,
             )
             all_results.extend(
                 RetrievalResult(
@@ -6035,6 +6068,7 @@ class HybridRAG(EmbeddingRAG):
         filter_category: Optional[str] = None,
         filter_severity: Optional[str] = None,
         n_results: Optional[int] = None,
+        filter_chain: Optional[str] = None,
     ) -> List[RetrievalResult]:
         """
         Hybrid search combining embeddings and BM25.
@@ -6044,7 +6078,13 @@ class HybridRAG(EmbeddingRAG):
         n = _coerce_result_count(n_results, self.top_k)
 
         # Get embedding results (fetch more for reranking)
-        embedding_results = super().search(query, filter_category, filter_severity, n_results=n * 2)
+        embedding_results = super().search(
+            query,
+            filter_category,
+            filter_severity,
+            n_results=n * 2,
+            filter_chain=filter_chain,
+        )
 
         if self._bm25 is None:
             # Fall back to embedding-only if BM25 not available

@@ -225,10 +225,16 @@ def make_cache_key(
     filter_severity: Optional[str],
     n_results: int,
     strategy: str = "semantic",
+    filter_chain: Optional[str] = None,
 ) -> str:
-    """Generate a stable cache key for a RAG search query."""
+    """Generate a stable cache key for a RAG search query.
+
+    ``filter_chain`` is part of the key so a chain-scoped search cannot return a
+    different chain's cached results.
+    """
     key_payload = {
         "filter_category": _safe_text(filter_category, limit=MAX_FILTER_TEXT_CHARS),
+        "filter_chain": _safe_text(filter_chain, limit=MAX_FILTER_TEXT_CHARS),
         "filter_severity": _safe_text(filter_severity, limit=MAX_FILTER_TEXT_CHARS),
         "knowledge_base_version": _safe_text(knowledge_base_version),
         "n_results": _positive_int(n_results, default=10, max_value=100),
@@ -362,15 +368,19 @@ def cache_stats(
 def build_metadata_filter(
     filter_category: Optional[str],
     filter_severity: Optional[str],
+    filter_chain: Optional[str] = None,
 ) -> Optional[Dict[str, Any]]:
-    """Build the ChromaDB metadata filter for category/severity constraints."""
+    """Build the ChromaDB metadata filter for category/severity/chain constraints."""
     conditions = []
     safe_category = _safe_text(filter_category, limit=MAX_FILTER_TEXT_CHARS)
     safe_severity = _safe_text(filter_severity, limit=MAX_FILTER_TEXT_CHARS)
+    safe_chain = _safe_text(filter_chain, limit=MAX_FILTER_TEXT_CHARS)
     if safe_category:
         conditions.append({"category": safe_category})
     if safe_severity:
         conditions.append({"severity": safe_severity})
+    if safe_chain:
+        conditions.append({"chain": safe_chain})
 
     if not conditions:
         return None

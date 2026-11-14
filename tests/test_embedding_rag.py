@@ -732,3 +732,61 @@ def test_get_context_for_llm_skips_raising_context_results(tmp_path):
     context = rag.get_context_for_llm({"type": "reentrancy"})
 
     assert "Safe" in context
+
+
+# ---------------------------------------------------------------------------
+# M3 — chain provenance: additive `chain` field + optional chain filter
+# ---------------------------------------------------------------------------
+
+
+class TestChainProvenance:
+    def test_document_chain_defaults_to_evm(self):
+        doc = VulnerabilityDocument(id="SWC-107")
+        assert doc.chain == "evm"
+
+    def test_to_metadata_carries_chain(self):
+        assert VulnerabilityDocument(id="x").to_metadata()["chain"] == "evm"
+        assert VulnerabilityDocument(id="x", chain="solana").to_metadata()["chain"] == "solana"
+
+    def test_chain_is_metadata_only_not_embedded(self):
+        """chain must NOT change to_text(), so documents are not re-embedded and
+        EVM retrieval is identical regardless of the chain label."""
+        evm = VulnerabilityDocument(id="x", title="Reentrancy", description="d", chain="evm")
+        sol = VulnerabilityDocument(id="x", title="Reentrancy", description="d", chain="solana")
+        assert evm.to_text() == sol.to_text()
+        assert "chain" not in evm.to_text().lower().split("\n")[0]
+
+    def test_build_metadata_filter_adds_chain_condition(self):
+        from miesc.llm.rag_utils import build_metadata_filter
+
+        assert build_metadata_filter(None, None, "solana") == {"chain": "solana"}
+        combined = build_metadata_filter("reentrancy", None, "evm")
+        assert combined == {"$and": [{"category": "reentrancy"}, {"chain": "evm"}]}
+        # No chain → unchanged behaviour.
+        assert build_metadata_filter("reentrancy", None) == {"category": "reentrancy"}
+
+    def test_safe_metadata_filter_allows_chain(self):
+        assert embedding_rag._safe_metadata_filter(None, None, "evm") == {"chain": "evm"}
+
+    def test_search_threads_chain_filter_to_collection(self, tmp_path):
+        payload = {"ids": [["SWC-107"]], "distances": [[0.25]], "metadatas": [[{}]]}
+        rag, collection = initialized_rag(tmp_path, payload)
+        rag.search("reentrancy", filter_chain="solana")
+        assert collection.query_calls[0]["where"] == {"chain": "solana"}
+
+    def test_search_without_chain_filter_is_unchanged(self, tmp_path):
+        """Regression: the default (no chain) path still sends no where-filter,
+        so EVM retrieval behaviour is identical."""
+        payload = {"ids": [["SWC-107"]], "distances": [[0.25]], "metadatas": [[{}]]}
+        rag, collection = initialized_rag(tmp_path, payload)
+        rag.search("reentrancy")
+        assert collection.query_calls[0]["where"] is None
+
+    def test_chain_filter_yields_distinct_cache_key(self, tmp_path):
+        rag, _ = initialized_rag(
+            tmp_path, {"ids": [["SWC-107"]], "distances": [[0.25]], "metadatas": [[{}]]}
+        )
+        k_evm = rag._get_cache_key("q", None, None, 5, filter_chain="evm")
+        k_sol = rag._get_cache_key("q", None, None, 5, filter_chain="solana")
+        k_none = rag._get_cache_key("q", None, None, 5)
+        assert k_evm != k_sol != k_none and k_evm != k_none
