@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 560" font-family="'Segoe UI',system-ui,-apple-system,Roboto,sans-serif" role="img" aria-label="MIESC exposes four server surfaces. The FastMCP stdio server (miesc-mcp) is the real Model Context Protocol, usable by Claude Desktop, and delegates to the shared analysis core. The mcp_core WebSocket server (miesc server mcp) is a custom event protocol, not MCP, though its ContextBus is a legitimate inter-agent bus. A FastAPI streaming API and a Django REST API are the other two surfaces. Only the FastMCP server is Claude-Desktop compatible.">
+  <rect x="0" y="0" width="1040" height="560" rx="14" fill="#ffffff" stroke="#d0d7de" stroke-width="1.5"/>
+
+  <text x="520" y="38" text-anchor="middle" font-size="19" font-weight="700" fill="#0a3069">MIESC server surfaces — only one is the Model Context Protocol</text>
+  <text x="520" y="60" text-anchor="middle" font-size="12" fill="#57606a">all analysis-running surfaces delegate to a shared core; none duplicates detector logic</text>
+
+  <!-- MCP client -->
+  <rect x="40" y="150" width="170" height="92" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.4"/>
+  <text x="125" y="183" text-anchor="middle" font-size="13" font-weight="700" fill="#0a3069">MCP client</text>
+  <text x="125" y="203" text-anchor="middle" font-size="11.5" fill="#0a3069">Claude Desktop,</text>
+  <text x="125" y="220" text-anchor="middle" font-size="11.5" fill="#0a3069">Claude Code, Cursor</text>
+
+  <!-- arrow client -> FastMCP -->
+  <line x1="210" y1="196" x2="326" y2="140" stroke="#1a7f37" stroke-width="2"/>
+  <polygon points="326,140 314,139 319,149" fill="#1a7f37"/>
+  <text x="250" y="158" font-size="10.5" fill="#1a7f37" font-weight="600">stdio / JSON-RPC ✓</text>
+
+  <!-- Surface A: FastMCP (real MCP) -->
+  <rect x="330" y="112" width="372" height="58" rx="7" fill="#eafaf0" stroke="#2da44e" stroke-width="1.6"/>
+  <text x="346" y="136" font-size="13.5" font-weight="700" fill="#1a7f37">FastMCP stdio server · miesc-mcp</text>
+  <text x="346" y="156" font-size="11.5" fill="#1a7f37">~22 JSON-RPC tools · real MCP · Claude-Desktop ✓</text>
+
+  <!-- Surface B: mcp_core websocket (NOT MCP) -->
+  <rect x="330" y="182" width="372" height="58" rx="7" fill="#fff1e5" stroke="#bc4c00" stroke-width="1.6"/>
+  <text x="346" y="206" font-size="13.5" font-weight="700" fill="#953800">mcp_core WebSocket · miesc server mcp</text>
+  <text x="346" y="226" font-size="11.5" fill="#953800">custom event protocol · NOT MCP · not Claude-Desktop</text>
+
+  <!-- ContextBus (legit) -->
+  <rect x="716" y="182" width="284" height="58" rx="7" fill="#eafaf0" stroke="#2da44e" stroke-width="1.3"/>
+  <text x="732" y="206" font-size="12.5" font-weight="700" fill="#1a7f37">ContextBus (same package)</text>
+  <text x="732" y="226" font-size="11" fill="#1a7f37">inter-agent message bus — legitimate</text>
+
+  <!-- Surface C: FastAPI -->
+  <rect x="330" y="252" width="372" height="52" rx="7" fill="#f6f8fa" stroke="#afb8c1" stroke-width="1.4"/>
+  <text x="346" y="274" font-size="13" font-weight="700" fill="#24292f">core/websocket_api · FastAPI stream</text>
+  <text x="346" y="292" font-size="11" fill="#57606a">optional [api] extra · progress streaming</text>
+
+  <!-- Surface D: Django REST -->
+  <rect x="330" y="316" width="372" height="52" rx="7" fill="#f6f8fa" stroke="#afb8c1" stroke-width="1.4"/>
+  <text x="346" y="338" font-size="13" font-weight="700" fill="#24292f">Django REST · miesc server rest</text>
+  <text x="346" y="356" font-size="11" fill="#57606a">HTTP API · remediation + analysis endpoints</text>
+
+  <!-- shared core -->
+  <rect x="330" y="420" width="470" height="92" rx="9" fill="#ddf4ff" stroke="#0969da" stroke-width="1.6"/>
+  <text x="565" y="450" text-anchor="middle" font-size="14" font-weight="700" fill="#0a3069">Shared analysis core</text>
+  <text x="565" y="472" text-anchor="middle" font-size="12" fill="#0a3069">cli.utils · run_tool / run_layer · status normalization</text>
+  <text x="565" y="492" text-anchor="middle" font-size="12" fill="#0a3069">→ adapters · 9 defense layers · intelligence engine</text>
+
+  <!-- arrows surfaces -> core -->
+  <line x1="420" y1="170" x2="430" y2="418" stroke="#0969da" stroke-width="1.6" stroke-dasharray="4 3"/>
+  <polygon points="430,418 424,408 436,409" fill="#0969da"/>
+  <line x1="560" y1="368" x2="560" y2="418" stroke="#afb8c1" stroke-width="1.4" stroke-dasharray="4 3"/>
+  <polygon points="560,418 554,408 566,409" fill="#afb8c1"/>
+
+  <!-- planned remote transport -->
+  <rect x="820" y="420" width="180" height="92" rx="9" fill="#ffffff" stroke="#8250df" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="910" y="452" text-anchor="middle" font-size="12.5" font-weight="700" fill="#6639ba">planned (M4–M5)</text>
+  <text x="910" y="474" text-anchor="middle" font-size="11" fill="#6639ba">MCP Streamable HTTP</text>
+  <text x="910" y="491" text-anchor="middle" font-size="11" fill="#6639ba">+ external-MCP client</text>
+  <line x1="800" y1="466" x2="818" y2="466" stroke="#8250df" stroke-width="1.5" stroke-dasharray="5 4"/>
+
+  <!-- legend -->
+  <rect x="40" y="300" width="14" height="14" rx="3" fill="#eafaf0" stroke="#2da44e"/>
+  <text x="60" y="312" font-size="11" fill="#57606a">real MCP / legitimate</text>
+  <rect x="40" y="322" width="14" height="14" rx="3" fill="#fff1e5" stroke="#bc4c00"/>
+  <text x="60" y="334" font-size="11" fill="#57606a">mislabeled "MCP"</text>
+  <rect x="40" y="344" width="14" height="14" rx="3" fill="#f6f8fa" stroke="#afb8c1"/>
+  <text x="60" y="356" font-size="11" fill="#57606a">other surface</text>
+  <rect x="40" y="366" width="14" height="14" rx="3" fill="#ffffff" stroke="#8250df" stroke-dasharray="3 2"/>
+  <text x="60" y="378" font-size="11" fill="#57606a">planned</text>
+</svg>
