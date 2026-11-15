@@ -45,7 +45,7 @@ lang: es
 **Demuestra:**
 
 - Análisis Defense-in-Depth a través de 9 capas de seguridad
-- 50 herramientas integradas (Slither, Mythril, Echidna, Certora, etc.)
+- 35 módulos de análisis integrados (Slither, Mythril, Echidna, Certora, etc.)
 - Integración del Model Context Protocol (MCP) con Claude Desktop
 - 95.8% Recall, 22.1% Precisión, F1-Score 35.9% (SmartBugs-curated, 137/143 contratos)
 - IA Soberana con Ollama (el código nunca sale de tu máquina)
@@ -56,7 +56,7 @@ lang: es
 
 **Propósito:**
 
-- Orquestación automatizada de 50 herramientas de análisis de seguridad
+- Orquestación automatizada de 35 módulos de análisis de seguridad
 - Correlación asistida por IA para reducir reportes duplicados
 - Detección con redes neuronales de grafos DA-GNN (la técnica de origen reporta 95.7% de precisión; Computer Networks 2024)
 - Mapeo de cumplimiento a estándares ISO/NIST/OWASP
@@ -75,7 +75,7 @@ lang: es
 
 ## Descripción General
 
-**MIESC** es un framework de seguridad de smart contracts de grado de producción que implementa una **arquitectura Defense-in-Depth de 9 capas**, integrando **50 herramientas de seguridad especializadas** con **correlación potenciada por IA** y **detección basada en ML** para ofrecer detección integral de vulnerabilidades con precisión líder en la industria.
+**MIESC** es un framework de seguridad de smart contracts de grado de producción que implementa una **arquitectura Defense-in-Depth de 9 capas**, integrando **35 módulos de análisis especializados** con **correlación potenciada por IA** y **detección basada en ML** para ofrecer detección integral de vulnerabilidades con precisión líder en la industria.
 
 ### Logros Principales (v6.0.0)
 
@@ -392,7 +392,7 @@ Damos la bienvenida a contribuciones de las comunidades de investigación en seg
 
 - Specs CVL Certora para patrones comunes (ERC-20/721)
 - Templates de propiedades Echidna para DeFi
-- Tests de integración para las 50 herramientas
+- Tests de integración para todas las herramientas
 - Análisis de vulnerabilidades cross-chain
 - Traducciones de documentación
 

@@ -23,7 +23,7 @@ Esta guía proporciona un flujo de trabajo estructurado para realizar auditoría
 
 ## Descripción General
 
-MIESC integra **50 herramientas de seguridad** en **9 capas de defensa** para proporcionar un análisis completo de smart contracts:
+MIESC integra **35 módulos de análisis** en **9 capas de defensa** para proporcionar un análisis completo de smart contracts:
 
 | Capa | Enfoque | Herramientas Principales |
 |------|---------|--------------------------|

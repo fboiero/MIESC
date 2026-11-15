@@ -7,7 +7,7 @@ is on the **roadmap**: experimental adapter code exists but is not production-va
 
 | Level | Description |
 |-------|-------------|
-| ✅ **Production** | Full 9-layer analysis with 50 tools across 35 analysis modules. Recommended for audits. |
+| ✅ **Production** | Full 9-layer analysis with 35 analysis modules. Recommended for audits. |
 | 🧪 **Experimental** | A real external analyzer is integrated (not just patterns), but recall/precision are not yet benchmark-validated. Useful for review; not a production guarantee. |
 | 🛣️ **Roadmap** | Experimental adapter code (pattern-based). Planned, NOT production-validated — not for security decisions yet. |
 
@@ -339,7 +339,7 @@ Non-EVM analyzers are useful for:
 
 | Phase | Chains | Target |
 |-------|--------|--------|
-| Current (v6.8.0) | EVM | Production (9 layers, 50 tools) |
+| Current (v6.8.0) | EVM | Production (9 layers, 35 modules) |
 | Next | Solana, NEAR | Experimental adapters → validated analysis |
 | Later | Move, Stellar | Formal-verification research |
 | Future | All chains | Production-grade multi-chain |

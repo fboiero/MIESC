@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 MIESC Adapter Diagnostic Tool
-Verifies availability of all 50 security tool adapters using their internal is_available() methods.
+Verifies availability of all registered security tool adapters using their internal is_available() methods.
 
 Usage:
     python scripts/diagnose-adapters.py

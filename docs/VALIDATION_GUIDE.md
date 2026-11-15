@@ -585,7 +585,7 @@ MIESC/
 │   ├── api/               # REST API
 │   └── core/              # Logica central
 ├── src/                   # Modulos fuente
-│   ├── adapters/          # Adaptadores de herramientas (50 tools / 35 modulos)
+│   ├── adapters/          # Adaptadores de herramientas (35 módulos)
 │   ├── core/              # Infraestructura core
 │   ├── ml/                # Machine Learning
 │   ├── security/          # Modulos de seguridad
