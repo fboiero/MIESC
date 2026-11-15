@@ -33,6 +33,7 @@ CORE_PACKAGES = [
     ("yaml", "pyyaml"),
     ("jinja2", "jinja2"),
     ("json_repair", "json-repair"),
+    ("filelock", "filelock"),
 ]
 
 # Optional extras: (import name, pip name, extra and what it unlocks). Missing
