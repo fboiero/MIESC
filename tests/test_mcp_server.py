@@ -245,7 +245,19 @@ class TestMCPTools:
         data = json.loads(asyncio.run(miesc_get_status()))
         assert data["status"] == "operational"
         assert data["architecture"]["total_tools"] == 2
+        # Layer count is derived from LAYERS, never hard-coded.
+        assert data["architecture"]["layers"] == 1  # len(_LAYERS)
         assert "1" in data["layers"]
+
+    def test_miesc_get_metrics_counts_are_dynamic(self):
+        from miesc.mcp_server import miesc_get_metrics
+
+        data = json.loads(asyncio.run(miesc_get_metrics()))
+        # Counts come from the real structures, not a hard-coded round number.
+        assert data["layers"] == 1  # len(_LAYERS)
+        assert data["registered_adapter_slots"] == 2  # len(_AMAP)
+        # The inflated flat "50 tools" claim is gone (consistency with README).
+        assert "tools" not in data
 
     def test_miesc_get_tool_info_unknown(self):
         data = json.loads(asyncio.run(miesc_get_tool_info("nonexistent_tool")))
