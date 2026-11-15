@@ -15,7 +15,8 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   to `>=1.5.9` (latest) for currency — its open server-mode advisories (PYSEC-2026-311 /
   3813 / 3814 / 3815) have no fixed release yet and do not apply to MIESC, which uses
   chromadb only as an embedded local client (`chromadb.PersistentClient`), never the
-  network server.
+  network server. The Dependency Security workflow now ignores those four IDs with that
+  justification inline, to be removed once upstream ships a fix.
 
 ### Changed
 

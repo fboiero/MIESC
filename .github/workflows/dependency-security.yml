@@ -59,8 +59,13 @@ jobs:
           echo "### pip-audit Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          pip-audit --format json --output pip-audit.json || true
-          pip-audit --desc on 2>&1 | tee pip-audit.txt
+          # chromadb server-mode advisories with no fixed release (OSV last_affected:
+          # 1.5.9, i.e. even the latest is still affected). MIESC uses chromadb only as an
+          # embedded local client (chromadb.PersistentClient), never the network server,
+          # so these do not apply. Remove these ignores once upstream ships a fix.
+          CHROMADB_IGNORES="--ignore-vuln PYSEC-2026-311 --ignore-vuln PYSEC-2026-3813 --ignore-vuln PYSEC-2026-3814 --ignore-vuln PYSEC-2026-3815"
+          pip-audit $CHROMADB_IGNORES --format json --output pip-audit.json || true
+          pip-audit $CHROMADB_IGNORES --desc on 2>&1 | tee pip-audit.txt
 
           # Count vulnerabilities
           VULN_COUNT=$(grep -c "^Name:" pip-audit.txt 2>/dev/null || true)
