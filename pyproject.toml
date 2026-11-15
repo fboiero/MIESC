@@ -49,6 +49,10 @@ dependencies = [
     # Tolerant JSON repair for LLM output (pure Python). Core, not an extra: the
     # local --model ollama path needs it and must work on a minimal install.
     "json-repair>=0.25.0",
+    # Transitive (pulled by chromadb and others); pinned here only to exclude the
+    # pre-4.2.1 filelock releases flagged by CVE-2026-112907/112909/112910/112913/
+    # 112915/112935/112936/112939/112940. 4.2.1 clears all of them.
+    "filelock>=4.2.1",
 ]
 
 [project.optional-dependencies]
@@ -120,7 +124,11 @@ llm = [
 ]
 # RAG with embeddings and vector database
 rag = [
-    "chromadb>=0.4.0",
+    # Floor raised to the latest release (1.5.9) for currency. MIESC uses chromadb only
+    # as an embedded local client (chromadb.PersistentClient), never the network server,
+    # so the open server-mode advisories PYSEC-2026-311/3813/3814/3815 (no fixed release
+    # yet as of 1.5.9) do not apply to this usage.
+    "chromadb>=1.5.9",
     "rank-bm25>=0.2.2",
 ]
 rag-embeddings = [
@@ -159,7 +167,7 @@ full = [
     # Lightweight RAG dependencies. Semantic embeddings are split into
     # rag-embeddings so CPU-only Docker builds do not accidentally pull CUDA
     # PyTorch wheels from the default package index.
-    "chromadb>=0.4.0",
+    "chromadb>=1.5.9",
     "rank-bm25>=0.2.2",
     # Note: mythril excluded due to dependency conflicts
     # Install separately: pip install mythril

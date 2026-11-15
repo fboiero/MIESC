@@ -267,7 +267,13 @@ class TestRemoteHTTPIntegration:
         from starlette.applications import Starlette
         from starlette.testclient import TestClient
 
-        app = build_remote_app(TOKEN)  # wraps the real streamable_http_app()
+        try:
+            app = build_remote_app(TOKEN)  # wraps the real streamable_http_app()
+        except RemoteAuthError as exc:
+            # `mcp` imports but is too old to provide streamable_http_app() (needs the
+            # ~1.8+ Streamable HTTP SDK, installed via `miesc[mcp]`). importorskip("mcp")
+            # cannot see that, so skip the live integration here rather than error.
+            pytest.skip(f"installed MCP SDK lacks streamable_http_app(): {exc}")
         # test_mcp_server.py injects a MagicMock 'mcp' into sys.modules for its
         # own unit tests; in the full suite that poisons the session, so the
         # "real" streamable app may actually be a Mock. Only run against a

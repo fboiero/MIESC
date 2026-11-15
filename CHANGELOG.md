@@ -7,6 +7,17 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Security
+
+- **Dependency CVE remediation.** Pinned `filelock>=4.2.1` (core dependency) to exclude the
+  pre-4.2.1 releases flagged by CVE-2026-112907 / 112909 / 112910 / 112913 / 112915 /
+  112935 / 112936 / 112939 / 112940; 4.2.1 clears all of them. Raised the `chromadb` floor
+  to `>=1.5.9` (latest) for currency — its open server-mode advisories (PYSEC-2026-311 /
+  3813 / 3814 / 3815) have no fixed release yet and do not apply to MIESC, which uses
+  chromadb only as an embedded local client (`chromadb.PersistentClient`), never the
+  network server. The Dependency Security workflow now ignores those four IDs with that
+  justification inline, to be removed once upstream ships a fix.
+
 ### Changed
 
 - **Cross-chain whitepaper reformatted as a scientific preprint.**
