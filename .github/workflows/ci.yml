@@ -101,7 +101,9 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -e ".[dev]"
+          # [api] pulls in Django/DRF so the REST API endpoint tests run here
+          # instead of skipping (they were skipped everywhere before).
+          pip install -e ".[dev,api]"
           pip install pytest pytest-cov pytest-mock
 
       - name: Run unit tests
