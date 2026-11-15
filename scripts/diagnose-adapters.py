@@ -21,6 +21,7 @@ sys.path.insert(0, str(project_root))
 
 # Now import MIESC modules
 try:
+    from miesc import __version__
     from miesc.adapters import (
         get_adapter_status_report,
         register_all_adapters,
@@ -85,7 +86,7 @@ def status_label(status: ToolStatus) -> str:
 def print_header():
     """Print diagnostic header."""
     print("=" * 70)
-    print("MIESC Adapter Diagnostic Tool v6.0.0")
+    print(f"MIESC Adapter Diagnostic Tool v{__version__}")
     print(f"Timestamp: {datetime.now().isoformat()}")
     print(f"OLLAMA_HOST: {os.environ.get('OLLAMA_HOST', 'not set')}")
     print("=" * 70)
@@ -339,7 +340,7 @@ def diagnose_all_adapters():
     # Export JSON report
     report = {
         "timestamp": datetime.now().isoformat(),
-        "version": "6.0.0",
+        "version": __version__,
         "summary": {
             "total": total,
             "available": passed,
