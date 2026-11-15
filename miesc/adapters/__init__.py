@@ -18,7 +18,7 @@ Date: 2025-01-09
 import logging
 from typing import Any, Dict, List, Optional
 
-# Layer 1 - Static Analysis (6 tools)
+# Layer 1 - Static Analysis (7 tools)
 from miesc.adapters.aderyn_adapter import AderynAdapter
 from miesc.adapters.advanced_detector_adapter import AdvancedDetectorAdapter
 from miesc.adapters.audit_consensus_adapter import AuditConsensusAdapter
@@ -92,6 +92,7 @@ from miesc.adapters.threat_model_adapter import ThreatModelAdapter
 from miesc.adapters.upgradability_checker_adapter import UpgradabilityCheckerAdapter
 from miesc.adapters.vertigo_adapter import VertigoAdapter
 from miesc.adapters.vuln_verifier_adapter import VulnVerifierAdapter
+from miesc.adapters.vyper_adapter import VyperAdapter
 from miesc.adapters.wake_adapter import WakeAdapter
 from miesc.adapters.zk_circuit_adapter import ZKCircuitAdapter
 from miesc.core.tool_protocol import ToolStatus, get_tool_registry
@@ -115,13 +116,14 @@ def register_all_adapters() -> Dict[str, Any]:
 
     # Lista de adaptadores del registro por capas.
     adapters_to_register = [
-        # Layer 1 - Static Analysis (6 tools)
+        # Layer 1 - Static Analysis (7 tools)
         ("slither", SlitherAdapter),
         ("aderyn", AderynAdapter),
         ("solhint", SolhintAdapter),
         ("semgrep", SemgrepAdapter),
         ("wake", WakeAdapter),
         ("fouranalyzer", FourAnalyzerAdapter),
+        ("vyper", VyperAdapter),
         # Layer 2 - Dynamic Testing (6 tools)
         ("echidna", EchidnaAdapter),
         ("medusa", MedusaAdapter),
@@ -284,13 +286,14 @@ __all__ = [
     "get_available_adapters",
     "get_adapter_status_report",
     "get_adapter_by_name",
-    # Layer 1 - Static Analysis (6 tools)
+    # Layer 1 - Static Analysis (7 tools)
     "SlitherAdapter",
     "AderynAdapter",
     "SolhintAdapter",
     "SemgrepAdapter",
     "WakeAdapter",
     "FourAnalyzerAdapter",
+    "VyperAdapter",
     # Layer 2 - Dynamic Testing (6 tools)
     "EchidnaAdapter",
     "MedusaAdapter",

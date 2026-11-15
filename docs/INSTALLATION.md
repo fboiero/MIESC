@@ -349,8 +349,8 @@ MIESC v6.8.0 - Installation Verification
 
 5. MIESC Adapter Registration
 ----------------------------------------
-  [OK] All 50/50 adapters registered
-  [OK] 43/50 tools currently available (run `miesc doctor` for the list)
+  [OK] All 51/51 adapters registered
+  [OK] 43/51 tools currently available (run `miesc doctor` for the list)
 
 Installation Summary
 ============================================================

@@ -4864,6 +4864,50 @@ class TestAdaptersRegistry:
             assert "category" in adapter_info
             assert "optional" in adapter_info
 
+    def test_adapter_registries_are_consistent(self):
+        """Guard against drift between the three adapter inventories.
+
+        There are three independently declared adapter lists that must stay in
+        a fixed relationship:
+
+        - ``register_all_adapters()`` (the runtime registry) must attempt
+          exactly the tools wired into the 9-layer EVM stack (``LAYERS``);
+        - every ``LAYERS`` tool must be declared in ``ADAPTER_MAP``;
+        - ``ADAPTER_MAP``'s surplus over ``LAYERS`` must be exactly the known
+          multichain / experimental adapters, which deliberately live outside
+          the EVM layer stack.
+
+        This locks the 51 (registered) == 51 (EVM layers) subset-of 56
+        (declared) relationship so the counts cannot silently diverge again
+        (the "50 tools" drift: a new adapter added to LAYERS/ADAPTER_MAP but
+        forgotten in the registration list, or vice versa).
+        """
+        from miesc.adapters import register_all_adapters
+        from miesc.cli.constants import ADAPTER_MAP, LAYERS
+
+        layer_tools = {t for layer in LAYERS.values() for t in layer["tools"]}
+        adapter_map = set(ADAPTER_MAP)
+
+        report = register_all_adapters()
+        attempted = {a["name"] for a in report["adapters"]} | {
+            f["name"] for f in report["failures"]
+        }
+
+        # The registry attempts exactly the EVM layer stack (availability on the
+        # host is irrelevant: registered + failed covers every attempted tool).
+        assert attempted == layer_tools
+        # The EVM stack is fully declared in ADAPTER_MAP.
+        assert layer_tools <= adapter_map
+        # ADAPTER_MAP's surplus over the layers is exactly the multichain set.
+        multichain_only = {
+            "cairo",
+            "caracal",
+            "frontier_llm",
+            "polkavm_diff",
+            "polkavm_resolc",
+        }
+        assert adapter_map - layer_tools == multichain_only
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v", "--tb=short"])
