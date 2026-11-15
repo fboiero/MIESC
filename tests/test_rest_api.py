@@ -526,9 +526,18 @@ try:
         settings.configure(
             DEBUG=True,
             DATABASES={},
-            INSTALLED_APPS=["django.contrib.contenttypes", "django.contrib.auth"],
+            ALLOWED_HOSTS=["*"],
+            INSTALLED_APPS=[
+                "django.contrib.contenttypes",
+                "django.contrib.auth",
+                "rest_framework",
+            ],
             REST_FRAMEWORK={},
+            # Point at the rest module's own urlpatterns so APIClient can route
+            # requests to the real endpoints over HTTP.
+            ROOT_URLCONF="miesc.api.rest",
         )
+        django.setup()
     from rest_framework.test import APIClient
 
     DJANGO_AVAILABLE = True
@@ -570,3 +579,23 @@ class TestDjangoViews:
             assert "name" in layer
             assert "tools" in layer
             assert isinstance(layer["tools"], list)
+
+    def test_layers_endpoint_over_http(self):
+        """GET /api/v1/layers/ actually serves the configured layer stack."""
+        from miesc.api.rest import LAYERS
+
+        resp = APIClient().get("/api/v1/layers/")
+        assert resp.status_code == 200
+        assert resp.json()["total_layers"] == len(LAYERS)
+
+    def test_tools_endpoint_over_http(self):
+        """GET /api/v1/tools/ reflects the tools declared across the layers."""
+        from miesc.api.rest import LAYERS
+
+        resp = APIClient().get("/api/v1/tools/")
+        assert resp.status_code == 200
+        body = resp.json()
+        layer_tools = {tool for layer in LAYERS.values() for tool in layer["tools"]}
+        assert body["total_tools"] == len(layer_tools)
+        names = {t.get("name") if isinstance(t, dict) else t for t in body["tools"]}
+        assert "slither" in names
