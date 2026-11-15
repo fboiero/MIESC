@@ -11,6 +11,8 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
+from miesc.cli.constants import ADAPTER_MAP as _CANONICAL_ADAPTER_MAP
+
 logger = logging.getLogger(__name__)
 
 
@@ -88,34 +90,13 @@ class HealthChecker:
     - Tiempos de respuesta
     """
 
-    # Mapeo de adaptadores a sus clases
+    # Derived from the canonical adapter inventory in ``miesc.cli.constants`` so
+    # it can never drift from the layer stack. HealthChecker loads adapters by
+    # importable module path, resolved with the same ``{tool}_adapter`` convention
+    # the CLI's AdapterLoader uses.
     ADAPTER_MAP = {
-        "slither": ("miesc.adapters.slither_adapter", "SlitherAdapter"),
-        "mythril": ("miesc.adapters.mythril_adapter", "MythrilAdapter"),
-        "aderyn": ("miesc.adapters.aderyn_adapter", "AderynAdapter"),
-        "solhint": ("miesc.adapters.solhint_adapter", "SolhintAdapter"),
-        "echidna": ("miesc.adapters.echidna_adapter", "EchidnaAdapter"),
-        "foundry": ("miesc.adapters.foundry_adapter", "FoundryAdapter"),
-        "medusa": ("miesc.adapters.medusa_adapter", "MedusaAdapter"),
-        "dogefuzz": ("miesc.adapters.dogefuzz_adapter", "DogeFuzzAdapter"),
-        "manticore": ("miesc.adapters.manticore_adapter", "ManticoreAdapter"),
-        "halmos": ("miesc.adapters.halmos_adapter", "HalmosAdapter"),
-        "smtchecker": ("miesc.adapters.smtchecker_adapter", "SMTCheckerAdapter"),
-        "certora": ("miesc.adapters.certora_adapter", "CertoraAdapter"),
-        "wake": ("miesc.adapters.wake_adapter", "WakeAdapter"),
-        "propertygpt": ("miesc.adapters.propertygpt_adapter", "PropertyGPTAdapter"),
-        "smartllm": ("miesc.adapters.smartllm_adapter", "SmartLLMAdapter"),
-        "gptscan": ("miesc.adapters.gptscan_adapter", "GPTScanAdapter"),
-        "llmsmartaudit": ("miesc.adapters.llmsmartaudit_adapter", "LLMSmartAuditAdapter"),
-        "gas_analyzer": ("miesc.adapters.gas_analyzer_adapter", "GasAnalyzerAdapter"),
-        "mev_detector": ("miesc.adapters.mev_detector_adapter", "MEVDetectorAdapter"),
-        "threat_model": ("miesc.adapters.threat_model_adapter", "ThreatModelAdapter"),
-        "smartbugs_ml": ("miesc.adapters.smartbugs_ml_adapter", "SmartBugsMLAdapter"),
-        "dagnn": ("miesc.adapters.dagnn_adapter", "DAGNNAdapter"),
-        "contract_clone_detector": (
-            "miesc.adapters.contract_clone_detector_adapter",
-            "ContractCloneDetectorAdapter",
-        ),
+        tool: (f"miesc.adapters.{tool}_adapter", class_name)
+        for tool, class_name in _CANONICAL_ADAPTER_MAP.items()
     }
 
     def __init__(self, max_workers: int = 4):

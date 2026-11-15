@@ -110,118 +110,13 @@ except ImportError:
 # ============================================================================
 
 from miesc import __version__ as VERSION  # noqa: E402
+from miesc.cli.constants import ADAPTER_MAP, LAYERS  # noqa: E402
 
-# Layer definitions (same as CLI)
-LAYERS = {
-    1: {
-        "name": "Static Analysis",
-        "description": "Pattern-based code analysis",
-        "tools": ["slither", "aderyn", "solhint", "wake"],
-    },
-    2: {
-        "name": "Dynamic Testing",
-        "description": "Fuzzing and property testing",
-        "tools": ["echidna", "medusa", "foundry", "dogefuzz", "vertigo"],
-    },
-    3: {
-        "name": "Symbolic Execution",
-        "description": "Path exploration and constraint solving",
-        "tools": ["mythril", "manticore", "halmos", "oyente"],
-    },
-    4: {
-        "name": "Formal Verification",
-        "description": "Mathematical proofs of correctness",
-        "tools": ["certora", "smtchecker", "propertygpt"],
-    },
-    5: {
-        "name": "AI Analysis",
-        "description": "LLM-powered vulnerability detection",
-        "tools": ["smartllm", "gptscan", "llmsmartaudit"],
-    },
-    6: {
-        "name": "ML Detection",
-        "description": "Machine learning classifiers",
-        "tools": ["dagnn", "smartbugs_ml", "smartbugs_detector", "smartguard"],
-    },
-    7: {
-        "name": "Specialized Analysis",
-        "description": "Domain-specific security checks",
-        "tools": [
-            "threat_model",
-            "gas_analyzer",
-            "mev_detector",
-            "contract_clone_detector",
-            "defi",
-            "advanced_detector",
-        ],
-    },
-    8: {
-        "name": "Cross-Chain & ZK Security",
-        "description": "Bridge security and zero-knowledge circuit analysis",
-        "tools": ["crosschain", "zk_circuit"],
-    },
-    9: {
-        "name": "Advanced AI Ensemble",
-        "description": "Multi-LLM ensemble with consensus-based detection",
-        "tools": ["llmbugscanner"],
-    },
-}
+# LAYERS is imported above from the canonical inventory in miesc.cli.constants
+# (single source of truth) — do not redefine a local copy here.
 
-# Adapter class mapping
-ADAPTER_MAP = {
-    "slither": "SlitherAdapter",
-    "aderyn": "AderynAdapter",
-    "solhint": "SolhintAdapter",
-    "semgrep": "SemgrepAdapter",
-    "wake": "WakeAdapter",
-    "fouranalyzer": "FourAnalyzerAdapter",
-    "echidna": "EchidnaAdapter",
-    "medusa": "MedusaAdapter",
-    "foundry": "FoundryAdapter",
-    "dogefuzz": "DogeFuzzAdapter",
-    "hardhat": "HardhatAdapter",
-    "vertigo": "VertigoAdapter",
-    "mythril": "MythrilAdapter",
-    "manticore": "ManticoreAdapter",
-    "halmos": "HalmosAdapter",
-    "oyente": "OyenteAdapter",
-    "pakala": "PakalaAdapter",
-    "certora": "CertoraAdapter",
-    "smtchecker": "SMTCheckerAdapter",
-    "propertygpt": "PropertyGPTAdapter",
-    "scribble": "ScribbleAdapter",
-    "solcmc": "SolCMCAdapter",
-    "smartllm": "SmartLLMAdapter",
-    "gptscan": "GPTScanAdapter",
-    "llmsmartaudit": "LLMSmartAuditAdapter",
-    "gptlens": "GPTLensAdapter",
-    "llamaaudit": "LlamaAuditAdapter",
-    "iaudit": "IAuditAdapter",
-    "dagnn": "DAGNNAdapter",
-    "smartbugs_ml": "SmartBugsMLAdapter",
-    "smartbugs_detector": "SmartBugsDetectorAdapter",
-    "smartguard": "SmartGuardAdapter",
-    "peculiar": "PeculiarAdapter",
-    "threat_model": "ThreatModelAdapter",
-    "gas_analyzer": "GasAnalyzerAdapter",
-    "mev_detector": "MEVDetectorAdapter",
-    "contract_clone_detector": "ContractCloneDetectorAdapter",
-    "defi": "DeFiAdapter",
-    "advanced_detector": "AdvancedDetectorAdapter",
-    "upgradability_checker": "UpgradabilityCheckerAdapter",
-    # Layer 8: Cross-Chain & ZK Security
-    "crosschain": "CrossChainAdapter",
-    "zk_circuit": "ZKCircuitAdapter",
-    "bridge_monitor": "BridgeMonitorAdapter",
-    "l2_validator": "L2ValidatorAdapter",
-    "circom_analyzer": "CircomAnalyzerAdapter",
-    # Layer 9: Advanced AI Ensemble
-    "llmbugscanner": "LLMBugScannerAdapter",
-    "audit_consensus": "AuditConsensusAdapter",
-    "exploit_synthesizer": "ExploitSynthesizerAdapter",
-    "vuln_verifier": "VulnVerifierAdapter",
-    "remediation_validator": "RemediationValidatorAdapter",
-}
+# ADAPTER_MAP is imported above from the canonical inventory in miesc.cli.constants
+# (single source of truth) — do not redefine a local copy here.
 
 # Quick scan tools
 QUICK_TOOLS = ["slither", "aderyn", "solhint", "mythril"]
