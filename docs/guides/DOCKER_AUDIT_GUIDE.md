@@ -25,7 +25,7 @@ Download Docker Desktop from https://www.docker.com/products/docker-desktop
 - Docker Desktop → Settings → Resources → Memory → **8GB** (or more)
 - Apply & Restart
 
-**Pull the FULL MIESC image** (includes all 50 tools):
+**Pull the FULL MIESC image** (includes all tools):
 
 ```bash
 docker pull ghcr.io/fboiero/miesc:full

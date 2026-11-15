@@ -32,7 +32,7 @@ Improvements in v2.2 (v4.6.0):
 - Solidity 0.8+ overflow protection awareness
 
 Improvements in v2.3 (v5.0.0):
-- FP rates for 17 new adapters (L1-L9 expansion to 50 tools)
+- FP rates for 17 new adapters (L1-L9 expansion)
 - Proxy-aware filtering for upgradability checker findings
 - Layer 9 meta-analysis integration (exploit_confirmed, refuted, consensus)
 - Cross-chain and ZK circuit FP rate calibration

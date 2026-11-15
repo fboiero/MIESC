@@ -74,7 +74,7 @@ title: Smart Contract Security Framework
 
 ## Overview
 
-**MIESC** is a smart contract security framework built on a **9-layer defense-in-depth architecture**. It runs **50 security tools** and cross-checks their output with **AI-powered correlation** and **ML-based detection**, so real vulnerabilities surface and false positives get filtered out.
+**MIESC** is a smart contract security framework built on a **9-layer defense-in-depth architecture**. It runs **35 analysis modules** and cross-checks their output with **AI-powered correlation** and **ML-based detection**, so real vulnerabilities surface and false positives get filtered out.
 
 ### Key Achievements (v6.0.0)
 
@@ -389,7 +389,7 @@ We welcome contributions from the security research and blockchain communities!
 
 - Certora CVL specs for common patterns (ERC-20/721)
 - Echidna property templates for DeFi
-- Integration tests for all 50 tools
+- Integration tests for all tools
 - Cross-chain vulnerability analysis
 - Documentation translations
 

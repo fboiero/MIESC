@@ -128,7 +128,7 @@ npm install -g solhint
 
 ## Tool Installation by Layer
 
-MIESC integrates 50 tools across 35 analysis modules, organized in 9 defense layers. Install tools based on your needs.
+MIESC integrates 35 analysis modules, organized in 9 defense layers. Install tools based on your needs.
 
 ### Layer 1: Static Analysis (3 tools)
 

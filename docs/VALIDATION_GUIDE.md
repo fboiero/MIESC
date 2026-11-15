@@ -201,7 +201,7 @@ Layer 3 - Symbolic Execution:
 
 ...
 
-Total: X tools available out of 50 (50 tools across 35 analysis modules)
+Total: X tools available out of 51
 ```
 
 ### 4.3 Verificar Importaciones de Python
@@ -585,7 +585,7 @@ MIESC/
 │   ├── api/               # REST API
 │   └── core/              # Logica central
 ├── src/                   # Modulos fuente
-│   ├── adapters/          # Adaptadores de herramientas (50 tools / 35 modulos)
+│   ├── adapters/          # Adaptadores de herramientas (35 módulos)
 │   ├── core/              # Infraestructura core
 │   ├── ml/                # Machine Learning
 │   ├── security/          # Modulos de seguridad

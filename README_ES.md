@@ -1,7 +1,7 @@
 <p align="center">
   <h1 align="center">MIESC</h1>
   <p align="center">
-    <strong>50 herramientas de seguridad. 9 capas de defensa. Un comando.</strong>
+    <strong>35 módulos de análisis. 9 capas de defensa. Un comando.</strong>
   </p>
   <p align="center">
     Seguridad de nivel empresarial para contratos inteligentes, libre y abierta para todos.
@@ -185,7 +185,7 @@ Capa 9  Consenso y Reportes      Consenso Bayesiano, Enriquecimiento RAG, Report
 | **Herramientas de seguridad externas** | 13 | Slither, Mythril, Echidna, Foundry, Halmos, Aderyn, Semgrep |
 | **Módulos de análisis LLM** | 6 | SmartLLM, GPTScan, PropertyGPT (vía Ollama local) |
 | **Analizadores internos** | 16 | MEV detector, gas analyzer, threat model, clone detector |
-| **Total de módulos de análisis** | **35** | 13 + 6 + 16, a través de 9 técnicas. El titular de "50 herramientas" cuenta el stack completo de adapters/capas en `miesc/cli/constants.py`; `miesc doctor` muestra cuántas están disponibles en tu máquina. |
+| **Total de módulos de análisis** | **35** | 13 + 6 + 16, a través de 9 técnicas. El stack completo de adapters/capas en `miesc/cli/constants.py` tiene ~56 slots registrados (variantes de herramientas y back-ends opcionales incluidos); `miesc doctor` muestra cuántas están disponibles en tu máquina. |
 
 ### vs. SmartBugs 2.0 (competidor más cercano)
 
@@ -328,7 +328,7 @@ versión actual publicada es la 6.0.0 (PyPI y GHCR).
 docker pull ghcr.io/fboiero/miesc:latest
 docker run --rm -v $(pwd):/contracts ghcr.io/fboiero/miesc:latest scan /contracts/MyContract.sol
 
-# Imagen completa (~8GB, las 50 herramientas, amd64)
+# Imagen completa (~8GB, stack completo de herramientas, amd64)
 docker pull ghcr.io/fboiero/miesc:full
 docker run --rm -v $(pwd):/contracts ghcr.io/fboiero/miesc:full audit full /contracts/MyContract.sol
 
@@ -584,7 +584,7 @@ licenciamiento y los clientes IDE viven ahora en la capa de plataforma.
 | Algorand | Roadmap | TEAL, PyTeal |
 | Cardano | Roadmap | Plutus, Aiken |
 
-> **El análisis EVM (50 herramientas, 9 capas) está listo para producción.** Polkadot/PolkaVM
+> **El análisis EVM (35 módulos, 9 capas) está listo para producción.** Polkadot/PolkaVM
 > y Cairo/Starknet son **experimentales** — hay un analizador externo real integrado, pero
 > recall/precisión todavía no están validados con benchmark. El resto de las cadenas no-EVM
 > están en el **roadmap**: existe código de adapter basado en patrones, no validado para
@@ -619,7 +619,7 @@ Contract.sol
 ```
 
 Todo el código vive en el único paquete `miesc/` (instalable vía pip): CLI, adaptadores
-para las 50 herramientas, pipeline ML, RAG, remediación y generación de reportes. Corré
+para el stack completo de herramientas, pipeline ML, RAG, remediación y generación de reportes. Corré
 `miesc doctor` para ver qué herramientas están disponibles en tu máquina.
 
 Consultá [ARCHITECTURE.md](./docs/ARCHITECTURE.md) para el diseño técnico completo con diagramas Mermaid.

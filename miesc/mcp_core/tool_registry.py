@@ -388,7 +388,7 @@ class MCPToolRegistry:
             MCPTool(
                 name="miesc_deep_scan",
                 description=(
-                    "Comprehensive security scan using all 9 defense layers (50 tools). "
+                    "Comprehensive security scan across all 9 defense layers. "
                     "Includes symbolic execution, fuzzing, formal verification, AI analysis, "
                     "ML detection, cross-chain/ZK security, and advanced AI ensemble. "
                     "Recommended for pre-deployment audits."
@@ -494,7 +494,7 @@ class MCPToolRegistry:
                 name="miesc_run_tool",
                 description=(
                     "Run a specific security analysis tool on a contract. "
-                    "Choose from 50 available tools across 9 defense layers."
+                    "Choose from the available tools across 9 defense layers."
                 ),
                 category=ToolCategory.STATIC_ANALYSIS,
                 parameters=[
@@ -627,7 +627,7 @@ class MCPToolRegistry:
             MCPTool(
                 name="miesc_list_tools",
                 description=(
-                    "List all 50 available security analysis tools. "
+                    "List all available security analysis tools. "
                     "Optionally filter by layer number (1-9)."
                 ),
                 category=ToolCategory.REPORTING,

@@ -19,7 +19,7 @@ BANNER = r"""
  |_|  |_|___|_____|____/ \____|
 """
 
-# Complete 9-layer architecture with 50 tools
+# Complete 9-layer architecture
 LAYERS: Dict[int, Dict[str, Any]] = {
     1: {
         "name": "Static Analysis",
