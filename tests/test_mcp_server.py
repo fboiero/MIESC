@@ -22,6 +22,7 @@ sys.modules.setdefault("mcp.server", _fake_mcp_mod.server)
 sys.modules.setdefault("mcp.server.fastmcp", _fake_mcp_mod.server.fastmcp)
 
 from miesc.mcp_server import (  # noqa: E402
+    _confine_to_workspace,
     _get_adapter_loader,
     _get_adapter_map,
     _get_layers,
@@ -29,6 +30,7 @@ from miesc.mcp_server import (  # noqa: E402
     _run_tool_internal,
     _summarize_results,
     _validate_contract_path,
+    get_workspace_root,
     miesc_analyze_defi,
     miesc_apply_fix,
     miesc_correlate,
@@ -41,6 +43,7 @@ from miesc.mcp_server import (  # noqa: E402
     miesc_remediate,
     miesc_remediation_evidence_bundle,
     miesc_validate_remediation,
+    set_workspace_root,
 )
 
 SAMPLE_SOL = "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\ncontract S {}\n"
@@ -69,6 +72,53 @@ class TestValidateContractPath:
         circ = tmp_path / "circuit.circom"
         circ.write_text("template Main() {}")
         assert _validate_contract_path(str(circ)) == str(circ.resolve())
+
+
+# =========================================================================
+# Workspace confinement (M5) — opt-in; stdio default is unconfined
+# =========================================================================
+class TestWorkspaceConfinement:
+    @pytest.fixture(autouse=True)
+    def _reset_root(self):
+        # The workspace root is module-global; never leak it to other tests.
+        set_workspace_root(None)
+        yield
+        set_workspace_root(None)
+
+    def test_unconfined_by_default(self):
+        assert get_workspace_root() is None
+        # A path outside any root is returned unchanged when unconfined.
+        from pathlib import Path
+
+        p = Path("/tmp/anywhere.sol")
+        assert _confine_to_workspace(p) == p
+
+    def test_path_inside_root_is_allowed(self, tmp_path):
+        set_workspace_root(str(tmp_path))
+        inside = tmp_path / "sub" / "Token.sol"
+        inside.parent.mkdir(parents=True)
+        inside.write_text(SAMPLE_SOL)
+        assert _validate_contract_path(str(inside)) == str(inside.resolve())
+
+    def test_path_outside_root_is_rejected(self, tmp_path):
+        root = tmp_path / "ws"
+        root.mkdir()
+        outside = tmp_path / "secret.sol"
+        outside.write_text(SAMPLE_SOL)
+        set_workspace_root(str(root))
+        with pytest.raises(ValueError, match="escapes the configured MCP workspace root"):
+            _validate_contract_path(str(outside))
+
+    def test_traversal_escape_is_rejected(self, tmp_path):
+        root = tmp_path / "ws"
+        root.mkdir()
+        set_workspace_root(str(root))
+        with pytest.raises(ValueError, match="escapes"):
+            _confine_to_workspace(root / ".." / "etc" / "passwd")
+
+    def test_root_itself_is_allowed(self, tmp_path):
+        set_workspace_root(str(tmp_path))
+        assert _confine_to_workspace(tmp_path) == tmp_path.resolve()
 
 
 # =========================================================================

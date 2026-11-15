@@ -83,3 +83,66 @@ def server_mcp(port: int, host: str) -> None:
     except Exception as e:
         error(f"MCP server error: {e}")
         sys.exit(1)
+
+
+@server.command("mcp-remote")
+@click.option("--port", "-p", type=int, default=8766, help="HTTP port number")
+@click.option(
+    "--host", "-h", type=str, default="127.0.0.1", help="Host to bind to (loopback by default)"
+)
+@click.option(
+    "--workspace",
+    type=click.Path(exists=True, file_okay=False, dir_okay=True),
+    default=None,
+    help="Workspace root to confine tool file access to (defaults to the current directory)",
+)
+@click.option(
+    "--allow-external-bind",
+    is_flag=True,
+    help="Permit a non-loopback bind. The bearer travels in cleartext over plain HTTP; terminate TLS in front.",
+)
+def server_mcp_remote(port: int, host: str, workspace: str, allow_external_bind: bool) -> None:
+    """Start the real MCP server over Streamable HTTP, behind a bearer token.
+
+    This is the genuine Model Context Protocol (the SDK's own Streamable HTTP
+    transport) for *remote* agents — distinct from the local stdio server
+    (``miesc-mcp``) and from the custom WebSocket bus (``miesc server mcp``).
+
+    Fail-closed: it refuses to start without a bearer token and will not bind to
+    a non-loopback host without ``--allow-external-bind``. The token is read from
+    the environment only (never a flag), and tool file access is confined to the
+    workspace root.
+
+    Example:
+        export MIESC_MCP_BEARER_TOKEN="$(openssl rand -hex 24)"
+        miesc server mcp-remote --workspace ./audits
+    """
+    print_banner()
+
+    try:
+        from miesc.mcp_remote import DEFAULT_PORT, resolve_bearer_token, serve
+
+        # Resolve the token first so a misconfiguration fails before binding.
+        resolve_bearer_token()
+        info(f"Starting MIESC remote MCP (Streamable HTTP) on http://{host}:{port}")
+        info("Genuine MCP over HTTP; bearer-authenticated (token from MIESC_MCP_BEARER_TOKEN)")
+        if host not in {"127.0.0.1", "::1", "localhost"}:
+            info(
+                "Non-loopback bind: ensure TLS is terminated in front (cleartext bearer otherwise)"
+            )
+        info("Press Ctrl+C to stop the server")
+        serve(
+            host=host,
+            port=port or DEFAULT_PORT,
+            workspace_root=workspace,
+            allow_external_bind=allow_external_bind,
+        )
+    except ImportError as e:
+        error(f"MCP SDK not installed: {e}")
+        info("Install with: pip install 'miesc[mcp]'")
+        sys.exit(1)
+    except KeyboardInterrupt:
+        info("Remote MCP server stopped")
+    except Exception as e:
+        error(f"Remote MCP server error: {e}")
+        sys.exit(1)

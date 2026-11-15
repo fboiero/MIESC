@@ -62,6 +62,52 @@ from miesc import __version__  # noqa: E402
 logger = logging.getLogger("miesc.mcp_server")
 
 
+# ---------------------------------------------------------------------------
+# Workspace confinement (opt-in; set only by the remote HTTP transport)
+# ---------------------------------------------------------------------------
+# stdio mode (Claude Desktop, local, single trusted user) leaves this ``None``
+# and behaves exactly as before: any readable .sol/.circom path is allowed.
+# The remote transport (``miesc.mcp_remote``) sets a workspace root so a
+# bearer-authenticated *remote* caller cannot read or write arbitrary host files
+# through the ``contract_path`` / ``output_path`` tool arguments. Bearer auth
+# alone would be a façade without this: the tools do raw filesystem reads and
+# writes.
+_WORKSPACE_ROOT: Optional[Path] = None
+
+
+def set_workspace_root(root: Optional[str]) -> None:
+    """Confine all tool file access to ``root`` (or lift confinement on ``None``).
+
+    Called by the remote transport before serving. stdio never calls it, so the
+    local default is unchanged.
+    """
+    global _WORKSPACE_ROOT
+    _WORKSPACE_ROOT = Path(root).resolve() if root else None
+
+
+def get_workspace_root() -> Optional[Path]:
+    """Return the configured workspace root, or ``None`` when unconfined."""
+    return _WORKSPACE_ROOT
+
+
+def _confine_to_workspace(path: Path) -> Path:
+    """Reject a resolved path that escapes the configured workspace root.
+
+    No-op when no root is configured (the stdio default). Returns the resolved
+    path so callers use the confined form.
+    """
+    root = _WORKSPACE_ROOT
+    if root is None:
+        return path
+    resolved = path.resolve()
+    if resolved != root and root not in resolved.parents:
+        raise ValueError(
+            f"path escapes the configured MCP workspace root ({root}); "
+            f"refusing access to {resolved}"
+        )
+    return resolved
+
+
 class _MissingMCP:
     """Import-time stub used when the optional MCP SDK is unavailable."""
 
@@ -148,7 +194,7 @@ def _run_layer_internal(layer: int, contract: str, timeout: int = 300) -> List[D
 
 def _validate_contract_path(contract_path: str) -> str:
     """Validate and resolve contract path."""
-    path = Path(contract_path).resolve()
+    path = _confine_to_workspace(Path(contract_path).resolve())
     if not path.exists():
         raise FileNotFoundError(f"Contract not found: {contract_path}")
     if path.suffix not in (".sol", ".circom"):
@@ -746,7 +792,7 @@ async def miesc_apply_fix(
         from miesc.security.remediation_pipeline import remediate_contract
 
         contract = Path(_validate_contract_path(contract_path))
-        patched = (
+        patched = _confine_to_workspace(
             Path(output_path) if output_path else contract.with_name(f"{contract.stem}.fixed.sol")
         )
         evidence = remediate_contract(
@@ -785,7 +831,7 @@ async def miesc_validate_remediation(
         from miesc.security.remediation_pipeline import remediate_contract
 
         contract = Path(_validate_contract_path(contract_path))
-        patched = (
+        patched = _confine_to_workspace(
             Path(output_path) if output_path else contract.with_name(f"{contract.stem}.fixed.sol")
         )
         evidence = remediate_contract(
