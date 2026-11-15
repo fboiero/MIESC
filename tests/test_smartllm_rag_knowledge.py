@@ -113,7 +113,9 @@ class _RecordingMultiStepRAG(EmbeddingRAG):
     def _expand_query(self, query):
         return [query]
 
-    def search(self, query, filter_category=None, filter_severity=None, n_results=None):
+    def search(
+        self, query, filter_category=None, filter_severity=None, n_results=None, filter_chain=None
+    ):
         self.search_calls.append((query, filter_category, filter_severity, n_results))
         return []
 
@@ -1747,7 +1749,14 @@ class TestHybridRAGSearchBoundaryShapes:
     ):
         calls = []
 
-        def record_search(self, query, filter_category=None, filter_severity=None, n_results=None):
+        def record_search(
+            self,
+            query,
+            filter_category=None,
+            filter_severity=None,
+            n_results=None,
+            filter_chain=None,
+        ):
             calls.append((query, filter_category, filter_severity, n_results))
             return []
 
