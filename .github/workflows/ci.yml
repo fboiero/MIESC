@@ -101,9 +101,11 @@ jobs:
 
       - name: Install dependencies
         run: |
-          # [api] pulls in Django/DRF so the REST API endpoint tests run here
-          # instead of skipping (they were skipped everywhere before).
-          pip install -e ".[dev,api]"
+          # [api] pulls in Django/DRF, [mcp] the real MCP SDK (Streamable HTTP) —
+          # both so the REST API and remote-MCP integration tests run here instead
+          # of skipping. pip resolves [mcp] to the latest 1.x, which provides
+          # streamable_http_app(); older 1.x pins break against current pydantic.
+          pip install -e ".[dev,api,mcp]"
           pip install pytest pytest-cov pytest-mock
 
       - name: Run unit tests

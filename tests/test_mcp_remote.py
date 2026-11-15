@@ -261,7 +261,8 @@ class TestRemoteHTTPIntegration:
     lifespan runs; the loopback base_url satisfies the SDK's DNS-rebinding guard.
     """
 
-    def _client(self):
+    @pytest.fixture(scope="class")
+    def client(self):
         pytest.importorskip("mcp")
         pytest.importorskip("starlette")
         from starlette.applications import Starlette
@@ -271,19 +272,22 @@ class TestRemoteHTTPIntegration:
             app = build_remote_app(TOKEN)  # wraps the real streamable_http_app()
         except RemoteAuthError as exc:
             # `mcp` imports but is too old to provide streamable_http_app() (needs the
-            # ~1.8+ Streamable HTTP SDK, installed via `miesc[mcp]`). importorskip("mcp")
+            # Streamable HTTP SDK installed via `miesc[mcp]`). importorskip("mcp")
             # cannot see that, so skip the live integration here rather than error.
             pytest.skip(f"installed MCP SDK lacks streamable_http_app(): {exc}")
-        # test_mcp_server.py injects a MagicMock 'mcp' into sys.modules for its
-        # own unit tests; in the full suite that poisons the session, so the
-        # "real" streamable app may actually be a Mock. Only run against a
-        # genuine Starlette app — never a false pass or a false fail on the mock.
+        # test_mcp_server.py injects a MagicMock 'mcp' into sys.modules only when the
+        # real SDK is absent; if that mock still wins (import order), the wrapped app
+        # is a Mock, not Starlette — skip rather than report a false pass/fail.
         if not isinstance(app.app, Starlette):
             pytest.skip(
                 "real MCP SDK not exclusively present (mcp is mocked for unit tests); "
                 "run `pytest tests/test_mcp_remote.py` in isolation to exercise this"
             )
-        return TestClient(app, base_url="http://127.0.0.1:8766")
+        # One entered TestClient shared across the class: the SDK's
+        # StreamableHTTPSessionManager.run() may be started only once per instance,
+        # so a fresh client per test would raise "can only be called once".
+        with TestClient(app, base_url="http://127.0.0.1:8766") as entered:
+            yield entered
 
     @property
     def _init_payload(self):
@@ -306,26 +310,23 @@ class TestRemoteHTTPIntegration:
             "MCP-Protocol-Version": "2025-06-18",
         }
 
-    def test_no_auth_is_401(self):
-        with self._client() as client:
-            r = client.post("/mcp", json=self._init_payload, headers=self._headers)
-            assert r.status_code == 401
+    def test_no_auth_is_401(self, client):
+        r = client.post("/mcp", json=self._init_payload, headers=self._headers)
+        assert r.status_code == 401
 
-    def test_valid_bearer_reaches_the_sdk_and_initializes(self):
-        with self._client() as client:
-            r = client.post(
-                "/mcp",
-                json=self._init_payload,
-                headers={**self._headers, "Authorization": f"Bearer {TOKEN}"},
-            )
-            assert r.status_code == 200
-            assert "protocolVersion" in r.text
+    def test_valid_bearer_reaches_the_sdk_and_initializes(self, client):
+        r = client.post(
+            "/mcp",
+            json=self._init_payload,
+            headers={**self._headers, "Authorization": f"Bearer {TOKEN}"},
+        )
+        assert r.status_code == 200
+        assert "protocolVersion" in r.text
 
-    def test_wrong_bearer_is_401(self):
-        with self._client() as client:
-            r = client.post(
-                "/mcp",
-                json=self._init_payload,
-                headers={**self._headers, "Authorization": "Bearer nope-wrong-token-1234"},
-            )
-            assert r.status_code == 401
+    def test_wrong_bearer_is_401(self, client):
+        r = client.post(
+            "/mcp",
+            json=self._init_payload,
+            headers={**self._headers, "Authorization": "Bearer nope-wrong-token-1234"},
+        )
+        assert r.status_code == 401
