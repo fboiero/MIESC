@@ -19,6 +19,13 @@ def test_rest_adapter_map_is_the_canonical_one():
     assert rest_map == CANONICAL
 
 
+def test_rest_layers_are_the_canonical_ones():
+    from miesc.api.rest import LAYERS as rest_layers
+    from miesc.cli.constants import LAYERS as canonical_layers
+
+    assert rest_layers == canonical_layers
+
+
 def test_health_checker_map_covers_the_canonical_inventory():
     from miesc.core.health_checker import HealthChecker
 

@@ -110,63 +110,10 @@ except ImportError:
 # ============================================================================
 
 from miesc import __version__ as VERSION  # noqa: E402
-from miesc.cli.constants import ADAPTER_MAP  # noqa: E402
+from miesc.cli.constants import ADAPTER_MAP, LAYERS  # noqa: E402
 
-# Layer definitions (same as CLI)
-LAYERS = {
-    1: {
-        "name": "Static Analysis",
-        "description": "Pattern-based code analysis",
-        "tools": ["slither", "aderyn", "solhint", "wake"],
-    },
-    2: {
-        "name": "Dynamic Testing",
-        "description": "Fuzzing and property testing",
-        "tools": ["echidna", "medusa", "foundry", "dogefuzz", "vertigo"],
-    },
-    3: {
-        "name": "Symbolic Execution",
-        "description": "Path exploration and constraint solving",
-        "tools": ["mythril", "manticore", "halmos", "oyente"],
-    },
-    4: {
-        "name": "Formal Verification",
-        "description": "Mathematical proofs of correctness",
-        "tools": ["certora", "smtchecker", "propertygpt"],
-    },
-    5: {
-        "name": "AI Analysis",
-        "description": "LLM-powered vulnerability detection",
-        "tools": ["smartllm", "gptscan", "llmsmartaudit"],
-    },
-    6: {
-        "name": "ML Detection",
-        "description": "Machine learning classifiers",
-        "tools": ["dagnn", "smartbugs_ml", "smartbugs_detector", "smartguard"],
-    },
-    7: {
-        "name": "Specialized Analysis",
-        "description": "Domain-specific security checks",
-        "tools": [
-            "threat_model",
-            "gas_analyzer",
-            "mev_detector",
-            "contract_clone_detector",
-            "defi",
-            "advanced_detector",
-        ],
-    },
-    8: {
-        "name": "Cross-Chain & ZK Security",
-        "description": "Bridge security and zero-knowledge circuit analysis",
-        "tools": ["crosschain", "zk_circuit"],
-    },
-    9: {
-        "name": "Advanced AI Ensemble",
-        "description": "Multi-LLM ensemble with consensus-based detection",
-        "tools": ["llmbugscanner"],
-    },
-}
+# LAYERS is imported above from the canonical inventory in miesc.cli.constants
+# (single source of truth) — do not redefine a local copy here.
 
 # ADAPTER_MAP is imported above from the canonical inventory in miesc.cli.constants
 # (single source of truth) — do not redefine a local copy here.
