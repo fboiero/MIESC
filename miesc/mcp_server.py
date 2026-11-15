@@ -1,7 +1,7 @@
 """
 MIESC MCP Server - Model Context Protocol stdio Server for Claude Desktop.
 
-Exposes MIESC's 9-layer, 50-tool smart contract security analysis
+Exposes MIESC's 9-layer, 35-module smart contract security analysis
 as MCP tools accessible from Claude Desktop and other MCP clients.
 
 Transport: stdio (JSON-RPC 2.0 over stdin/stdout)
@@ -216,7 +216,7 @@ async def miesc_quick_scan(contract_path: str, timeout: int = 60) -> str:
 @mcp.tool()
 async def miesc_deep_scan(contract_path: str, timeout: int = 300) -> str:
     """
-    Comprehensive security scan using all 9 defense layers (50 tools).
+    Comprehensive security scan across all 9 defense layers.
     Includes static analysis, fuzzing, symbolic execution, formal verification,
     AI analysis, ML detection, and advanced ensemble methods.
     Recommended for pre-deployment audits.
@@ -280,7 +280,7 @@ async def miesc_run_tool(tool_name: str, contract_path: str, timeout: int = 300)
     """
     Run a specific security tool on a contract.
     Available tools include: slither, aderyn, mythril, echidna, halmos,
-    certora, smartllm, dagnn, and many more (50 total).
+    certora, smartllm, dagnn, and many more.
     Use miesc_list_tools to see all available tools.
     """
     contract_path = _validate_contract_path(contract_path)
@@ -830,12 +830,14 @@ async def miesc_get_metrics() -> str:
     exploits (with 95% Wilson CI), and the EVMBench ensemble, each sourced
     from the released per-claim matrix (benchmarks/results/paper1_claims_matrix.json).
     """
+    LAYERS = _get_layers()
+    ADAPTER_MAP = _get_adapter_map()
     return json.dumps(
         {
             "framework": "MIESC",
             "version": __version__,
-            "layers": 9,
-            "tools": 50,
+            "layers": len(LAYERS),
+            "registered_adapter_slots": len(ADAPTER_MAP),
             "reproducible_benchmarks": {
                 "smartbugs_curated_recall": 0.958,
                 "real_world_exploit_recall": 0.818,
@@ -888,7 +890,7 @@ async def miesc_get_status() -> str:
             "version": __version__,
             "status": "operational",
             "architecture": {
-                "layers": 9,
+                "layers": len(LAYERS),
                 "total_tools": len(ADAPTER_MAP),
                 "available_tools": len(available_tools),
             },
