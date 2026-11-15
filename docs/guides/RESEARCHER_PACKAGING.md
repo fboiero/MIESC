@@ -61,9 +61,9 @@ uv run python scripts/diagnose-adapters.py
 A fully provisioned researcher workstation should report:
 
 ```text
-Registered 50/50 adapters
-Total adapters checked:  50
-Available:               50
+Registered 51/51 adapters
+Total adapters checked:  51
+Available:               51
 Not installed:           0
 Configuration error:     0
 License required:        0
@@ -102,7 +102,7 @@ curl -s http://127.0.0.1:11434/api/tags
 
 Expected for a fully provisioned local workstation:
 
-- `scripts/diagnose-adapters.py`: `50/50 adapters available`
+- `scripts/diagnose-adapters.py`: `51/51 adapters available`
 - full smoke: all core tools execute; project-specific tools may report clean skips when the fixture lacks a Hardhat project, Foundry tests, ZK circuit source, or Certora CVL spec.
 
 ## External Project Quickstart
