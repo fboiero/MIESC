@@ -838,8 +838,8 @@ class TestRestPureFunctions:
     def test_run_tool_no_adapter(self):
         with patch.object(rest.AdapterLoader, "get_adapter", return_value=None):
             r = rest.run_tool("ghost", "/x/C.sol")
-        assert r["status"] == "skipped"
-        assert r["reason"] == "no_adapter"
+        assert r["status"] == "no_adapter"
+        assert "No adapter found" in r["error"]
         assert r["findings"] == []
 
     def test_run_tool_not_available(self):
@@ -847,8 +847,7 @@ class TestRestPureFunctions:
         adapter.is_available.return_value = ToolStatus.NOT_INSTALLED
         with patch.object(rest.AdapterLoader, "get_adapter", return_value=adapter):
             r = rest.run_tool("slither", "/x/C.sol")
-        assert r["status"] == "skipped"
-        assert r["reason"] == "not_installed"
+        assert r["status"] == "not_available"
         assert "not available" in r["error"]
 
     def test_run_tool_success(self):
