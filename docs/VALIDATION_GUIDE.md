@@ -201,7 +201,7 @@ Layer 3 - Symbolic Execution:
 
 ...
 
-Total: X tools available out of 50 (50 tools across 35 analysis modules)
+Total: X tools available out of 51
 ```
 
 ### 4.3 Verificar Importaciones de Python
