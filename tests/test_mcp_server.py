@@ -10,16 +10,22 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-# Mock the mcp SDK before importing mcp_server so the module-level
-# FastMCP instantiation does not fail when the SDK is absent.
-# The .tool() decorator must be a passthrough so async functions survive.
-_fake_fastmcp = MagicMock()
-_fake_fastmcp.tool.return_value = lambda fn: fn
-_fake_mcp_mod = MagicMock()
-_fake_mcp_mod.server.fastmcp.FastMCP.return_value = _fake_fastmcp
-sys.modules.setdefault("mcp", _fake_mcp_mod)
-sys.modules.setdefault("mcp.server", _fake_mcp_mod.server)
-sys.modules.setdefault("mcp.server.fastmcp", _fake_mcp_mod.server.fastmcp)
+# Mock the mcp SDK before importing mcp_server ONLY when the real SDK is absent,
+# so the module-level FastMCP instantiation doesn't fail without `miesc[mcp]`.
+# When the real SDK is installed (e.g. CI with the [mcp] extra) we leave it in
+# place, so tests/test_mcp_remote.py exercises the genuine Streamable HTTP server
+# instead of skipping against a mock. The .tool() decorator must be a passthrough
+# so async functions survive.
+try:
+    import mcp.server.fastmcp  # noqa: F401  real SDK present — do not shadow it
+except Exception:
+    _fake_fastmcp = MagicMock()
+    _fake_fastmcp.tool.return_value = lambda fn: fn
+    _fake_mcp_mod = MagicMock()
+    _fake_mcp_mod.server.fastmcp.FastMCP.return_value = _fake_fastmcp
+    sys.modules.setdefault("mcp", _fake_mcp_mod)
+    sys.modules.setdefault("mcp.server", _fake_mcp_mod.server)
+    sys.modules.setdefault("mcp.server.fastmcp", _fake_mcp_mod.server.fastmcp)
 
 from miesc.mcp_server import (  # noqa: E402
     _confine_to_workspace,
