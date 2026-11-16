@@ -12,7 +12,7 @@ attrs==26.1.0
     # via aiohttp
 bitarray==3.12.3
     # via eth-account
-cbor2==6.1.5
+cbor2==6.2.1
     # via crytic-compile
 certifi==2026.10.23
     # via requests
@@ -20,7 +20,7 @@ charset-normalizer==3.5.2
     # via requests
 ckzg==2.1.8
     # via eth-account
-click==8.5.0
+click==8.5.1
     # via miesc (pyproject.toml)
 crytic-compile==0.4.2
     # via slither-analyzer
@@ -77,13 +77,13 @@ idna==3.20
     #   yarl
 jinja2==3.1.6
     # via miesc (pyproject.toml)
-markdown-it-py==4.2.0
+markdown-it-py==4.3.0
     # via rich
 markupsafe==3.0.4
     # via jinja2
 mdurl==0.1.2
     # via markdown-it-py
-multidict==7.1.0
+multidict==7.2.1
     # via
     #   aiohttp
     #   yarl
@@ -106,13 +106,13 @@ pycryptodome==4.4.0
     #   eth-keyfile
     #   slither-analyzer
     #   solc-select
-pydantic==2.14.1
+pydantic==2.14.3
     # via
     #   miesc (pyproject.toml)
     #   eth-account
     #   eth-utils
     #   web3
-pydantic-core==2.50.1
+pydantic-core==2.50.4
     # via pydantic
 pygments==2.21.0
     # via rich
@@ -120,7 +120,7 @@ pyunormalize==17.0.0
     # via web3
 pyyaml==6.0.3
     # via miesc (pyproject.toml)
-regex==2026.9.29
+regex==2026.11.9
     # via parsimonious
 requests==2.34.2
     # via
@@ -148,17 +148,17 @@ typing-extensions==4.16.0
     #   pydantic-core
     #   typing-inspection
     #   web3
-typing-inspection==0.4.4
+typing-inspection==0.4.5
     # via pydantic
 urllib3==2.8.0
     # via
     #   requests
     #   types-requests
-wcwidth==0.9.3
+wcwidth==0.9.4
     # via prettytable
 web3==8.0.0
     # via slither-analyzer
-websockets==17.3
+websockets==17.4
     # via web3
 yarl==1.25.1
     # via aiohttp
