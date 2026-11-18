@@ -3,7 +3,7 @@
 #
 # This Dockerfile creates a complete, production-ready environment with:
 # - Python 3.12 runtime
-# - Security tools: Slither, Aderyn
+# - Security tools: Slither
 # - Foundry toolchain (forge, cast, anvil)
 # - Solidity compiler (solc) + Solhint linter
 # - CLI, web/API, LLM connectors, MCP, and PDF report generation
@@ -18,40 +18,17 @@
 #   DOCKER_BUILDKIT=1 docker build -t miesc:6.0.0 -f Dockerfile .
 
 # ============================================================
-# Stage 1a: aderyn-downloader (runs in parallel with foundry-builder)
+# Stage 1: foundry-builder
 # ============================================================
 # Base image pinned by digest (MED-005): Dependabot's docker ecosystem keeps the
 # digest current, so security patches still flow while builds stay reproducible.
-FROM python:3.12-slim-bookworm@sha256:d50fb7611f86d04a3b0471b46d7557818d88983fc3136726336b2a4c657aa30b AS aderyn-downloader
-ARG TARGETARCH
-ARG ADERYN_VERSION=0.6.8
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl ca-certificates xz-utils \
-    && rm -rf /var/lib/apt/lists/*
-
-# Aderyn publishes official Linux binaries for amd64 and arm64. Downloading the
-# pinned release avoids a long Rust source build inside Docker and keeps ARM
-# builds reproducible.
-RUN set -eux; \
-    case "${TARGETARCH:-$(dpkg --print-architecture)}" in \
-        amd64) aderyn_arch="x86_64-unknown-linux-gnu" ;; \
-        arm64|aarch64) aderyn_arch="aarch64-unknown-linux-gnu" ;; \
-        *) echo "Unsupported architecture for Aderyn: ${TARGETARCH:-unknown}" >&2; exit 1 ;; \
-    esac; \
-    asset="aderyn-${aderyn_arch}.tar.xz"; \
-    base_url="https://github.com/Cyfrin/aderyn/releases/download/aderyn-v${ADERYN_VERSION}"; \
-    curl -fsSLo "/tmp/${asset}" "${base_url}/${asset}"; \
-    curl -fsSLo "/tmp/${asset}.sha256" "${base_url}/${asset}.sha256"; \
-    cd /tmp; \
-    sha256sum -c "${asset}.sha256"; \
-    tar -xJf "${asset}" -C /usr/local/bin --strip-components=1 "aderyn-${aderyn_arch}/aderyn"; \
-    chmod +x /usr/local/bin/aderyn; \
-    /usr/local/bin/aderyn --version
-
-# ============================================================
-# Stage 1b: foundry-builder (runs in parallel with aderyn-downloader)
-# ============================================================
+#
+# Note: Aderyn was removed from this image. Upstream (Cyfrin) retired Aderyn and
+# withdrew all CLI distribution: the GitHub release binaries are gone (the
+# official installer now prints a "retired / downloads withdrawn" notice), the
+# crates.io versions are yanked (so `cargo install aderyn` also fails), and it is
+# absent from npm and Homebrew. The Aderyn adapter stays in MIESC and degrades
+# gracefully (reports NOT_INSTALLED) when the binary is absent.
 FROM python:3.12-slim-bookworm@sha256:d50fb7611f86d04a3b0471b46d7557818d88983fc3136726336b2a4c657aa30b AS foundry-builder
 
 RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates git \
@@ -80,9 +57,6 @@ LABEL version="${MIESC_VERSION}"
 LABEL description="MIESC - Multi-layer Intelligent Evaluation for Smart Contracts"
 ARG TARGETARCH
 ENV DEBIAN_FRONTEND=noninteractive
-
-# Copy Aderyn from the pinned release downloader
-COPY --from=aderyn-downloader /usr/local/bin/aderyn /usr/local/bin/
 
 # Copy Foundry binaries from foundry-builder
 COPY --from=foundry-builder /root/.foundry/bin/forge /usr/local/bin/
