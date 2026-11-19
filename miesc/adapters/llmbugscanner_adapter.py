@@ -41,6 +41,7 @@ from miesc.core.tool_protocol import (
     ToolStatus,
 )
 from miesc.llm.json_extraction import extract_llm_object
+from miesc.llm.rag_utils import rag_runtime_disabled
 
 # Try to import EmbeddingRAG (optional dependency)
 try:
@@ -338,8 +339,10 @@ class LLMBugScannerAdapter(LLMCacheMixin, ToolAdapter):
             if not contract_code:
                 return self._error_result(start_time, f"Could not read contract: {contract_path}")
 
-            # Check cache
-            cache_key = self._get_cache_key(contract_code)
+            # Check cache. Effective RAG state is part of the key so with-/
+            # without-RAG runs of the same contract do not collide on one entry.
+            rag_on = self._rag_active()
+            cache_key = self._get_cache_key(contract_code, rag_on)
             cached_result = self._get_cached_result(cache_key)
             if cached_result:
                 logger.info(f"LLMBugScanner: Using cached result for {contract_path}")
@@ -406,6 +409,7 @@ class LLMBugScannerAdapter(LLMCacheMixin, ToolAdapter):
                     "total_raw_findings": sum(len(f) for f in all_findings.values()),
                     "consensus_findings": len(consensus_findings),
                     "consensus_threshold": self._consensus_threshold,
+                    "rag_enhanced": rag_on,
                     "sovereign": True,
                     "dpga_compliant": True,
                 },
@@ -560,9 +564,9 @@ class LLMBugScannerAdapter(LLMCacheMixin, ToolAdapter):
 
     def _generate_analysis_prompt(self, contract_code: str, specialization: str) -> str:
         """Generate analysis prompt tailored to model specialization."""
-        # Get RAG context if available
+        # Get RAG context if available (and not runtime-disabled)
         rag_context = ""
-        if self._use_rag and self._embedding_rag:
+        if self._rag_active():
             try:
                 results = self._embedding_rag.search(query=contract_code[:2000], n_results=3)
                 if results:
@@ -862,12 +866,27 @@ Respond with ONLY: VALID or FALSE_POSITIVE"""
 
         return True  # Conservative: keep on error
 
-    def _get_cache_key(self, contract_code: str) -> str:
-        """Generate cache key from contract code."""
+    def _rag_active(self) -> bool:
+        """True when retrieved RAG context is actually injected this call.
+
+        Embedding RAG must be available AND not disabled at runtime via
+        ``MIESC_DISABLE_RAG`` (read per call so an A/B toggle takes effect on the
+        same instance).
+        """
+        return bool(self._use_rag and self._embedding_rag) and not rag_runtime_disabled()
+
+    def _get_cache_key(self, contract_code: str, rag_on: bool) -> str:
+        """Generate cache key from contract code, ensemble, and effective RAG state.
+
+        ``rag_on`` keeps a RAG-enhanced run and a RAG-disabled run of the same
+        contract from colliding on one cached result (which would make an A/B
+        evaluation measure nothing).
+        """
         models_str = "_".join(sorted(self._available_models))
         aliases_str = "_".join(f"{k}:{v}" for k, v in sorted(self._model_aliases.items()))
+        rag_tag = "rag" if rag_on else "norag"
         return hashlib.sha256(
-            f"{contract_code}{models_str}{aliases_str}http-api-v2".encode()
+            f"{contract_code}{models_str}{aliases_str}{rag_tag}http-api-v2".encode()
         ).hexdigest()
 
     # _get_cached_result / _cache_result are provided by LLMCacheMixin.

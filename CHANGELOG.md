@@ -18,6 +18,26 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   network server. The Dependency Security workflow now ignores those four IDs with that
   justification inline, to be removed once upstream ships a fix.
 
+### Fixed
+
+- **RAG A/B evaluation now measures RAG.** The RAG evaluator toggled
+  `MIESC_DISABLE_RAG` between its two `analyze()` calls, but no adapter read the
+  variable, so the "with RAG" and "without RAG" arms ran identically and the
+  effectiveness metric was meaningless. Two stacked bugs are fixed: (1) the five LLM
+  adapters (`smartllm`, `gptscan`, `llmsmartaudit`, `llmbugscanner`, `propertygpt`) now
+  gate the retrieved context they inject on a per-call `rag_runtime_disabled()` check, so
+  the disabled arm sends no retrieved context at all — not even SmartLLM's keyword
+  fallback, which otherwise turned the A/B into "embedding vs keyword" rather than "RAG vs
+  no RAG"; (2) the adapters' result cache keys now encode the effective RAG state, so a
+  RAG-enhanced run and a RAG-disabled run of the same contract no longer collide on one
+  cached entry (a latent correctness bug beyond the evaluator). The evaluator also disables
+  the on-disk LLM cache for the duration of an A/B, restores the environment afterwards,
+  and labels each arm by the RAG state the adapter actually applied (read back from
+  `metadata.rag_enhanced`), logging an error instead of a false label when the "with RAG"
+  arm silently ran without RAG (e.g. chromadb/sentence-transformers missing). This makes
+  the measurement honest and verifiable; publishing a with-/without-RAG number still
+  requires a ground-truth corpus and is left to a separate additive run.
+
 ### Changed
 
 - **Cross-chain whitepaper reformatted as a scientific preprint.**

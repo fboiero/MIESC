@@ -3,6 +3,7 @@
 import hashlib
 import json
 import math
+import os
 import time
 import unicodedata
 from typing import Any, Dict, List, Optional, Tuple, TypeVar
@@ -13,6 +14,18 @@ from miesc.security.llm_output_validator import (
 )
 
 T = TypeVar("T")
+
+
+def rag_runtime_disabled() -> bool:
+    """True when RAG retrieval is disabled at runtime via ``MIESC_DISABLE_RAG``.
+
+    Read on *every* call (never cached on the instance) so an A/B evaluator can
+    toggle RAG between two ``analyze()`` calls on the same adapter instance — the
+    adapters decide whether to inject retrieved context per call, not in
+    ``__init__``. Accepts ``1``/``true``/``yes`` (case-insensitive); anything else
+    (including unset) means RAG stays enabled. Mirrors ``MIESC_DISABLE_LLM_CACHE``.
+    """
+    return os.environ.get("MIESC_DISABLE_RAG", "").strip().lower() in {"1", "true", "yes"}
 
 
 MAX_CACHE_TEXT_CHARS = 200

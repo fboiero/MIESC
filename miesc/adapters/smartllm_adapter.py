@@ -76,6 +76,7 @@ from miesc.core.tool_protocol import (
     ToolStatus,
 )
 from miesc.llm.json_extraction import extract_llm_object
+from miesc.llm.rag_utils import rag_runtime_disabled
 
 logger = logging.getLogger(__name__)
 
@@ -318,7 +319,7 @@ class SmartLLMAdapter(OllamaCallMixin, LLMCacheMixin, ToolAdapter):
                         "model": self._model,
                         "sovereign": True,
                         "dpga_compliant": True,
-                        "rag_enhanced": self._use_rag,
+                        "rag_enhanced": self._rag_active(),
                         "verificator_enabled": self._use_verificator,
                         "degraded": True,
                         "timed_out": self._timed_out,
@@ -395,7 +396,7 @@ class SmartLLMAdapter(OllamaCallMixin, LLMCacheMixin, ToolAdapter):
                     "prompt_tokens": len(generator_prompt.split()),  # Approximate
                     "sovereign": True,
                     "dpga_compliant": True,
-                    "rag_enhanced": self._use_rag,
+                    "rag_enhanced": self._rag_active(),
                     "verificator_enabled": self._use_verificator,
                     "initial_findings": len(initial_findings),
                     "verified_findings": len(verified_findings),
@@ -652,9 +653,12 @@ class SmartLLMAdapter(OllamaCallMixin, LLMCacheMixin, ToolAdapter):
         # Pre-analyze code for key patterns
         code_patterns = self._detect_code_patterns(contract_code)
 
-        # Get relevant knowledge from RAG knowledge base
+        # Get relevant knowledge from RAG knowledge base. Gated on the master
+        # RAG switch AND the runtime toggle: when RAG is runtime-disabled we inject
+        # NO retrieved context at all — not even the keyword fallback — so an A/B
+        # measures RAG vs no-RAG, not embedding vs keyword.
         rag_context = ""
-        if self._use_rag:
+        if self._rag_active():
             if self._use_embedding_rag and self._embedding_rag:
                 # Use ChromaDB embedding-based RAG for semantic search
                 try:
@@ -1377,6 +1381,7 @@ Report ONLY vulnerabilities confirmed by your step-by-step analysis. Quality ove
         if (
             self._use_embedding_rag
             and self._embedding_rag
+            and not rag_runtime_disabled()
             and batch_get_context_for_findings is not None
             and initial_findings
         ):
@@ -1572,7 +1577,10 @@ Report ONLY vulnerabilities confirmed by your step-by-step analysis. Quality ove
             vuln_context_str = preloaded_context
             vuln_mitigation = "See context above for mitigation strategies."
         elif (
-            self._use_embedding_rag and self._embedding_rag and get_context_for_finding is not None
+            self._use_embedding_rag
+            and self._embedding_rag
+            and not rag_runtime_disabled()
+            and get_context_for_finding is not None
         ):
             try:
                 # EmbeddingRAG returns a formatted string
@@ -1648,9 +1656,28 @@ Based on your step-by-step analysis, conclude with exactly one of:
 
 Your analysis:"""
 
+    def _rag_active(self) -> bool:
+        """True when retrieved RAG context is actually injected this call.
+
+        ``_use_rag`` is the master switch (SmartLLM has a keyword fallback, so RAG
+        does not require embedding); ``MIESC_DISABLE_RAG`` turns it off at runtime,
+        read per call so an A/B toggle takes effect on the same instance.
+        """
+        return bool(self._use_rag) and not rag_runtime_disabled()
+
     def _get_cache_key(self, contract_code: str) -> str:
-        """Generate cache key from contract code, model, and RAG mode."""
-        rag_mode = "embedding" if self._use_embedding_rag and self._embedding_rag else "keyword"
+        """Generate cache key from contract code, model, and effective RAG mode.
+
+        The effective mode (``off``/``embedding``/``keyword``) is part of the key so
+        a RAG-enhanced run and a RAG-disabled run of the same contract do not
+        collide on one cached result (which would make an A/B measure nothing).
+        """
+        if not self._rag_active():
+            rag_mode = "off"
+        elif self._use_embedding_rag and self._embedding_rag:
+            rag_mode = "embedding"
+        else:
+            rag_mode = "keyword"
         return hashlib.sha256(
             f"structured-v1:{self._model}:{rag_mode}:{KNOWLEDGE_BASE_VERSION}:{contract_code}".encode()
         ).hexdigest()
