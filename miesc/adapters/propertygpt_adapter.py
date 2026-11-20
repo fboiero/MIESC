@@ -38,6 +38,7 @@ from miesc.core.tool_protocol import (
     ToolStatus,
 )
 from miesc.llm.json_extraction import extract_llm_array
+from miesc.llm.rag_utils import rag_runtime_disabled
 
 # Try to import EmbeddingRAG (optional dependency)
 try:
@@ -298,6 +299,7 @@ class PropertyGPTAdapter(ToolAdapter):
                     "state_vars_analyzed": len(contract_info.get("state_vars", [])),
                     "properties_generated": len(high_confidence_properties),
                     "llm_backend": self.llm_backend,
+                    "rag_enhanced": self._rag_active(),
                     "validation": validation_result,
                 },
                 "execution_time": round(execution_time, 2),
@@ -399,6 +401,15 @@ class PropertyGPTAdapter(ToolAdapter):
 
         return cast(List[Dict[str, Any]], properties)
 
+    def _rag_active(self) -> bool:
+        """True when retrieved RAG context is actually injected this call.
+
+        Embedding RAG must be available AND not disabled at runtime via
+        ``MIESC_DISABLE_RAG`` (read per call so an A/B toggle takes effect on the
+        same instance).
+        """
+        return bool(self._use_rag and self._embedding_rag) and not rag_runtime_disabled()
+
     def _build_propertygpt_prompt(self, contract_source: str, contract_info: Dict) -> str:
         """
         Build PropertyGPT-style prompt for formal property generation.
@@ -407,7 +418,7 @@ class PropertyGPTAdapter(ToolAdapter):
         """
         # Get RAG context for vulnerability patterns to inform property generation
         rag_context = ""
-        if self._use_rag and self._embedding_rag:
+        if self._rag_active():
             try:
                 results = self._embedding_rag.search(query=contract_source[:2000], n_results=3)
                 if results:

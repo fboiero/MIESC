@@ -274,34 +274,88 @@ class RAGEvaluator:
         if not adapter:
             return EvaluationMetrics(), EvaluationMetrics()
 
-        # Test with RAG enabled
-        os.environ.pop("MIESC_DISABLE_RAG", None)
-        start = time.time()
-        result_with_rag = adapter.analyze(contract_path, timeout=timeout)
-        time_with_rag = (time.time() - start) * 1000
+        # Disable the on-disk LLM result cache for the whole A/B. The adapters now
+        # fold the effective RAG state into their cache key, but variance runs and
+        # a shared ~/.miesc cache from an earlier scan could still hand back an
+        # identical result for both arms — so we force fresh model calls here.
+        prior_rag = os.environ.get("MIESC_DISABLE_RAG")
+        prior_cache = os.environ.get("MIESC_DISABLE_LLM_CACHE")
+        os.environ["MIESC_DISABLE_LLM_CACHE"] = "1"
+        try:
+            # Arm A: RAG enabled
+            os.environ.pop("MIESC_DISABLE_RAG", None)
+            start = time.time()
+            result_with_rag = adapter.analyze(contract_path, timeout=timeout)
+            time_with_rag = (time.time() - start) * 1000
 
-        findings_with_rag = self._parse_findings(result_with_rag)
-        metrics_with_rag = evaluate_findings(findings_with_rag, ground_truth)
-        metrics_with_rag.rag_enabled = True
-        metrics_with_rag.adapter_name = adapter_name
-        metrics_with_rag.inference_time_ms = time_with_rag
+            findings_with_rag = self._parse_findings(result_with_rag)
+            metrics_with_rag = evaluate_findings(findings_with_rag, ground_truth)
+            metrics_with_rag.adapter_name = adapter_name
+            metrics_with_rag.inference_time_ms = time_with_rag
 
-        # Test with RAG disabled
-        os.environ["MIESC_DISABLE_RAG"] = "1"
-        start = time.time()
-        result_without_rag = adapter.analyze(contract_path, timeout=timeout)
-        time_without_rag = (time.time() - start) * 1000
+            # Arm B: RAG disabled
+            os.environ["MIESC_DISABLE_RAG"] = "1"
+            start = time.time()
+            result_without_rag = adapter.analyze(contract_path, timeout=timeout)
+            time_without_rag = (time.time() - start) * 1000
 
-        findings_without_rag = self._parse_findings(result_without_rag)
-        metrics_without_rag = evaluate_findings(findings_without_rag, ground_truth)
-        metrics_without_rag.rag_enabled = False
-        metrics_without_rag.adapter_name = adapter_name
-        metrics_without_rag.inference_time_ms = time_without_rag
+            findings_without_rag = self._parse_findings(result_without_rag)
+            metrics_without_rag = evaluate_findings(findings_without_rag, ground_truth)
+            metrics_without_rag.adapter_name = adapter_name
+            metrics_without_rag.inference_time_ms = time_without_rag
+        finally:
+            # Restore the caller's environment exactly as we found it.
+            self._restore_env("MIESC_DISABLE_RAG", prior_rag)
+            self._restore_env("MIESC_DISABLE_LLM_CACHE", prior_cache)
 
-        # Clean up
-        os.environ.pop("MIESC_DISABLE_RAG", None)
+        # Label each arm by the RAG state the adapter ACTUALLY applied, read back
+        # from its output, not by what we intended. If the "with RAG" arm reports
+        # no RAG (e.g. chromadb/sentence-transformers missing), the A/B is not
+        # measuring RAG — say so loudly instead of stamping a false label.
+        eff_with = self._effective_rag(result_with_rag)
+        eff_without = self._effective_rag(result_without_rag)
+        metrics_with_rag.rag_enabled = eff_with if eff_with is not None else True
+        metrics_without_rag.rag_enabled = eff_without if eff_without is not None else False
+        if eff_with is False:
+            logger.error(
+                "%s: 'with RAG' arm ran WITHOUT RAG (contract %s) — RAG likely "
+                "unavailable (chromadb/sentence-transformers). A/B is not valid; "
+                "install miesc[rag] and re-run.",
+                adapter_name,
+                contract_path,
+            )
+        if eff_without is True:
+            logger.error(
+                "%s: 'without RAG' arm still applied RAG (contract %s) — the "
+                "MIESC_DISABLE_RAG toggle did not take effect; A/B is not valid.",
+                adapter_name,
+                contract_path,
+            )
 
         return metrics_with_rag, metrics_without_rag
+
+    @staticmethod
+    def _restore_env(name: str, prior: Optional[str]) -> None:
+        """Restore an env var to its pre-A/B value (absent if it was unset)."""
+        if prior is None:
+            os.environ.pop(name, None)
+        else:
+            os.environ[name] = prior
+
+    @staticmethod
+    def _effective_rag(result: Dict[str, Any]) -> Optional[bool]:
+        """Read the RAG state the adapter actually applied, or None if unknown.
+
+        Adapters report ``metadata.rag_enhanced``; a missing field (older adapter
+        or a degraded/error result) returns None so the caller keeps the intended
+        label rather than inventing one.
+        """
+        if not isinstance(result, dict):
+            return None
+        metadata = result.get("metadata")
+        if not isinstance(metadata, dict) or "rag_enhanced" not in metadata:
+            return None
+        return bool(metadata["rag_enhanced"])
 
     def _parse_findings(self, result: Dict[str, Any]) -> List[Finding]:
         """Parse adapter result into Finding objects."""

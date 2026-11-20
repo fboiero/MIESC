@@ -82,8 +82,11 @@ class TestUtilities:
 
     def test_cache_key_deterministic(self):
         a = _adapter()
-        assert a._get_cache_key("c") == a._get_cache_key("c")
-        assert a._get_cache_key("c") != a._get_cache_key("d")
+        assert a._get_cache_key("c", True) == a._get_cache_key("c", True)
+        assert a._get_cache_key("c", True) != a._get_cache_key("d", True)
+        # Effective RAG state is part of the key so with-/without-RAG runs
+        # of the same contract cannot collide on one cached result.
+        assert a._get_cache_key("c", True) != a._get_cache_key("c", False)
 
     def test_generate_prompt_includes_code(self):
         a = _adapter()

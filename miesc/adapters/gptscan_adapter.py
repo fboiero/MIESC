@@ -28,6 +28,7 @@ from miesc.core.tool_protocol import (
     ToolStatus,
 )
 from miesc.llm.json_extraction import extract_llm_object
+from miesc.llm.rag_utils import rag_runtime_disabled
 
 # Try to import EmbeddingRAG (optional dependency)
 try:
@@ -182,9 +183,26 @@ Respond ONLY with valid JSON. Report ONLY vulnerabilities you are CONFIDENT abou
             except Exception as e:
                 logger.debug(f"GPTScan: EmbeddingRAG unavailable: {e}")
 
-    def _get_cache_key(self, contract_code: str, model: str) -> str:
-        """SHA-256 over contract + model so a model change invalidates the cache."""
-        return hashlib.sha256(f"gptscan:{model}:{contract_code}".encode("utf-8")).hexdigest()
+    def _rag_active(self) -> bool:
+        """True when retrieved RAG context is actually injected this call.
+
+        Embedding RAG must be available AND not disabled at runtime via
+        ``MIESC_DISABLE_RAG`` (read per call so an A/B toggle takes effect on the
+        same instance).
+        """
+        return bool(self._use_rag and self._embedding_rag) and not rag_runtime_disabled()
+
+    def _get_cache_key(self, contract_code: str, model: str, rag_on: bool) -> str:
+        """SHA-256 over contract + model + effective RAG state.
+
+        ``rag_on`` is part of the key so a RAG-enhanced run and a RAG-disabled run
+        of the same contract do not collide on one cached result (which would make
+        an A/B evaluation measure nothing).
+        """
+        rag_tag = "rag" if rag_on else "norag"
+        return hashlib.sha256(
+            f"gptscan:{model}:{rag_tag}:{contract_code}".encode("utf-8")
+        ).hexdigest()
 
     def get_metadata(self) -> ToolMetadata:
         return ToolMetadata(
@@ -301,8 +319,11 @@ Respond ONLY with valid JSON. Report ONLY vulnerabilities you are CONFIDENT abou
             timeout = kwargs.get("timeout", self._default_timeout)
             model = kwargs.get("model", self._detect_best_model())
 
-            # Cache lookup (GPTScan previously re-ran the LLM on every scan)
-            cache_key = self._get_cache_key(contract_code, model)
+            # Cache lookup (GPTScan previously re-ran the LLM on every scan).
+            # The effective RAG state is part of the key so with-/without-RAG
+            # runs of the same contract do not collide on one cached result.
+            rag_on = self._rag_active()
+            cache_key = self._get_cache_key(contract_code, model, rag_on)
             cached = self._get_cached_result(cache_key)
             if cached:
                 logger.info(f"GPTScan: using cached result for {contract_path}")
@@ -328,6 +349,7 @@ Respond ONLY with valid JSON. Report ONLY vulnerabilities you are CONFIDENT abou
                     "model": model,
                     "backend": "ollama",
                     "cost_usd": 0.0,
+                    "rag_enhanced": rag_on,
                     "timed_out": self._timed_out,
                 },
                 "execution_time": time.time() - start_time,
@@ -434,7 +456,7 @@ Respond ONLY with valid JSON. Report ONLY vulnerabilities you are CONFIDENT abou
 
         # Build RAG context first so we can inject it at the placeholder
         rag_context = ""
-        if self._use_rag and self._embedding_rag:
+        if self._rag_active():
             try:
                 results = self._embedding_rag.search(query=contract_code[:2000], n_results=3)
                 if results:
