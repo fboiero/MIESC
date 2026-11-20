@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 480" font-family="'Segoe UI',system-ui,-apple-system,Roboto,sans-serif" role="img" aria-label="The research program as five tracks with their dependencies. Track T4, independent per-chain corpora, is the gate: it must clear before T2 (cross-model retrieval) or T3 (calibration transfer) can make a quantitative claim. Tracks T1 (commonality inventory and taxonomy) and T5 (methodology generalization) are independent and stand alone. Each track states an exit criterion and an explicit negative-result path.">
+  <rect x="0" y="0" width="1040" height="480" rx="14" fill="#ffffff" stroke="#d0d7de" stroke-width="1.5"/>
+
+  <!-- T1 independent, top-left -->
+  <rect x="40" y="24" width="440" height="104" rx="10" fill="#ffffff" stroke="#8c959f" stroke-width="1.4"/>
+  <circle cx="68" cy="48" r="13" fill="#57606a"/>
+  <text x="68" y="53" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">T1</text>
+  <text x="90" y="48" font-size="13.5" font-weight="700" fill="#1f2328">Commonality inventory + taxonomy</text>
+  <text x="90" y="65" font-size="10.5" fill="#8c959f">independent track</text>
+  <text x="54" y="89" font-size="10.5" fill="#1f2328"><tspan font-weight="700" fill="#1a7f37">Exit:</tspan> reproducible active-vs-declared inventory per chain,</text>
+  <text x="54" y="104" font-size="10.5" fill="#1f2328">effort-controlled, + invariant-indexed taxonomy.</text>
+  <text x="54" y="121" font-size="10" fill="#9a6700"><tspan font-weight="700">Null path:</tspan> partition fails to predict inventory → theory revised.</text>
+
+  <!-- T4 the gate, middle-left, emphasized -->
+  <rect x="40" y="140" width="440" height="128" rx="10" fill="#f3f8ff" stroke="#0969da" stroke-width="2.2"/>
+  <circle cx="68" cy="166" r="13" fill="#0969da"/>
+  <text x="68" y="171" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">T4</text>
+  <text x="90" y="166" font-size="13.5" font-weight="700" fill="#0a3069">Independent per-chain corpora</text>
+  <rect x="330" y="152" width="142" height="22" rx="11" fill="#0a3069"/>
+  <text x="401" y="167" text-anchor="middle" font-size="10.5" font-weight="700" fill="#ffffff">THE GATE</text>
+  <text x="54" y="194" font-size="10.5" fill="#1f2328">Independent sourcing · provenance + license · patched</text>
+  <text x="54" y="209" font-size="10.5" fill="#1f2328">negatives · Wilson 95% CIs · pre-registered effect size.</text>
+  <text x="54" y="229" font-size="10.5" fill="#1f2328"><tspan font-weight="700" fill="#1a7f37">Exit:</tspan> a credible corpus per chain before any claim.</text>
+  <text x="54" y="248" font-size="10.5" fill="#1f2328"><tspan font-weight="700" fill="#9a6700">Null path:</tspan> no credible corpus → chain stays Experimental,</text>
+  <text x="54" y="262" font-size="10" fill="#9a6700">makes no quantitative claim.</text>
+
+  <!-- T5 independent, bottom-left -->
+  <rect x="40" y="280" width="440" height="92" rx="10" fill="#ffffff" stroke="#8c959f" stroke-width="1.4"/>
+  <circle cx="68" cy="304" r="13" fill="#57606a"/>
+  <text x="68" y="309" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">T5</text>
+  <text x="90" y="304" font-size="13.5" font-weight="700" fill="#1f2328">Methodology generalization</text>
+  <text x="90" y="321" font-size="10.5" fill="#8c959f">independent track</text>
+  <text x="54" y="345" font-size="10.5" fill="#1f2328"><tspan font-weight="700" fill="#1a7f37">Exit:</tspan> per-chain layer-coverage matrix, dated artifact.</text>
+  <text x="54" y="363" font-size="10" fill="#9a6700"><tspan font-weight="700">Null path:</tspan> a layer with no analog is marked N/A with reason.</text>
+
+  <!-- gate arrows T4 -> T2, T3 -->
+  <path d="M480,186 C540,186 540,124 594,124" fill="none" stroke="#0969da" stroke-width="3" marker-end="url(#ah_blue)"/>
+  <path d="M480,222 C540,222 540,302 594,302" fill="none" stroke="#0969da" stroke-width="3" marker-end="url(#ah_blue)"/>
+  <text x="548" y="150" text-anchor="middle" font-size="10" font-weight="700" fill="#0969da">gates</text>
+  <text x="548" y="286" text-anchor="middle" font-size="10" font-weight="700" fill="#0969da">gates</text>
+
+  <!-- T2 right-top -->
+  <rect x="596" y="70" width="404" height="104" rx="10" fill="#eafaf0" stroke="#2da44e" stroke-width="1.4"/>
+  <circle cx="624" cy="96" r="13" fill="#2da44e"/>
+  <text x="624" y="101" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">T2</text>
+  <text x="646" y="94" font-size="13.5" font-weight="700" fill="#1a7f37">Cross-model retrieval</text>
+  <text x="646" y="112" font-size="10.5" fill="#57606a">does the knowledge base transfer?</text>
+  <text x="610" y="134" font-size="10.5" fill="#1f2328"><tspan font-weight="700" fill="#1a7f37">Exit:</tspan> retrieval relevance on non-EVM queries vs baseline;</text>
+  <text x="610" y="149" font-size="10.5" fill="#1f2328">any detection claim gated on T4.</text>
+  <text x="610" y="165" font-size="9.5" fill="#9a6700">Measured only for invariant-shared classes.</text>
+
+  <!-- T3 right-bottom -->
+  <rect x="596" y="252" width="404" height="104" rx="10" fill="#fff8e6" stroke="#bf8700" stroke-width="1.4"/>
+  <circle cx="624" cy="278" r="13" fill="#bf8700"/>
+  <text x="624" y="283" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">T3</text>
+  <text x="646" y="276" font-size="13.5" font-weight="700" fill="#9a6700">Calibration transfer</text>
+  <text x="646" y="294" font-size="10.5" fill="#57606a">does FP reasoning survive a new primitive?</text>
+  <text x="610" y="316" font-size="10.5" fill="#1f2328"><tspan font-weight="700" fill="#1a7f37">Exit:</tspan> precision/recall on independent non-EVM set,</text>
+  <text x="610" y="331" font-size="10.5" fill="#1f2328">Wilson CIs; recall preserved (off preset never filters).</text>
+  <text x="610" y="347" font-size="9.5" fill="#9a6700">Null → per-chain calibration, as predicted.</text>
+
+  <!-- bottom note (right) -->
+  <rect x="596" y="368" width="404" height="44" rx="9" fill="#f6f8fa" stroke="#d0d7de" stroke-width="1.1"/>
+  <text x="610" y="388" font-size="10.5" fill="#1f2328">Each track decomposes per chain, so any one ecosystem</text>
+  <text x="610" y="403" font-size="10.5" fill="#1f2328">can fund and verify its own slice. No track asserts a number first.</text>
+
+  <!-- reading strip -->
+  <rect x="40" y="424" width="960" height="42" rx="9" fill="#0a3069"/>
+  <text x="56" y="450" font-size="10.5" fill="#ffffff">T4 — independent ground truth — gates every quantitative claim. T1 and T5 stand alone; T2 and T3 cannot report a number until the corpus for that chain clears T4.</text>
+
+  <defs>
+    <marker id="ah_blue" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#0969da"/></marker>
+  </defs>
+</svg>

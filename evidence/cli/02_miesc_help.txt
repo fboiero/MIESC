@@ -1,0 +1,26 @@
+$ miesc --help
+Usage: miesc [OPTIONS] COMMAND [ARGS]...
+
+  MIESC - Multi-layer Intelligent Evaluation for Smart Contracts
+
+  Defense-in-depth security analysis framework for Ethereum smart contracts.
+  Orchestrates 25 specialized tools across 7 defense layers.
+
+  Examples:
+
+      miesc scan contract.sol        Quick static analysis
+
+      miesc audit contract.sol       Full 7-layer audit
+
+      miesc doctor                   Check tool availability
+
+Options:
+  --version  Show the version and exit.
+  --help     Show this message and exit.
+
+Commands:
+  api      Start the MCP REST API server.
+  audit    Full 7-layer security audit.
+  doctor   Check availability of security tools.
+  scan     Quick scan using static analysis tools (Slither, Aderyn,...
+  version  Show version information.

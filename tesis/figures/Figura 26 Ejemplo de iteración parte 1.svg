@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 850 520" font-family="Arial, Helvetica, sans-serif">
+  <!-- Background -->
+  <rect width="850" height="520" fill="#ffffff"/>
+  
+  <!-- Title -->
+  <text x="425" y="28" text-anchor="middle" font-size="18" font-weight="bold" fill="#2c3e50">
+    Ejemplo de Interacción (Parte 1): Solicitud y Análisis
+  </text>
+  
+  <!-- Message 1: Usuario -->
+  <rect x="40" y="50" width="550" height="80" fill="#e8f4fc" rx="12" stroke="#3498db" stroke-width="2"/>
+  <text x="60" y="72" font-size="13" font-weight="bold" fill="#2980b9">👤 Usuario</text>
+  <text x="60" y="93" font-size="12" fill="#2c3e50">Tengo un contrato de staking en contracts/Staking.sol que</text>
+  <text x="60" y="110" font-size="12" fill="#2c3e50">necesito auditar antes de desplegarlo en mainnet. Es mi primer</text>
+  <text x="60" y="127" font-size="12" fill="#2c3e50">deploy y quiero asegurarme de que no tiene vulnerabilidades.</text>
+  
+  <!-- Message 2: Claude - Analysis -->
+  <rect x="80" y="145" width="730" height="360" fill="#f5eef8" rx="12" stroke="#9b59b6" stroke-width="2"/>
+  <text x="100" y="170" font-size="13" font-weight="bold" fill="#8e44ad">🤖 Claude</text>
+  
+  <text x="100" y="193" font-size="12" fill="#2c3e50">Voy a analizar tu contrato con una auditoría completa de seguridad.</text>
+  
+  <!-- Tool execution badge -->
+  <rect x="100" y="205" width="440" height="24" fill="#1abc9c" rx="5"/>
+  <text x="112" y="222" font-size="10" font-family="Consolas, monospace" fill="white">▶ analyze_contract("Staking.sol", layers=[1,2,3,5,7])</text>
+  
+  <text x="100" y="255" font-size="12" fill="#2c3e50" font-weight="bold">Completé el análisis. Encontré 8 hallazgos:</text>
+  
+  <!-- Critical 1 -->
+  <rect x="100" y="270" width="690" height="100" fill="#fdedec" rx="8" stroke="#e74c3c" stroke-width="1"/>
+  <text x="118" y="292" font-size="12" font-weight="bold" fill="#c0392b">🔴 CRÍTICO 1: Reentrancy en unstake() - Línea 67</text>
+  <text x="118" y="312" font-size="11" fill="#555">El contrato transfiere ETH antes de actualizar el balance.</text>
+  <text x="118" y="327" font-size="11" fill="#555">Un atacante podría drenar todos los fondos.</text>
+  
+  <rect x="118" y="338" width="380" height="28" fill="#2c3e50" rx="4"/>
+  <text x="128" y="352" font-size="9" font-family="Consolas, monospace" fill="#e74c3c">payable(msg.sender).transfer(amount);</text>
+  <text x="128" y="364" font-size="9" font-family="Consolas, monospace" fill="#777">stakes[msg.sender] = 0; // después</text>
+  
+  <!-- Critical 2 -->
+  <rect x="100" y="380" width="690" height="80" fill="#fdedec" rx="8" stroke="#e74c3c" stroke-width="1"/>
+  <text x="118" y="402" font-size="12" font-weight="bold" fill="#c0392b">🔴 CRÍTICO 2: Pérdida de precisión - Línea 89</text>
+  <text x="118" y="422" font-size="11" fill="#555">División antes de multiplicación causa pérdida de decimales.</text>
+  
+  <rect x="118" y="433" width="380" height="18" fill="#2c3e50" rx="4"/>
+  <text x="128" y="446" font-size="9" font-family="Consolas, monospace" fill="#f39c12">reward = (stakedAmount / totalStaked) * rewardPool;</text>
+  
+  <!-- Continue indicator - DENTRO del contenedor morado -->
+  <text x="100" y="485" font-size="11" fill="#8e44ad" font-style="italic">
+    "¿Quieres que te muestre el código corregido para los hallazgos críticos?"
+  </text>
+</svg>

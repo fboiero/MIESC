@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 520" font-family="'Segoe UI',system-ui,-apple-system,Roboto,sans-serif" role="img" aria-label="The tooling asymmetry across execution models: the EVM has a mature, layered detection stack while non-EVM chains (Solana, Move, Cairo/Starknet, Polkadot, Cardano, Algorand and others) have sparse, siloed per-chain tools. The open question is whether detection intelligence transfers across execution models; this program's thesis is that it transfers partially and predictably.">
+  <rect x="0" y="0" width="1040" height="520" rx="14" fill="#ffffff" stroke="#d0d7de" stroke-width="1.5"/>
+
+  <!-- EVM side -->
+  <text x="212" y="52" text-anchor="middle" font-size="17" font-weight="700" fill="#0a3069">The EVM world</text>
+  <text x="212" y="72" text-anchor="middle" font-size="11.5" fill="#57606a">a decade of layered tooling — mature</text>
+
+  <rect x="72" y="92" width="280" height="30" rx="5" fill="#eafaf0" stroke="#2da44e" stroke-width="1.3"/>
+  <text x="212" y="112" text-anchor="middle" font-size="12" fill="#1a7f37">LLM auditors (RAG / multi-agent)</text>
+  <rect x="72" y="128" width="280" height="30" rx="5" fill="#eafaf0" stroke="#2da44e" stroke-width="1.3"/>
+  <text x="212" y="148" text-anchor="middle" font-size="12" fill="#1a7f37">Symbolic execution</text>
+  <rect x="72" y="164" width="280" height="30" rx="5" fill="#eafaf0" stroke="#2da44e" stroke-width="1.3"/>
+  <text x="212" y="184" text-anchor="middle" font-size="12" fill="#1a7f37">Fuzzing</text>
+  <rect x="72" y="200" width="280" height="30" rx="5" fill="#eafaf0" stroke="#2da44e" stroke-width="1.3"/>
+  <text x="212" y="220" text-anchor="middle" font-size="12" fill="#1a7f37">Static analysis</text>
+  <rect x="72" y="236" width="280" height="30" rx="5" fill="#eafaf0" stroke="#2da44e" stroke-width="1.3"/>
+  <text x="212" y="256" text-anchor="middle" font-size="12" fill="#1a7f37">Curated vulnerability knowledge base</text>
+  <text x="212" y="288" text-anchor="middle" font-size="10.5" fill="#8c959f">stacked, cross-validating layers</text>
+
+  <!-- divider -->
+  <line x1="420" y1="92" x2="420" y2="300" stroke="#e5e8eb" stroke-width="1.2"/>
+
+  <!-- non-EVM side -->
+  <text x="730" y="52" text-anchor="middle" font-size="17" font-weight="700" fill="#0a3069">The non-EVM world</text>
+  <text x="730" y="72" text-anchor="middle" font-size="11.5" fill="#57606a">real but siloed, per-chain — gaps between</text>
+
+  <!-- row 1 (4 cols) -->
+  <rect x="489" y="88" width="112" height="46" rx="6" fill="#f6f8fa" stroke="#8c959f" stroke-width="1.2"/>
+  <text x="545" y="108" text-anchor="middle" font-size="11" font-weight="600" fill="#1f2328">Solana</text>
+  <text x="545" y="124" text-anchor="middle" font-size="9" fill="#57606a">VRust (static)</text>
+
+  <rect x="612" y="88" width="112" height="46" rx="6" fill="#f6f8fa" stroke="#8c959f" stroke-width="1.2"/>
+  <text x="668" y="108" text-anchor="middle" font-size="11" font-weight="600" fill="#1f2328">Move</text>
+  <text x="668" y="124" text-anchor="middle" font-size="9" fill="#57606a">Move Prover</text>
+
+  <rect x="735" y="88" width="112" height="46" rx="6" fill="#f6f8fa" stroke="#8c959f" stroke-width="1.2"/>
+  <text x="791" y="108" text-anchor="middle" font-size="11" font-weight="600" fill="#1f2328">Cairo/Starknet</text>
+  <text x="791" y="124" text-anchor="middle" font-size="9" fill="#57606a">Caracal (static)</text>
+
+  <rect x="858" y="88" width="112" height="46" rx="6" fill="#f6f8fa" stroke="#8c959f" stroke-width="1.2"/>
+  <text x="914" y="108" text-anchor="middle" font-size="11" font-weight="600" fill="#1f2328">Polkadot</text>
+  <text x="914" y="124" text-anchor="middle" font-size="9" fill="#57606a">resolc (emerging)</text>
+
+  <!-- row 2 (3 cols) -->
+  <rect x="489" y="146" width="112" height="46" rx="6" fill="#f6f8fa" stroke="#8c959f" stroke-width="1.2"/>
+  <text x="545" y="166" text-anchor="middle" font-size="11" font-weight="600" fill="#1f2328">Cardano</text>
+  <text x="545" y="182" text-anchor="middle" font-size="9" fill="#57606a">formal work (emerging)</text>
+
+  <rect x="612" y="146" width="112" height="46" rx="6" fill="#f6f8fa" stroke="#8c959f" stroke-width="1.2"/>
+  <text x="668" y="166" text-anchor="middle" font-size="11" font-weight="600" fill="#1f2328">Algorand</text>
+  <text x="668" y="182" text-anchor="middle" font-size="9" fill="#57606a">Tealer (static)</text>
+
+  <rect x="735" y="146" width="112" height="46" rx="6" fill="#ffffff" stroke="#d0d7de" stroke-width="1.2" stroke-dasharray="4 3"/>
+  <text x="791" y="166" text-anchor="middle" font-size="11" font-weight="600" fill="#8c959f">others</text>
+  <text x="791" y="182" text-anchor="middle" font-size="9" fill="#8c959f">sparse</text>
+
+  <text x="730" y="230" text-anchor="middle" font-size="10.5" fill="#8c959f">little crosses between these chains</text>
+  <text x="730" y="262" text-anchor="middle" font-size="11" font-style="italic" fill="#57606a">each tool speaks only its own chain</text>
+
+  <!-- the question -->
+  <rect x="72" y="326" width="898" height="58" rx="10" fill="#f3f8ff" stroke="#0969da" stroke-width="1.4"/>
+  <text x="521" y="352" text-anchor="middle" font-size="15" font-weight="700" fill="#0a3069">Does vulnerability-detection intelligence transfer across execution models?</text>
+  <text x="521" y="372" text-anchor="middle" font-size="11.5" fill="#1f2328">Not yet measured. The field assumes either &#8220;detection is per-chain&#8221; or &#8220;detection just generalizes.&#8221;</text>
+
+  <!-- spectrum -->
+  <line x1="180" y1="438" x2="862" y2="438" stroke="#d0d7de" stroke-width="3"/>
+  <circle cx="180" cy="438" r="6" fill="#8c959f"/>
+  <circle cx="862" cy="438" r="6" fill="#8c959f"/>
+  <text x="180" y="468" text-anchor="middle" font-size="11.5" font-weight="600" fill="#57606a">Detection is per-chain</text>
+  <text x="180" y="484" text-anchor="middle" font-size="10" fill="#8c959f">rewrite every rule from scratch</text>
+  <text x="862" y="468" text-anchor="middle" font-size="11.5" font-weight="600" fill="#57606a">Detection generalizes</text>
+  <text x="862" y="484" text-anchor="middle" font-size="10" fill="#8c959f">a good detector &#8220;just works&#8221;</text>
+
+  <circle cx="521" cy="438" r="9" fill="#0969da" stroke="#ffffff" stroke-width="2"/>
+  <rect x="396" y="398" width="250" height="26" rx="6" fill="#0a3069"/>
+  <text x="521" y="416" text-anchor="middle" font-size="11.5" font-weight="700" fill="#ffffff">This program: in between &#38; predictable</text>
+</svg>
