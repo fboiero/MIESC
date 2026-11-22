@@ -98,11 +98,16 @@ embedding retrieval. Isolating it is exactly what the repaired A/B now enables.
 
 ## Open items (future, additive, recall-safe)
 
-1. ~~**Produce the mechanism-(1) number.**~~ **Done (2026-11-21).** Run on a real
-   SmartBugs-curated corpus (reentrancy / access_control / arithmetic, 64
-   contracts, `qwen2.5-coder:32b`): **ΔRecall = −3.2 pp, McNemar p = 0.625 — no
-   detectable effect**, at ceiling and partly a spray artifact. See
-   `docs/research/RAG_ISOLATED_ABLATION_20261121.md`.
+1. ~~**Produce the mechanism-(1) number.**~~ **Done (2026-11-21/22), and it is
+   conditional.** On `qwen2.5-coder:32b` (at ceiling): **ΔRecall = −3.2 pp,
+   p = 0.625 — no detectable effect**
+   (`docs/research/RAG_ISOLATED_ABLATION_20261121.md`). On the weaker
+   `qwen2.5-coder:7b`: **+10.9 pp overall (p = 0.12, n.s.)**, carried by
+   access_control (**+50 pp, p = 0.0117**) — but reading the findings shows this is
+   **mostly vulnerability-class attribution, not raw detection**
+   (`docs/research/RAG_ISOLATED_ABLATION_7B_FOLLOWUP_20261122.md`). Net: RAG's
+   mechanism-(1) value depends on model strength and class, and lives largely in
+   SWC/class attribution rather than recall.
 2. ~~**Control for sampling noise.**~~ **Done (2026-11-21).** 3 runs per arm, cache
    disabled; run-to-run flip rate was 0/63 (the 32B model is deterministic on this
    corpus), so sampling variance is not the confound — ceiling and discordant-pair
