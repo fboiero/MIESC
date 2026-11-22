@@ -3,6 +3,10 @@
 **Date:** 2026-11-21
 **Status:** Research note (additive). Closes Open items #1 and #2 of
 `docs/research/RAG_MECHANISMS_MEASUREMENT_MAP_20261120.md`.
+**Follow-up:** this null is for the **32B** backend (at ceiling). A weaker 7B
+backend does show an effect — conditional and mostly about class attribution — see
+`docs/research/RAG_ISOLATED_ABLATION_7B_FOLLOWUP_20261122.md`. Read both together
+before concluding anything general about mechanism (1).
 **Scope:** Produces the first isolated contribution number for RAG **mechanism (1)**
 — the embedding retrieval inside the LLM detection adapters. Introduces no new
 benchmark claim, changes no frozen detection evidence, emits no findings.
@@ -111,6 +115,7 @@ This result is **consistent with**, and does not disturb, the surrounding eviden
   obfuscated contracts) where retrieval has room to help.
 - **A weaker backend** (e.g. a 7B model) that lacks the internal pattern
   knowledge the 32B already has — the regime where retrieval is most likely to pay.
+  **Done (2026-11-22):** `docs/research/RAG_ISOLATED_ABLATION_7B_FOLLOWUP_20261122.md`.
 - **Precision labels** to test the conservative-output signal (fewer off-target
   categories with RAG on) directly.
 
@@ -118,9 +123,9 @@ These are the user's call to commission; this note does not launch them.
 
 ## Provenance / reproduce
 
-- Collection: `rag_ab_collect.py` · analysis: `rag_ab_analyze.py` · raw:
-  `rag_ab_raw_20261121.json` · run log: `run_log.txt` (all archived under the
-  session notes, outside the repo).
+- Collection script `rag_ab_collect.py` and raw `rag_ab_raw_20261121.json` are
+  committed under `docs/research/data/rag_isolated_ablation_20261121/` (contract
+  paths repo-relative). The analysis is `rag_ab_compare.py` in that bundle.
 - Pinned: SHA `350c914b…`, model digest `b92d6a0bd47e`, KB
   `2026-11-15-chain-provenance-v5`, embedding `all-MiniLM-L6-v2`.
 - Harness: the PR #370 gate (`rag_runtime_disabled()` in `miesc/llm/rag_utils.py`
