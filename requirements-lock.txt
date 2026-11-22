@@ -116,7 +116,7 @@ pydantic-core==2.50.4
     # via pydantic
 pygments==2.21.0
     # via rich
-pyunormalize==17.0.0
+pyunormalize==18.0.0
     # via web3
 pyyaml==6.0.3
     # via miesc (pyproject.toml)
