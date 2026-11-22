@@ -43,7 +43,7 @@ eth-keys==0.8.0
     # via
     #   eth-account
     #   eth-keyfile
-eth-rlp==2.2.0
+eth-rlp==3.0.0
     # via eth-account
 eth-typing==6.0.0
     # via
