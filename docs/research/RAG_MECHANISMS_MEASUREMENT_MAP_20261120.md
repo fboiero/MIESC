@@ -98,13 +98,15 @@ embedding retrieval. Isolating it is exactly what the repaired A/B now enables.
 
 ## Open items (future, additive, recall-safe)
 
-1. **Produce the mechanism-(1) number.** Build a real ground-truth corpus
-   (the evaluator's `create_sample_ground_truth()` currently points at placeholder
-   contracts), run the repaired A/B on it, and report embedding-RAG precision /
-   recall deltas with Wilson 95% CIs in a dated artifact.
-2. **Control for sampling noise.** One LLM run per arm cannot separate the RAG
-   effect from sampling variance; pin seed and temperature, or repeat runs and
-   report the spread, before claiming significance.
+1. ~~**Produce the mechanism-(1) number.**~~ **Done (2026-11-21).** Run on a real
+   SmartBugs-curated corpus (reentrancy / access_control / arithmetic, 64
+   contracts, `qwen2.5-coder:32b`): **ΔRecall = −3.2 pp, McNemar p = 0.625 — no
+   detectable effect**, at ceiling and partly a spray artifact. See
+   `docs/research/RAG_ISOLATED_ABLATION_20261121.md`.
+2. ~~**Control for sampling noise.**~~ **Done (2026-11-21).** 3 runs per arm, cache
+   disabled; run-to-run flip rate was 0/63 (the 32B model is deterministic on this
+   corpus), so sampling variance is not the confound — ceiling and discordant-pair
+   scarcity are. Same note.
 3. **Keep recall-safety as the gate.** As with mechanism (2), any retrieval change
    that raises precision at the cost of a dropped true positive is rejected.
 
