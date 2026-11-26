@@ -1294,8 +1294,10 @@ Respond ONLY with JSON of the shape:
             except (ValueError, json_mod.JSONDecodeError):
                 logger.debug(f"LLM verifier ({model}): unparseable JSON; abstaining")
                 return None
-            if not isinstance(parsed, dict) or "confirmed" not in parsed:
-                # No explicit verdict: abstain rather than guess a confirmation.
+            if not isinstance(parsed, dict) or not isinstance(parsed.get("confirmed"), bool):
+                # No explicit boolean verdict: abstain rather than guess. A string
+                # such as "false" is truthy, so non-bool values must never count.
+                logger.debug(f"LLM verifier ({model}): missing/non-boolean verdict; abstaining")
                 return None
             parsed["_model"] = model
             return cast(Optional[Dict[Any, Any]], parsed)
@@ -1346,8 +1348,9 @@ Respond ONLY with JSON of the shape:
         if not opinions:
             return None
 
-        confirmed = [o for o in opinions if bool(o.get("confirmed"))]
-        rejected = [o for o in opinions if not bool(o.get("confirmed"))]
+        # Fail closed: only a literal boolean True counts as a confirmation.
+        confirmed = [o for o in opinions if o.get("confirmed") is True]
+        rejected = [o for o in opinions if o.get("confirmed") is not True]
 
         if len(opinions) == 1:
             consensus = "single_opinion"
