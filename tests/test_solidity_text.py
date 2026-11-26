@@ -113,5 +113,9 @@ def test_miners_share_function_re():
         resource_liveness_griefing,
     )
 
-    for mod in (lending_solvency_liquidation, privileged_governance_lifecycle, resource_liveness_griefing):
+    for mod in (
+        lending_solvency_liquidation,
+        privileged_governance_lifecycle,
+        resource_liveness_griefing,
+    ):
         assert mod._FUNCTION_RE is _solidity_text._FUNCTION_RE
