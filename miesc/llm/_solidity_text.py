@@ -10,15 +10,18 @@ strings, locate a line, or find a matching brace and still anchor findings to th
 source positions.
 
 Not part of the public ``miesc.llm`` surface: the names stay underscore-prefixed and this
-module is itself underscore-prefixed. ``_FUNCTION_RE`` is intentionally NOT shared — the
-revert-invariant miner needs a superset that also matches ``modifier``/``constructor``,
-while the others match only ``function``.
+module is itself underscore-prefixed. The function-only ``_FUNCTION_RE`` is shared; the revert-invariant miner keeps its own
+superset that also matches ``modifier``/``constructor``.
 """
 
 from __future__ import annotations
 
 import re
 from typing import Optional
+
+# Matches ``function <name>(`` only (no modifier/constructor). Shared by the miners that
+# need just named functions.
+_FUNCTION_RE = re.compile(r"\bfunction\s+(?P<name>[A-Za-z_]\w*)\s*\(")
 
 _CAMEL_RE = re.compile(r"[A-Z]+(?![a-z])|[A-Z][a-z0-9]*|[a-z0-9]+")
 

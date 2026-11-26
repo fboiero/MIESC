@@ -47,6 +47,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Set, Tuple
 
 from miesc.llm._solidity_text import (
+    _FUNCTION_RE,
     _body_brace,
     _line_of,
     _mask_strings,
@@ -304,7 +305,6 @@ _ARRAY_DECL_RE = re.compile(
 _MAPPING_DECL_RE = re.compile(
     r"\bmapping\s*\([^;]*?\)\s+(?:public\s+|private\s+|internal\s+)*([A-Za-z_]\w*)\s*[;=]"
 )
-_FUNCTION_RE = re.compile(r"\bfunction\s+(?P<name>[A-Za-z_]\w*)\s*\(")
 
 # Progress-critical stems, matched against camelCase / snake_case *tokens* (not as raw
 # substrings) so ``emergencyWithdraw`` matches but ``preprocess`` does not falsely hit
