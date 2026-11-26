@@ -875,6 +875,8 @@ async def miesc_get_metrics() -> str:
     Returns recall on SmartBugs-curated (143 contracts), real-world DeFi
     exploits (with 95% Wilson CI), and the EVMBench ensemble, each sourced
     from the released per-claim matrix (benchmarks/results/paper1_claims_matrix.json).
+    The values below are mirrored literals; tests/test_mcp_server.py asserts they
+    equal the matrix, so any drift fails CI.
     """
     LAYERS = _get_layers()
     ADAPTER_MAP = _get_adapter_map()

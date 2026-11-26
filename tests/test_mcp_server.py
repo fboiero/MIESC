@@ -265,6 +265,27 @@ class TestMCPTools:
         # The inflated flat "50 tools" claim is gone (consistency with README).
         assert "tools" not in data
 
+    def test_miesc_get_metrics_match_claims_matrix(self):
+        """The benchmark literals must not drift from the released claims matrix."""
+        from pathlib import Path
+
+        from miesc.mcp_server import miesc_get_metrics
+
+        root = Path(__file__).resolve().parent.parent
+        matrix = root / "benchmarks/results/paper1_claims_matrix.json"
+        if not matrix.exists():
+            pytest.skip("claims matrix not available")
+        claims = {c["claim_id"]: c for c in json.loads(matrix.read_text())["claims"]}
+        bench = json.loads(asyncio.run(miesc_get_metrics()))["reproducible_benchmarks"]
+        sb = claims["smartbugs_latest_reproducible"]["value"]
+        rw = claims["real_world_exploits"]["value"]
+        assert bench["smartbugs_curated_recall"] == pytest.approx(sb["recall"], abs=1e-3)
+        assert bench["real_world_exploit_recall"] == pytest.approx(rw["recall"], abs=1e-3)
+        assert bench["real_world_exploit_wilson_ci_95"] == rw["wilson_ci_95"]
+        assert bench["evmbench_ensemble_recall"] == pytest.approx(
+            claims["evmbench_ensemble_union"]["value"], abs=1e-3
+        )
+
     def test_miesc_get_tool_info_unknown(self):
         data = json.loads(asyncio.run(miesc_get_tool_info("nonexistent_tool")))
         assert "error" in data
