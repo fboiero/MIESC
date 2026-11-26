@@ -135,7 +135,7 @@ All static analysis tools have FP rates of 80-90%+ (recall-focused). MIESC's RAG
 
 **Shipped in v5.1.2–v5.3.1:**
 1. ✅ **FP filter tuning:** `--fp-strictness {off,low,medium,high}` flag
-2. ✅ **Multi-chain:** Native support for Move, Cairo, Solana (77 vuln types)
+2. ✅ **Multi-chain:** EVM production support; Cairo/Starknet experimental (Caracal); Solana and Move roadmap (pattern detection only)
 3. ✅ **Formal verification:** `miesc specs` generates CVL/Scribble/SMTChecker
 4. ✅ **Intelligence engine:** ~30% noise reduction, semantic dedup, fix-code generation
 5. ✅ **Automated remediation:** `miesc fix` (Paper 2 on SmartBugs-curated: 123/143 fixes applied, 123/123 compile standalone, 88/123 eliminate the finding on re-scan, 121/123 no-regression)
