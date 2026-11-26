@@ -7,7 +7,7 @@ lang: es
 # MIESC - Evaluación Inteligente Multicapa para Smart Contracts
 
 <p align="center">
-  <img src="https://img.shields.io/badge/MIESC-v6.0.0-blue?style=for-the-badge" alt="MIESC v6.0.0">
+  <img src="https://img.shields.io/badge/MIESC-v6.8.0-blue?style=for-the-badge" alt="MIESC v6.8.0">
   <img src="https://img.shields.io/pypi/v/miesc?style=for-the-badge&label=PyPI" alt="PyPI">
   <img src="https://img.shields.io/badge/Licencia-AGPL--3.0-green?style=for-the-badge" alt="Licencia">
   <img src="https://img.shields.io/badge/Python-3.12+-yellow?style=for-the-badge" alt="Python">
@@ -88,7 +88,7 @@ lang: es
 
 ---
 
-## Estado Actual en v6.0.0
+## Estado Actual en v6.8.0
 
 **Release Core Actual** - CLI pública, API REST local, MCP stdio, OpenAPI y
 generación de reportes estáticos, manteniendo la UI de producto/plataforma fuera
@@ -330,7 +330,7 @@ SmartBugs-curated (143 contratos, 207 vulnerabilidades ground-truth):
   title = {MIESC: Evaluación Inteligente Multicapa para Smart Contracts},
   year = {2025},
   url = {https://github.com/fboiero/MIESC},
-  version = {6.0.0},
+  version = {6.8.0},
   note = {Implementación para Tesis de Maestría en Ciberdefensa}
 }
 ```
@@ -498,7 +498,7 @@ Asegura que el framework permanezca open-source. Permite uso comercial con atrib
 ---
 
 <p align="center">
-  <strong>MIESC v6.0.0</strong> | Tesis de Maestría en Ciberdefensa | Licencia AGPL-3.0
+  <strong>MIESC v6.8.0</strong> | Tesis de Maestría en Ciberdefensa | Licencia AGPL-3.0
 </p>
 
 <p align="center">

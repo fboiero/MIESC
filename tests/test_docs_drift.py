@@ -76,6 +76,12 @@ def test_readme_mcp_tool_list_matches_server():
         (INSTALL_ES, r"^MIESC v(\d+\.\d+\.\d+) - Installation Verification"),
         (INSTALL_ES, r"^\*\*Versión\*\*: (\d+\.\d+\.\d+) \|"),
         (CITATION, r"^version: (\d+\.\d+\.\d+)$"),
+        (ROOT / "docs" / "index.md", r"img\.shields\.io/badge/MIESC-v(\d+\.\d+\.\d+)-"),
+        (ROOT / "docs" / "index.md", r"^## What's Current in v(\d+\.\d+\.\d+)"),
+        (ROOT / "docs" / "index.md", r"^  version = \{(\d+\.\d+\.\d+)\},"),
+        (ROOT / "docs" / "index_es.md", r"img\.shields\.io/badge/MIESC-v(\d+\.\d+\.\d+)-"),
+        (ROOT / "docs" / "index_es.md", r"^## Estado Actual en v(\d+\.\d+\.\d+)"),
+        (ROOT / "docs" / "index_es.md", r"^  version = \{(\d+\.\d+\.\d+)\},"),
     ],
     ids=lambda v: v.name if isinstance(v, Path) else v[:28],
 )
