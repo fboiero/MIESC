@@ -41,7 +41,7 @@ repos:
     hooks:
       - id: bandit
         name: Bandit Security Scanner
-        args: ['-r', 'src/', '-ll']  # Low-level severity
+        args: ['-r', 'miesc/', '-ll']  # Medium severity or higher
         exclude: ^tests/
 
   # Secret Scanning
