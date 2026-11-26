@@ -18,107 +18,6 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   network server. The Dependency Security workflow now ignores those four IDs with that
   justification inline, to be removed once upstream ships a fix.
 
-### Fixed
-
-- **RAG A/B evaluation now measures RAG.** The RAG evaluator toggled
-  `MIESC_DISABLE_RAG` between its two `analyze()` calls, but no adapter read the
-  variable, so the "with RAG" and "without RAG" arms ran identically and the
-  effectiveness metric was meaningless. Two stacked bugs are fixed: (1) the five LLM
-  adapters (`smartllm`, `gptscan`, `llmsmartaudit`, `llmbugscanner`, `propertygpt`) now
-  gate the retrieved context they inject on a per-call `rag_runtime_disabled()` check, so
-  the disabled arm sends no retrieved context at all — not even SmartLLM's keyword
-  fallback, which otherwise turned the A/B into "embedding vs keyword" rather than "RAG vs
-  no RAG"; (2) the adapters' result cache keys now encode the effective RAG state, so a
-  RAG-enhanced run and a RAG-disabled run of the same contract no longer collide on one
-  cached entry (a latent correctness bug beyond the evaluator). The evaluator also disables
-  the on-disk LLM cache for the duration of an A/B, restores the environment afterwards,
-  and labels each arm by the RAG state the adapter actually applied (read back from
-  `metadata.rag_enhanced`), logging an error instead of a false label when the "with RAG"
-  arm silently ran without RAG (e.g. chromadb/sentence-transformers missing). This makes
-  the measurement honest and verifiable; publishing a with-/without-RAG number still
-  requires a ground-truth corpus and is left to a separate additive run.
-
-### Changed
-
-- **Cross-chain whitepaper reformatted as a scientific preprint.**
-  `docs/research/UNIFIED_CROSSCHAIN_INTELLIGENCE_RESEARCH_20261113.md` was restructured
-  into an arXiv-style preprint: an Abstract and Keywords, numbered `[n]` citations backed
-  by a numbered References section (each external reference checked against a primary or
-  authoritative source — VRust at CCS 2022, the Move Prover at CAV 2020, Caracal, Tealer,
-  the SWC Registry, OpenSCV), numbered and captioned figures and tables, and a renamed
-  "Contributions and threats to validity" section. Four new vector figures accompany the
-  invariant matrix: the EVM/non-EVM tooling asymmetry (`exec_transfer_asymmetry_2027.svg`),
-  the
-  class/mechanism/calibration decomposition (`exec_transfer_decomposition_2027.svg`), the
-  research-program dependency DAG with the T4 gate (`exec_transfer_program_dag_2027.svg`),
-  and the falsification ablation design (`exec_transfer_ablation_2027.svg`); the invariant
-  matrix figure was trimmed so its caption carries the title. The reentrancy row was
-  reconciled across the table and the matrix (EVM, Solana and Cairo realize it; Move,
-  eUTXO and Algorand do not). The substantive claims are unchanged; no benchmark figures
-  changed.
-
-- **Cross-chain research whitepaper reframed around a falsifiable research question.**
-  `docs/research/UNIFIED_CROSSCHAIN_INTELLIGENCE_RESEARCH_20261113.md` was rewritten from
-  the "unified intelligence core" framing to a sharper, more defensible thesis — *does
-  vulnerability-detection intelligence transfer across execution models?* — grounded in an
-  **invariant theory** that predicts the transfer boundary from execution-model semantics,
-  a literature positioning (Yu 2024; Sol2Vy; MWC; Boi & Esposito 2025), an honest
-  preliminary audit of the repo's own non-EVM adapters (the full emission inventory
-  deferred to Track T1), a falsifiable ablation test (alternative **H₁** vs null **H₀**),
-  and a Cairo-piloted, per-chain-fundable milestone plan. New figure
-  `docs/figures/execution_model_transfer_2027.svg` (invariant × model matrix) replaces the
-  previous "shared core" diagram. No benchmark figures changed.
-
-### Fixed
-
-- **Cross-chain research whitepaper: factual corrections.** `docs/research/UNIFIED_CROSSCHAIN_INTELLIGENCE_RESEARCH_20261113.md`
-  and its figure corrected after a code-grounded audit: removed Algorand from the
-  "DoS / unbounded resource" shared-class row (the adapter declares no such label);
-  removed `felt_overflow` from the Cairo "non-transferable" list (MIESC's taxonomy maps
-  it to the shared ARITHMETIC class — class transfers, mechanism does not); fixed the
-  statistical mislabel (the shared-transfer bet is the alternative **H₁**, with the null
-  **H₀** stated and used consistently); and reworded the 13-false-positive Solana
-  anecdote to its actual root cause (line-local regexes + a lowercase `"signer"` test),
-  not an unsupported "EVM-style reasoning" claim. Also softened the overstated "the
-  repository already contains the empirical material" framing to match the nominal-label
-  caveat. No benchmark figures changed.
-- **Solana/Anchor pattern detector hardened against false positives.** The
-  `SolanaPatternDetector` previously emitted safe constructs (`checked_add`,
-  `find_program_address`, `CpiContext::new`, `#[account(init)]`, `as u64` casts…)
-  as "findings" and used line-local negative-lookahead regexes that could not see
-  the `#[derive(Accounts)]` struct where Anchor's validation lives — measured
-  firing **13 findings (10 High) on a clean 41-line Anchor program**. Rewritten to
-  blank comments/strings Rust-aware (so `<'info>` lifetimes are not read as
-  strings), emit only genuine-vulnerability patterns (unchecked arithmetic on a
-  financial value, manual lamport mutation, arbitrary CPI, non-canonical PDA,
-  unchecked account) and use the disproving control as a suppressor. Also fixed
-  `_check_signer_validation`, which tested lowercase `"signer"` and so flagged
-  every handler whose Accounts struct used the `Signer<'info>` type. Measured
-  after: **0 findings on the clean program, all true positives retained on a
-  vulnerable one.** Still experimental/pattern-only — no recall/precision claim.
-  `docs/MULTICHAIN.md` Solana section updated (and its CLI corrected to
-  `miesc analyze … --chain solana`).
-
-### Documentation
-
-- **Optional tools documented honestly (P2-8): Certora, Vertigo, DA-GNN.** These three adapters are
-  optional (per [ADR-0003](docs/adr/0003-optional-tools-dpga-compliance.md)) but their real setup was
-  undocumented or wrong. `docs/TOOLS.md` now has an **Optional & experimental tools** section and a
-  Vertigo (Layer 2) row; `docs/INSTALLATION.md` and `docs/INSTALLATION_ES.md` carry the corrected
-  rows. Each entry states the exact install and what MIESC reports without the tool
-  (`not_installed` / `configuration_error`), so an absent optional tool reads as expected, not broken.
-  Corrections verified against the adapters and a clean install: **Certora** needs `certora-cli` plus
-  `CERTORAKEY` (the row previously said only "free tier"); **Vertigo** is
-  `pip install eth-vertigo pyyaml` (upstream 1.3.0 omits the PyYAML its CLI imports) and the adapter
-  gates on Foundry (`forge`) while upstream drives Truffle/Hardhat — experimental; **DA-GNN** needs
-  `pip3 install torch torch-geometric scikit-learn networkx` plus Slither, with a heuristic fallback
-  (the row previously said only "Built-in"/"Incluido", which implied zero setup).
-- **Multi-chain status and version pins corrected in the READMEs.** `README.md` and
-  `README_ES.md` now show **Polkadot/PolkaVM** and **Cairo/Starknet** as *Experimental*
-  (a real external analyzer is integrated) instead of omitting or down-listing them,
-  matching the per-chain legend in `docs/MULTICHAIN.md`; the GitHub Action and
-  pre-commit pins were updated from `v6.0.0` to `v6.8.0`. No benchmark figures changed.
-
 ### Added
 
 - **PolkaVM class-(B) check: inline-assembly manual deployment (`polkavm-asm-manual-deploy`).** New
@@ -134,6 +33,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `assembly ("memory-safe")` block all handled correctly); the `type(T).creationCode`-fed form is
   left to `polkavm-create2-address-assumption`, so there is no double-report. Fixture
   `AsmManualDeploy.sol` (verified to compile with `resolc`) + overlap and true-negative guards.
+
 - **Cross-chain security research whitepaper + architecture figure.**
   `docs/research/UNIFIED_CROSSCHAIN_INTELLIGENCE_RESEARCH_20261113.md` sets out a
   falsifiable 2027 research program for a shared intelligence core (methodology +
@@ -143,6 +43,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `miesc/core/finding_taxonomy.py` and the per-chain adapters — no projected numbers.
   Figure: `docs/figures/unified_crosschain_intelligence_2027.svg`. Linked from
   `docs/ROADMAP.md` and `docs/MULTICHAIN.md`.
+
 - **PolkaVM class-(A) compile-compatibility adapter (`polkavm_resolc`).** New
   `miesc/adapters/polkavm_resolc_adapter.py` runs the Parity **revive compiler** (`resolc`) on a
   Solidity contract targeting PolkaVM / `pallet-revive` and surfaces the opcodes `resolc` **rejects
@@ -160,6 +61,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   else `node` + `npx` + `solc`); the `npx` on-demand path may fetch the compiler on first compile.
   Detection is driven by `resolc`'s own message, so a newly-rejected opcode is caught without a code
   change.
+
 - **Yul / inline-assembly advisory effect-summary plan.** New `mine_yul_assembly_safety`
   (`miesc/llm/yul_assembly_memory_safety.py`) builds a provider-neutral **`YulAssemblySafetyPlan`**
   per inline-assembly block: a structured `assembly_summary` of what the block does to memory,
@@ -178,6 +80,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   effect summaries hand-verified against source on the `VulnerableProxy` fallback and the Parity
   `create` block; the remaining seven SDD hazard categories, the LLM reasoning agent, and validation
   obligations are deferred. No benchmark claim.
+
 - **Experimental Polkadot / PolkaVM support (`pallet-revive`).** `miesc scan --target polkavm`
   routes a Solidity contract (or directory) to the Solidity source-level tools plus a new built-in
   `polkavm_diff` analyzer, and skips EVM bytecode/symbolic/fuzzing tools — the compiled target is
@@ -207,6 +110,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `unbounded_loop`; typed PaymentSplitter/Comptroller snippets emit 0. `keeper_blocking` and the other
   seven categories are deferred to the LLM reasoning agent. Phase 1 output is unchanged. No benchmark
   claim.
+
 - **Governance lifecycle hypotheses — SDD Phase 2.** `mine_privileged_governance_lifecycle` now
   derives three deterministic, advisory **`lifecycle_hypotheses`** on top of the Phase-1 authority
   graph: `unprotected_initializer`, `unsafe_upgrade_authority` and `pause_recovery_gap`. Each is a
@@ -366,6 +270,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   in a separate code path, so the English templates (`profesional`/`premium`) are byte-for-byte
   unchanged, and finding counts and the risk score are identical across languages. Detector-emitted
   finding descriptions remain in the tool's own language (upstream output).
+
 - **Spanish report template `profesional-es`.** `miesc report -t profesional-es` renders the
   premium/profesional report with its static scaffolding in Spanish — headings, table labels,
   methodology, the §4.4 invariant / §4.5 trust-model / §4.6 fuzzing section prose, disclaimers
@@ -374,89 +279,6 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Per-finding technical prose that comes from the analysis engine (the impact/recommendation
   content dictionaries and detector-emitted descriptions) and the PDF running header are still
   English; localizing those is a follow-up.
-
-### Fixed
-
-- **LLM adapter results now carry an extraction diagnostic, so "0 findings" is distinguishable from
-  a parse failure.** An AI adapter that returned `0 findings, status: success` gave no way to tell
-  "the model found nothing" from "the model's response could not be parsed" — the raw reasoning was
-  dropped. `extract_llm_json` now records a small diagnostic in a thread-local sink, and `run_tool`
-  attaches it to the tool result as `metadata.llm_extraction`: `{parsed, strategy, error, empty,
-  raw_excerpt}`. The three cases are now tellable apart — parsed-non-empty (no excerpt), parsed-empty
-  (a bounded raw excerpt, so the empty answer can be inspected), and parse-failed (excerpt + error).
-  The mechanism is central (no per-adapter changes; every LLM adapter that funnels through
-  `extract_llm_json` is covered, keyed by a normalized log prefix) and `run_tool` clears the sink
-  before each tool so a non-LLM tool never inherits a stale entry. Known gap: an adapter that makes
-  its LLM calls in its own worker threads records into those threads' sinks, so `run_tool` attaches
-  nothing for it — never a sibling's result. The complementary full-raw capture remains
-  `MIESC_LLM_DUMP_DIR` (writes each raw response to a file). Diagnostics only — no status or
-  behaviour change.
-
-- **`inconclusive` is now a first-class tool status (no longer mislabeled as `error`).** The honest
-  `inconclusive` verdict the fuzzing adapters emit for a campaign that never exercised the contract
-  was not registered in the canonical status vocabulary, so `normalize_tool_status` rewrote it to
-  `error` with a confusing `reason: "unknown_status:inconclusive"` / `adapter returned unknown status
-  'inconclusive'` in the `audit full` summary. `inconclusive` (and the alias `degraded`) is now part
-  of `TOOL_STATUSES`, `summarize_tool_statuses`, and `format_tool_summary` (which prints a dedicated
-  `· inconclusive N` segment and counts it in the total), in both the CLI and the ML orchestrator's
-  copy of the mapping. It stays grouped with the non-success tools in the audit tool list so it
-  remains visible, while the per-tool line keeps its distinct `inconclusive` label and warning.
-
-- **Clear, fail-fast error when `miesc` runs under an unsupported Python.** MIESC targets Python
-  >= 3.12, but when the `miesc` console script is installed for an older interpreter, importing the
-  package failed with a cryptic error far from the cause — a runtime `TypeError` on a PEP 604
-  `X | None` annotation under Python 3.9, or a dependency `ModuleNotFoundError` under 3.11. A fail-fast
-  version guard at the top of `miesc/__init__` (which runs first on every entry path, so it pre-empts
-  those downstream failures) now raises one actionable message instead:
-  `MIESC requires Python >= 3.12, but is running under Python X.Y.Z (<path>). … Reinstall it under
-  Python 3.12+ (for example 'pipx install miesc' or 'uv tool install miesc'), or run it with a 3.12+
-  interpreter via 'python3 -m miesc'.` The guard itself uses only `typing` generics (never a runtime
-  `X | None`), so it stays importable under Python < 3.10 and reaches the message. This fixes the
-  diagnostics; reinstalling the console script under a 3.12+ interpreter remains a host action.
-
-- **Fuzzing adapters no longer report a campaign that never fuzzed as a clean pass.** The
-  coverage-guided fuzzers (`medusa`, `echidna`, `dogefuzz`) returned `status: "success"` with `0`
-  findings whenever the subprocess exited, even when the campaign achieved **0% coverage / 0
-  transactions** — i.e. when it never exercised the contract (no invariant/property harness, an
-  unsupported CLI flag, or a compile failure). "No findings" from a campaign that never ran is a
-  false negative. A new shared helper `miesc/adapters/_fuzz_result.py` (`classify_fuzz_campaign` /
-  `apply_fuzz_verdict`) now gives every fuzzer one honest verdict: a campaign is reported as
-  `success` only when it produced findings **or** shows a positive exercise signal (coverage > 0,
-  executed transactions, or ≥1 property/assertion evaluated); otherwise it is reported as
-  `inconclusive` with a `warning`, `metadata.campaign_exercised: false`, and a
-  `metadata.campaign_diagnostic` (the tool's own output tail, e.g. medusa 1.3.1's
-  `unknown flag: --assertion-mode`). `inconclusive` drops out of the successful-tools set and
-  surfaces as a warning in the audit output instead of a silent clean pass. This is the honest
-  reporting half of the fuzzing gap; auto-generating/wiring an invariant harness so the fuzzers
-  actually fuzz (and fixing medusa's `--assertion-mode` invocation for medusa 1.3.1) remains a
-  follow-up.
-
-- **PoC `FoundryRunner` now parses forge >=1.x test JSON too.** The PoC-validation runner had the
-  same two bugs the Foundry adapter did: it only parsed the legacy top-level `test_results`/boolean
-  `success` shape (not forge >=1.x's per-suite nesting with a `status` string), and it combined
-  `--gas-report` with `--json` (which in forge >=1.x suppresses the per-test results JSON). The
-  parser now handles the nested + `status`-string shape, and the test run no longer passes
-  `--gas-report`. PoC pass/fail already came from the exit code, so validation verdicts were
-  unaffected; this restores the per-test detail (names, pass/fail, logs).
-- **Foundry adapter now parses forge >=1.x test JSON, so `audit single foundry` reports real
-  stats.** Two compounding bugs made live foundry runs report `tests_run=0` on forge 1.3.5:
-  (1) forge >=1.x nests `test_results` under each suite id and reports pass/fail as a `status`
-  string, but the parser expected a top-level `test_results` map with a boolean `success`;
-  (2) the adapter combined `--gas-report` with `--json`, which in forge >=1.x emits only the
-  gas-report JSON and suppresses the test-results JSON. The parser now handles both the nested
-  and legacy shapes, and the test run no longer passes `--gas-report`. This lets the premium
-  report's §4.6 Dynamic Testing & Fuzzing populate with real Foundry campaign statistics.
-
-### Changed
-
-- **`miesc report -f pdf` failure guidance now names weasyprint's system libraries.** When PDF
-  generation falls back to HTML, the CLI message pointed only to `pip install 'miesc[pdf]'` —
-  which is necessary but not sufficient: weasyprint also needs cairo, pango and gdk-pixbuf. The
-  warning and the final error now name those libraries and the Docker image that bundles them, so
-  installing the extra and retrying no longer sends the user in a circle. (The `[pdf]` extra and
-  the exit-1 HTML fallback were already in place.)
-
-### Added
 
 - **`miesc report -t premium` Phase 5 — honest Scope data + a SHA-256 report-integrity
   attestation.** A narrow, additive pass that fixes the Scope section's data and attests the
@@ -487,6 +309,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
     unmodified, or that the source was not substituted. This is an integrity hash, **not** a
     cryptographic signature (signing is intentionally out of scope).
   - Regression tests in `tests/test_report_phase5_scope_attestation.py`.
+
 - **`miesc report -t premium` Phase 4 — §4.6 "Dynamic Testing & Fuzzing".** A new,
   additive, honest section surfacing fuzzing-campaign activity. A campaign statistic is **not a
   finding** — the numbers here change no §1/§4 count and no risk score; fuzzer findings are
@@ -513,6 +336,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
     (line coverage is not security coverage; gas is noise); `test_limit`/`fuzz_runs` are always
     labelled configured caps, never "sequences run"/"executed"; and the section carries a
     banned-word gate (no "verified"/"confirmed"/"exhaustive"/"proven"/"formally verified").
+
 - **`miesc report -t premium` Phase 3 — §4.5 "Trust Model & Privileged Roles".** A new,
   additive, honest section surfacing privileged authority. It is an **advisory static model**,
   not a verified governance audit — a role is a trust *assumption*, never a finding, so it
@@ -535,12 +359,49 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **Cross-chain whitepaper reformatted as a scientific preprint.**
+  `docs/research/UNIFIED_CROSSCHAIN_INTELLIGENCE_RESEARCH_20261113.md` was restructured
+  into an arXiv-style preprint: an Abstract and Keywords, numbered `[n]` citations backed
+  by a numbered References section (each external reference checked against a primary or
+  authoritative source — VRust at CCS 2022, the Move Prover at CAV 2020, Caracal, Tealer,
+  the SWC Registry, OpenSCV), numbered and captioned figures and tables, and a renamed
+  "Contributions and threats to validity" section. Four new vector figures accompany the
+  invariant matrix: the EVM/non-EVM tooling asymmetry (`exec_transfer_asymmetry_2027.svg`),
+  the
+  class/mechanism/calibration decomposition (`exec_transfer_decomposition_2027.svg`), the
+  research-program dependency DAG with the T4 gate (`exec_transfer_program_dag_2027.svg`),
+  and the falsification ablation design (`exec_transfer_ablation_2027.svg`); the invariant
+  matrix figure was trimmed so its caption carries the title. The reentrancy row was
+  reconciled across the table and the matrix (EVM, Solana and Cairo realize it; Move,
+  eUTXO and Algorand do not). The substantive claims are unchanged; no benchmark figures
+  changed.
+
+- **Cross-chain research whitepaper reframed around a falsifiable research question.**
+  `docs/research/UNIFIED_CROSSCHAIN_INTELLIGENCE_RESEARCH_20261113.md` was rewritten from
+  the "unified intelligence core" framing to a sharper, more defensible thesis — *does
+  vulnerability-detection intelligence transfer across execution models?* — grounded in an
+  **invariant theory** that predicts the transfer boundary from execution-model semantics,
+  a literature positioning (Yu 2024; Sol2Vy; MWC; Boi & Esposito 2025), an honest
+  preliminary audit of the repo's own non-EVM adapters (the full emission inventory
+  deferred to Track T1), a falsifiable ablation test (alternative **H₁** vs null **H₀**),
+  and a Cairo-piloted, per-chain-fundable milestone plan. New figure
+  `docs/figures/execution_model_transfer_2027.svg` (invariant × model matrix) replaces the
+  previous "shared core" diagram. No benchmark figures changed.
+
+- **`miesc report -f pdf` failure guidance now names weasyprint's system libraries.** When PDF
+  generation falls back to HTML, the CLI message pointed only to `pip install 'miesc[pdf]'` —
+  which is necessary but not sufficient: weasyprint also needs cairo, pango and gdk-pixbuf. The
+  warning and the final error now name those libraries and the Docker image that bundles them, so
+  installing the extra and retrying no longer sends the user in a circle. (The `[pdf]` extra and
+  the exit-1 HTML fallback were already in place.)
+
 - **Execution-verified pause/freshness findings are now High severity.** A revert-invariant
   counterexample that reproduces a pause-gating or deadline/freshness bypass by execution is
   raised from Medium to High: these are execution-reproduced emergency-stop and expired-request
   bypasses, not advisory hints. This also lets them carry a real CVSS score in the premium report
   (their Critical-scoring category vector now lands within one band of the reported severity, so
   the directional-consistency guard no longer withholds the number as a blank).
+
 - **`miesc report -t premium` stops overclaiming — four honesty fixes.** The premium/profesional
   report no longer presents automated output as a manual professional audit:
   - The "Audit Process" methodology no longer lists **Manual Review** or human **Verification**
@@ -608,6 +469,124 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **RAG A/B evaluation now measures RAG.** The RAG evaluator toggled
+  `MIESC_DISABLE_RAG` between its two `analyze()` calls, but no adapter read the
+  variable, so the "with RAG" and "without RAG" arms ran identically and the
+  effectiveness metric was meaningless. Two stacked bugs are fixed: (1) the five LLM
+  adapters (`smartllm`, `gptscan`, `llmsmartaudit`, `llmbugscanner`, `propertygpt`) now
+  gate the retrieved context they inject on a per-call `rag_runtime_disabled()` check, so
+  the disabled arm sends no retrieved context at all — not even SmartLLM's keyword
+  fallback, which otherwise turned the A/B into "embedding vs keyword" rather than "RAG vs
+  no RAG"; (2) the adapters' result cache keys now encode the effective RAG state, so a
+  RAG-enhanced run and a RAG-disabled run of the same contract no longer collide on one
+  cached entry (a latent correctness bug beyond the evaluator). The evaluator also disables
+  the on-disk LLM cache for the duration of an A/B, restores the environment afterwards,
+  and labels each arm by the RAG state the adapter actually applied (read back from
+  `metadata.rag_enhanced`), logging an error instead of a false label when the "with RAG"
+  arm silently ran without RAG (e.g. chromadb/sentence-transformers missing). This makes
+  the measurement honest and verifiable; publishing a with-/without-RAG number still
+  requires a ground-truth corpus and is left to a separate additive run.
+
+- **Cross-chain research whitepaper: factual corrections.** `docs/research/UNIFIED_CROSSCHAIN_INTELLIGENCE_RESEARCH_20261113.md`
+  and its figure corrected after a code-grounded audit: removed Algorand from the
+  "DoS / unbounded resource" shared-class row (the adapter declares no such label);
+  removed `felt_overflow` from the Cairo "non-transferable" list (MIESC's taxonomy maps
+  it to the shared ARITHMETIC class — class transfers, mechanism does not); fixed the
+  statistical mislabel (the shared-transfer bet is the alternative **H₁**, with the null
+  **H₀** stated and used consistently); and reworded the 13-false-positive Solana
+  anecdote to its actual root cause (line-local regexes + a lowercase `"signer"` test),
+  not an unsupported "EVM-style reasoning" claim. Also softened the overstated "the
+  repository already contains the empirical material" framing to match the nominal-label
+  caveat. No benchmark figures changed.
+
+- **Solana/Anchor pattern detector hardened against false positives.** The
+  `SolanaPatternDetector` previously emitted safe constructs (`checked_add`,
+  `find_program_address`, `CpiContext::new`, `#[account(init)]`, `as u64` casts…)
+  as "findings" and used line-local negative-lookahead regexes that could not see
+  the `#[derive(Accounts)]` struct where Anchor's validation lives — measured
+  firing **13 findings (10 High) on a clean 41-line Anchor program**. Rewritten to
+  blank comments/strings Rust-aware (so `<'info>` lifetimes are not read as
+  strings), emit only genuine-vulnerability patterns (unchecked arithmetic on a
+  financial value, manual lamport mutation, arbitrary CPI, non-canonical PDA,
+  unchecked account) and use the disproving control as a suppressor. Also fixed
+  `_check_signer_validation`, which tested lowercase `"signer"` and so flagged
+  every handler whose Accounts struct used the `Signer<'info>` type. Measured
+  after: **0 findings on the clean program, all true positives retained on a
+  vulnerable one.** Still experimental/pattern-only — no recall/precision claim.
+  `docs/MULTICHAIN.md` Solana section updated (and its CLI corrected to
+  `miesc analyze … --chain solana`).
+
+- **LLM adapter results now carry an extraction diagnostic, so "0 findings" is distinguishable from
+  a parse failure.** An AI adapter that returned `0 findings, status: success` gave no way to tell
+  "the model found nothing" from "the model's response could not be parsed" — the raw reasoning was
+  dropped. `extract_llm_json` now records a small diagnostic in a thread-local sink, and `run_tool`
+  attaches it to the tool result as `metadata.llm_extraction`: `{parsed, strategy, error, empty,
+  raw_excerpt}`. The three cases are now tellable apart — parsed-non-empty (no excerpt), parsed-empty
+  (a bounded raw excerpt, so the empty answer can be inspected), and parse-failed (excerpt + error).
+  The mechanism is central (no per-adapter changes; every LLM adapter that funnels through
+  `extract_llm_json` is covered, keyed by a normalized log prefix) and `run_tool` clears the sink
+  before each tool so a non-LLM tool never inherits a stale entry. Known gap: an adapter that makes
+  its LLM calls in its own worker threads records into those threads' sinks, so `run_tool` attaches
+  nothing for it — never a sibling's result. The complementary full-raw capture remains
+  `MIESC_LLM_DUMP_DIR` (writes each raw response to a file). Diagnostics only — no status or
+  behaviour change.
+
+- **`inconclusive` is now a first-class tool status (no longer mislabeled as `error`).** The honest
+  `inconclusive` verdict the fuzzing adapters emit for a campaign that never exercised the contract
+  was not registered in the canonical status vocabulary, so `normalize_tool_status` rewrote it to
+  `error` with a confusing `reason: "unknown_status:inconclusive"` / `adapter returned unknown status
+  'inconclusive'` in the `audit full` summary. `inconclusive` (and the alias `degraded`) is now part
+  of `TOOL_STATUSES`, `summarize_tool_statuses`, and `format_tool_summary` (which prints a dedicated
+  `· inconclusive N` segment and counts it in the total), in both the CLI and the ML orchestrator's
+  copy of the mapping. It stays grouped with the non-success tools in the audit tool list so it
+  remains visible, while the per-tool line keeps its distinct `inconclusive` label and warning.
+
+- **Clear, fail-fast error when `miesc` runs under an unsupported Python.** MIESC targets Python
+  >= 3.12, but when the `miesc` console script is installed for an older interpreter, importing the
+  package failed with a cryptic error far from the cause — a runtime `TypeError` on a PEP 604
+  `X | None` annotation under Python 3.9, or a dependency `ModuleNotFoundError` under 3.11. A fail-fast
+  version guard at the top of `miesc/__init__` (which runs first on every entry path, so it pre-empts
+  those downstream failures) now raises one actionable message instead:
+  `MIESC requires Python >= 3.12, but is running under Python X.Y.Z (<path>). … Reinstall it under
+  Python 3.12+ (for example 'pipx install miesc' or 'uv tool install miesc'), or run it with a 3.12+
+  interpreter via 'python3 -m miesc'.` The guard itself uses only `typing` generics (never a runtime
+  `X | None`), so it stays importable under Python < 3.10 and reaches the message. This fixes the
+  diagnostics; reinstalling the console script under a 3.12+ interpreter remains a host action.
+
+- **Fuzzing adapters no longer report a campaign that never fuzzed as a clean pass.** The
+  coverage-guided fuzzers (`medusa`, `echidna`, `dogefuzz`) returned `status: "success"` with `0`
+  findings whenever the subprocess exited, even when the campaign achieved **0% coverage / 0
+  transactions** — i.e. when it never exercised the contract (no invariant/property harness, an
+  unsupported CLI flag, or a compile failure). "No findings" from a campaign that never ran is a
+  false negative. A new shared helper `miesc/adapters/_fuzz_result.py` (`classify_fuzz_campaign` /
+  `apply_fuzz_verdict`) now gives every fuzzer one honest verdict: a campaign is reported as
+  `success` only when it produced findings **or** shows a positive exercise signal (coverage > 0,
+  executed transactions, or ≥1 property/assertion evaluated); otherwise it is reported as
+  `inconclusive` with a `warning`, `metadata.campaign_exercised: false`, and a
+  `metadata.campaign_diagnostic` (the tool's own output tail, e.g. medusa 1.3.1's
+  `unknown flag: --assertion-mode`). `inconclusive` drops out of the successful-tools set and
+  surfaces as a warning in the audit output instead of a silent clean pass. This is the honest
+  reporting half of the fuzzing gap; auto-generating/wiring an invariant harness so the fuzzers
+  actually fuzz (and fixing medusa's `--assertion-mode` invocation for medusa 1.3.1) remains a
+  follow-up.
+
+- **PoC `FoundryRunner` now parses forge >=1.x test JSON too.** The PoC-validation runner had the
+  same two bugs the Foundry adapter did: it only parsed the legacy top-level `test_results`/boolean
+  `success` shape (not forge >=1.x's per-suite nesting with a `status` string), and it combined
+  `--gas-report` with `--json` (which in forge >=1.x suppresses the per-test results JSON). The
+  parser now handles the nested + `status`-string shape, and the test run no longer passes
+  `--gas-report`. PoC pass/fail already came from the exit code, so validation verdicts were
+  unaffected; this restores the per-test detail (names, pass/fail, logs).
+
+- **Foundry adapter now parses forge >=1.x test JSON, so `audit single foundry` reports real
+  stats.** Two compounding bugs made live foundry runs report `tests_run=0` on forge 1.3.5:
+  (1) forge >=1.x nests `test_results` under each suite id and reports pass/fail as a `status`
+  string, but the parser expected a top-level `test_results` map with a boolean `success`;
+  (2) the adapter combined `--gas-report` with `--json`, which in forge >=1.x emits only the
+  gas-report JSON and suppresses the test-results JSON. The parser now handles both the nested
+  and legacy shapes, and the test run no longer passes `--gas-report`. This lets the premium
+  report's §4.6 Dynamic Testing & Fuzzing populate with real Foundry campaign statistics.
+
 - **`miesc audit batch --resume` could mix two runs or crash on a malformed checkpoint.** The
   checkpoint now records a format `version`, the resolved source path, `--pattern` and
   `--recursive`, and `--resume` refuses one made for another directory instead of merging both
@@ -618,6 +597,27 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   per-process temp file, and a failed checkpoint write no longer aborts the batch. The Peculiar
   regression test now times a body-less signature, the case where the old pattern blew up.
   Follow-up to the #247 review. Contributed by @alva-p.
+
+### Documentation
+
+- **Optional tools documented honestly (P2-8): Certora, Vertigo, DA-GNN.** These three adapters are
+  optional (per [ADR-0003](docs/adr/0003-optional-tools-dpga-compliance.md)) but their real setup was
+  undocumented or wrong. `docs/TOOLS.md` now has an **Optional & experimental tools** section and a
+  Vertigo (Layer 2) row; `docs/INSTALLATION.md` and `docs/INSTALLATION_ES.md` carry the corrected
+  rows. Each entry states the exact install and what MIESC reports without the tool
+  (`not_installed` / `configuration_error`), so an absent optional tool reads as expected, not broken.
+  Corrections verified against the adapters and a clean install: **Certora** needs `certora-cli` plus
+  `CERTORAKEY` (the row previously said only "free tier"); **Vertigo** is
+  `pip install eth-vertigo pyyaml` (upstream 1.3.0 omits the PyYAML its CLI imports) and the adapter
+  gates on Foundry (`forge`) while upstream drives Truffle/Hardhat — experimental; **DA-GNN** needs
+  `pip3 install torch torch-geometric scikit-learn networkx` plus Slither, with a heuristic fallback
+  (the row previously said only "Built-in"/"Incluido", which implied zero setup).
+
+- **Multi-chain status and version pins corrected in the READMEs.** `README.md` and
+  `README_ES.md` now show **Polkadot/PolkaVM** and **Cairo/Starknet** as *Experimental*
+  (a real external analyzer is integrated) instead of omitting or down-listing them,
+  matching the per-chain legend in `docs/MULTICHAIN.md`; the GitHub Action and
+  pre-commit pins were updated from `v6.0.0` to `v6.8.0`. No benchmark figures changed.
 
 ## [6.8.0] - 2026-10-25 — Audit batch checkpoint/resume, linear Peculiar parsing, test-suite hardening
 
