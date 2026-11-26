@@ -26,6 +26,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional
 
+from miesc.llm._solidity_text import _match_brace
 from miesc.ml.call_graph import CallEdge, CallGraph, CallGraphBuilder
 
 # Optional: the third-party ``regex`` module supports a per-search ``timeout``
@@ -332,7 +333,7 @@ class RepoCallGraph:
         for match in _CONTRACT_HEADER.finditer(text):
             name = match.group(2)
             open_brace = text.index("{", match.start())
-            end = cls._match_brace(text, open_brace)
+            end = _match_brace(text, open_brace, missing=-1)
             if end == -1:
                 continue
             blocks.append((name, text[match.start() : end + 1]))
@@ -350,25 +351,11 @@ class RepoCallGraph:
             open_brace = source.find("{", m.end())
             if open_brace == -1:
                 continue
-            end = cls._match_brace(source, open_brace)
+            end = _match_brace(source, open_brace, missing=-1)
             if end == -1:
                 continue
             bodies[fn_name] = source[m.start() : end + 1]
         return bodies
-
-    @staticmethod
-    def _match_brace(text: str, open_index: int) -> int:
-        """Return the index of the brace matching the one at ``open_index``."""
-        depth = 0
-        for i in range(open_index, len(text)):
-            c = text[i]
-            if c == "{":
-                depth += 1
-            elif c == "}":
-                depth -= 1
-                if depth == 0:
-                    return i
-        return -1
 
     def _build_merged_graph(self) -> None:
         """Merge per-contract nodes under qualified names and resolve edges."""
