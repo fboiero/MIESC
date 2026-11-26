@@ -96,3 +96,22 @@ class TestBodyBrace:
         from miesc.llm._solidity_text import _body_brace
 
         assert _body_brace("function f() external", 12) == -1
+
+
+def test_function_re_matches_named_functions_only():
+    from miesc.llm._solidity_text import _FUNCTION_RE
+
+    src = "constructor() {} modifier m() _; function foo (uint a) {} function bar() {}"
+    assert [m.group("name") for m in _FUNCTION_RE.finditer(src)] == ["foo", "bar"]
+
+
+def test_miners_share_function_re():
+    from miesc.llm import (
+        _solidity_text,
+        lending_solvency_liquidation,
+        privileged_governance_lifecycle,
+        resource_liveness_griefing,
+    )
+
+    for mod in (lending_solvency_liquidation, privileged_governance_lifecycle, resource_liveness_griefing):
+        assert mod._FUNCTION_RE is _solidity_text._FUNCTION_RE

@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Set, Tuple
 
 from miesc.llm._solidity_text import (
+    _FUNCTION_RE,
     _body_brace,
     _line_of,
     _mask_strings,
@@ -346,7 +347,6 @@ def parse_privileged_governance_plans(data: Any) -> List[PrivilegedGovernanceLif
 # --------------------------------------------------------------------------------------
 # Deterministic local miner (no provider, no LLM).
 # --------------------------------------------------------------------------------------
-_FUNCTION_RE = re.compile(r"\bfunction\s+(?P<name>[A-Za-z_]\w*)\s*\(")
 _ONLY_MODIFIER_RE = re.compile(r"\bonly([A-Za-z_]\w*)")
 _ONLY_ROLE_RE = re.compile(r"\bonlyRole\s*\(\s*([A-Za-z_]\w*)\s*\)")
 _ROLE_CONST_RE = re.compile(r"\b([A-Za-z_]\w*_ROLE)\b\s*=")

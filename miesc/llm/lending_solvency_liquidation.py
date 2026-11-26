@@ -33,6 +33,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 from miesc.llm._solidity_text import (
+    _FUNCTION_RE,
     _body_brace,
     _line_of,
     _mask_strings,
@@ -287,7 +288,6 @@ def parse_lending_solvency_plans(data: Any) -> List[LendingSolvencyLiquidationPl
 # --------------------------------------------------------------------------------------
 # Deterministic local miner (no provider, no LLM).
 # --------------------------------------------------------------------------------------
-_FUNCTION_RE = re.compile(r"\bfunction\s+(?P<name>[A-Za-z_]\w*)\s*\(")
 _SOLVENCY_FN_RE = re.compile(
     r"(?i)(deposit|supply|withdraw|redeem|borrow|repay|accrue|liquidat|seize|absorb|"
     r"rebalance|configuremarket|configure|updateoracle|setoracle)"
