@@ -18,6 +18,7 @@ while the others match only ``function``.
 from __future__ import annotations
 
 import re
+from typing import Optional
 
 _CAMEL_RE = re.compile(r"[A-Z]+(?![a-z])|[A-Z][a-z0-9]*|[a-z0-9]+")
 
@@ -66,8 +67,11 @@ def _line_of(source: str, index: int) -> int:
     return source[:index].count("\n") + 1
 
 
-def _match_brace(source: str, open_brace: int) -> int:
-    """Return the index of the ``}`` matching the ``{`` at ``open_brace`` (or ``len`` if none)."""
+def _match_brace(source: str, open_brace: int, missing: Optional[int] = None) -> int:
+    """Return the index of the ``}`` matching the ``{`` at ``open_brace``.
+
+    If the brace is unbalanced, return ``missing`` (default ``len(source)``).
+    """
     depth = 0
     for idx in range(open_brace, len(source)):
         if source[idx] == "{":
@@ -76,7 +80,7 @@ def _match_brace(source: str, open_brace: int) -> int:
             depth -= 1
             if depth == 0:
                 return idx
-    return len(source)
+    return len(source) if missing is None else missing
 
 
 def _mask_strings(source: str) -> str:

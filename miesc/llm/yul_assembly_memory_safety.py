@@ -46,6 +46,7 @@ from miesc.detectors.yul_assembly_safety_detector import (
     _extract_assembly_blocks,
     _mask_comments_and_strings,
 )
+from miesc.llm._solidity_text import _match_brace
 from miesc.llm.agentic_contracts import (
     MAX_AGENT_ITEMS,
     MAX_AGENT_TEXT_CHARS,
@@ -490,24 +491,12 @@ def _enclosing_context(masked: str, index: int) -> Optional[str]:
         semi = masked.find(";", m.end())
         if semi != -1 and semi < brace:
             continue  # bodiless declaration (interface / abstract): not an enclosing scope
-        end = _match_brace(masked, brace)
+        end = _match_brace(masked, brace, missing=-1)
         if end == -1 or not (brace <= index <= end) or m.start() <= best_start:
             continue
         name = m.group("fname") or m.group("kw") or m.group("mname") or "fallback"
         best, best_start = name, m.start()
     return best
-
-
-def _match_brace(source: str, start: int) -> int:
-    depth = 0
-    for i in range(start, len(source)):
-        if source[i] == "{":
-            depth += 1
-        elif source[i] == "}":
-            depth -= 1
-            if depth == 0:
-                return i
-    return -1
 
 
 def _summarize(block: _AssemblyBlock) -> AssemblySummary:
