@@ -402,6 +402,13 @@ async def miesc_analyze_defi(
         results.append(r)
 
     summary = _summarize_results(results)
+    # Report tools that could not run (e.g. unknown/unregistered key) instead of
+    # silently skipping them.
+    unavailable = [
+        {"tool": r.get("tool"), "reason": r.get("reason"), "error": r.get("error")}
+        for r in results
+        if r.get("reason") == "no_adapter"
+    ]
 
     return json.dumps(
         {
@@ -409,6 +416,7 @@ async def miesc_analyze_defi(
             "protocol_type": protocol_type,
             "contract": contract_path,
             "summary": summary,
+            "unavailable_tools": unavailable,
             "results": results,
             "timestamp": datetime.now().isoformat(),
         },

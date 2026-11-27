@@ -436,6 +436,21 @@ class TestMCPCorrectnessSlice:
         assert "defi" in adapter_map
         assert "defi_analyzer" not in adapter_map
 
+    def test_analyze_defi_reports_unknown_tool_key(self, tmp_path):
+        """Tools without a registered adapter are reported, not silently skipped."""
+        sol = tmp_path / "T.sol"
+        sol.write_text(SAMPLE_SOL)
+
+        def fake(tool, *a, **k):
+            if tool == "mev_detector":
+                return {"tool": tool, "status": "skipped", "reason": "no_adapter",
+                        "error": f"No adapter found for {tool}", "findings": []}
+            return {"tool": tool, "status": "success", "findings": []}
+
+        with patch("miesc.mcp_server._run_tool_internal", side_effect=fake):
+            out = json.loads(asyncio.run(miesc_analyze_defi(str(sol))))
+        assert [u["tool"] for u in out["unavailable_tools"]] == ["mev_detector"]
+
     def test_generate_report_markdown_routes_through_normalizer(self):
         """F5: generate_report must normalize any MIESC result shape (incl. the
         ML `audit full` dict that has no top-level 'results' key) instead of
