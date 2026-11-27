@@ -265,3 +265,19 @@ def test_cache_key_changes_with_the_rule_code(tmp_path, monkeypatch):
     assert key_before == a._get_cache_key(str(contract))
     monkeypatch.setattr(mod, "_RULES_FINGERPRINT", "deadbeef")
     assert a._get_cache_key(str(contract)) != key_before
+
+
+def test_fallback_mode_is_reported(tmp_path):
+    from miesc.adapters.smartbugs_ml_adapter import DETECTION_MODE_FALLBACK
+
+    assert SmartBugsMLAdapter.METADATA["models_loaded"] is False
+    assert SmartBugsMLAdapter.METADATA["detection_mode"] == DETECTION_MODE_FALLBACK
+    assert "fallback" in SmartBugsMLAdapter.METADATA["description"].lower()
+    sol = tmp_path / "Sd.sol"
+    sol.write_text("contract Sd { function k() public { selfdestruct(msg.sender); } }\n")
+    out = _a({"confidence_threshold": 0.5}).analyze(str(sol))
+    assert out["detection_mode"] == "rule_based_fallback"
+    assert out["models_loaded"] is False
+    assert "not loaded" in out["note"]
+    assert out["findings"]
+    assert all(f["detection_mode"] == "rule_based_fallback" for f in out["findings"])
