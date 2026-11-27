@@ -1,0 +1,764 @@
+[
+  {
+    "contract": "incorrect_constructor_name3.sol",
+    "on": {
+      "status": "success",
+      "rag_enhanced": true,
+      "retrieved_hits": [
+        {
+          "title": "",
+          "id": ""
+        },
+        {
+          "title": "",
+          "id": ""
+        },
+        {
+          "title": "",
+          "id": ""
+        },
+        {
+          "title": "",
+          "id": ""
+        },
+        {
+          "title": "",
+          "id": ""
+        }
+      ],
+      "pre_verificator": [
+        {
+          "title": "Unprotected Ether Withdrawal",
+          "swc": "SWC-105",
+          "severity": "CRITICAL",
+          "desc": "The contract has a public function 'withdraw' that allows the owner to withdraw all Ether from the contract without any checks. This makes the contract vulnerable to an attack where an attacker can ca"
+        }
+      ],
+      "post_verificator": [
+        {
+          "title": "Unprotected Ether Withdrawal",
+          "swc": "SWC-105",
+          "severity": "CRITICAL",
+          "desc": "The contract has a public function 'withdraw' that allows the owner to withdraw all Ether from the contract without any checks. This makes the contract vulnerable to an attack where an attacker can ca"
+        }
+      ]
+    },
+    "off": {
+      "status": "success",
+      "rag_enhanced": false,
+      "retrieved_hits": [],
+      "pre_verificator": [
+        {
+          "title": "Incorrect constructor name",
+          "swc": "SWC-118",
+          "severity": "CRITICAL",
+          "desc": "The constructor function is named 'Constructor' instead of 'constructor'. This can lead to issues with contract inheritance and deployment."
+        },
+        {
+          "title": "Reentrancy in withdraw function",
+          "swc": "SWC-107",
+          "severity": "CRITICAL",
+          "desc": "The withdraw function is vulnerable to reentrancy because it sends Ether to the owner during a public function call. An attacker could exploit this by calling the withdraw function and then triggering"
+        }
+      ],
+      "post_verificator": [
+        {
+          "title": "Incorrect constructor name",
+          "swc": "SWC-118",
+          "severity": "CRITICAL",
+          "desc": "The constructor function is named 'Constructor' instead of 'constructor'. This can lead to issues with contract inheritance and deployment."
+        },
+        {
+          "title": "Reentrancy in withdraw function",
+          "swc": "SWC-107",
+          "severity": "CRITICAL",
+          "desc": "The withdraw function is vulnerable to reentrancy because it sends Ether to the owner during a public function call. An attacker could exploit this by calling the withdraw function and then triggering"
+        }
+      ]
+    }
+  },
+  {
+    "contract": "mapping_write.sol",
+    "on": {
+      "status": "success",
+      "rag_enhanced": true,
+      "retrieved_hits": [
+        {
+          "title": "",
+          "id": ""
+        },
+        {
+          "title": "",
+          "id": ""
+        },
+        {
+          "title": "",
+          "id": ""
+        },
+        {
+          "title": "",
+          "id": ""
+        },
+        {
+          "title": "",
+          "id": ""
+        }
+      ],
+      "pre_verificator": [
+        {
+          "title": "Unprotected Ether Withdrawal",
+          "swc": "SWC-105",
+          "severity": "CRITICAL",
+          "desc": "The contract allows the owner to withdraw all Ether from the contract without any access control checks. This makes the contract vulnerable to an attack where an attacker could call the `withdraw` fun"
+        }
+      ],
+      "post_verificator": [
+        {
+          "title": "Unprotected Ether Withdrawal",
+          "swc": "SWC-105",
+          "severity": "CRITICAL",
+          "desc": "The contract allows the owner to withdraw all Ether from the contract without any access control checks. This makes the contract vulnerable to an attack where an attacker could call the `withdraw` fun"
+        }
+      ]
+    },
+    "off": {
+      "status": "success",
+      "rag_enhanced": false,
+      "retrieved_hits": [],
+      "pre_verificator": [
+        {
+          "title": "Insecure withdrawal function",
+          "swc": "SWC-107",
+          "severity": "CRITICAL",
+          "desc": "The `withdraw` function allows any user to withdraw funds if they call it, regardless of whether they are the contract owner. This can lead to unauthorized withdrawal of funds."
+        }
+      ],
+      "post_verificator": [
+        {
+          "title": "Insecure withdrawal function",
+          "swc": "SWC-107",
+          "severity": "CRITICAL",
+          "desc": "The `withdraw` function allows any user to withdraw funds if they call it, regardless of whether they are the contract owner. This can lead to unauthorized withdrawal of funds."
+        }
+      ]
+    }
+  },
+  {
+    "contract": "multiowned_vulnerable.sol",
+    "on": {
+      "status": "success",
+      "rag_enhanced": true,
+      "retrieved_hits": [
+        {
+          "title": "",
+          "id": ""
+        },
+        {
+          "title": "",
+          "id": ""
+        },
+        {
+          "title": "",
+          "id": ""
+        },
+        {
+          "title": "",
+          "id": ""
+        },
+        {
+          "title": "",
+          "id": ""
+        }
+      ],
+      "pre_verificator": [
+        {
+          "title": "Missing timelock for adding and deleting owners",
+          "swc": "SWC-115",
+          "severity": "CRITICAL",
+          "desc": "The `newOwner` and `deleteOwner` functions in the `MultiOwnable` contract lack a timelock mechanism, allowing any owner to add or remove other owners at any time. This can lead to unauthorized changes"
+        }
+      ],
+      "post_verificator": [
+        {
+          "title": "Missing timelock for adding and deleting owners",
+          "swc": "SWC-115",
+          "severity": "CRITICAL",
+          "desc": "The `newOwner` and `deleteOwner` functions in the `MultiOwnable` contract lack a timelock mechanism, allowing any owner to add or remove other owners at any time. This can lead to unauthorized changes"
+        }
+      ]
+    },
+    "off": {
+      "status": "success",
+      "rag_enhanced": false,
+      "retrieved_hits": [],
+      "pre_verificator": [
+        {
+          "title": "Missing timelock for newOwner function",
+          "swc": "SWC-107",
+          "severity": "CRITICAL",
+          "desc": "The newOwner function does not have a timelock, allowing any owner to add new owners at any time. This can lead to unauthorized access and potential loss of control over the contract."
+        }
+      ],
+      "post_verificator": [
+        {
+          "title": "Missing timelock for newOwner function",
+          "swc": "SWC-107",
+          "severity": "CRITICAL",
+          "desc": "The newOwner function does not have a timelock, allowing any owner to add new owners at any time. This can lead to unauthorized access and potential loss of control over the contract."
+        }
+      ]
+    }
+  },
+  {
+    "contract": "parity_wallet_bug_2.sol",
+    "on": {
+      "status": "success",
+      "rag_enhanced": true,
+      "retrieved_hits": [
+        {
+          "title": "",
+          "id": ""
+        },
+        {
+          "title": "",
+          "id": ""
+        },
+        {
+          "title": "",
+          "id": ""
+        },
+        {
+          "title": "",
+          "id": ""
+        },
+        {
+          "title": "",
+          "id": ""
+        }
+      ],
+      "pre_verificator": [
+        {
+          "title": "Unprotected Ether Withdrawal",
+          "swc": "SWC-105",
+          "severity": "CRITICAL",
+          "desc": "The contract has a function that allows Ether to be withdrawn without proper authorization checks. The function 'withdraw' is not protected by any access control, allowing any external account to with"
+        }
+      ],
+      "post_verificator": [
+        {
+          "title": "Unprotected Ether Withdrawal",
+          "swc": "SWC-105",
+          "severity": "CRITICAL",
+          "desc": "The contract has a function that allows Ether to be withdrawn without proper authorization checks. The function 'withdraw' is not protected by any access control, allowing any external account to with"
+        }
+      ]
+    },
+    "off": {
+      "status": "success",
+      "rag_enhanced": false,
+      "retrieved_hits": [],
+      "pre_verificator": [
+        {
+          "title": "Reentrancy in execute function",
+          "swc": "SWC-107",
+          "severity": "CRITICAL",
+          "desc": "The execute function does not check if the called contract is a fallback function that can be exploited for reentrancy. This could allow an attacker to drain the wallet by calling a fallback function "
+        }
+      ],
+      "post_verificator": [
+        {
+          "title": "Reentrancy in execute function",
+          "swc": "SWC-107",
+          "severity": "CRITICAL",
+          "desc": "The execute function does not check if the called contract is a fallback function that can be exploited for reentrancy. This could allow an attacker to drain the wallet by calling a fallback function "
+        }
+      ]
+    }
+  },
+  {
+    "contract": "phishable.sol",
+    "on": {
+      "status": "success",
+      "rag_enhanced": true,
+      "retrieved_hits": [
+        {
+          "title": "",
+          "id": ""
+        },
+        {
+          "title": "",
+          "id": ""
+        },
+        {
+          "title": "",
+          "id": ""
+        },
+        {
+          "title": "",
+          "id": ""
+        },
+        {
+          "title": "",
+          "id": ""
+        }
+      ],
+      "pre_verificator": [
+        {
+          "title": "Unrestricted withdrawal function",
+          "swc": "SWC-105",
+          "severity": "CRITICAL",
+          "desc": "The withdrawAll function allows any address to withdraw all Ether from the contract without proper authorization checks."
+        }
+      ],
+      "post_verificator": [
+        {
+          "title": "Unrestricted withdrawal function",
+          "swc": "SWC-105",
+          "severity": "CRITICAL",
+          "desc": "The withdrawAll function allows any address to withdraw all Ether from the contract without proper authorization checks."
+        }
+      ]
+    },
+    "off": {
+      "status": "success",
+      "rag_enhanced": false,
+      "retrieved_hits": [],
+      "pre_verificator": [
+        {
+          "title": "Insecure withdrawal function",
+          "swc": "SWC-107",
+          "severity": "CRITICAL",
+          "desc": "The withdrawAll function allows any address to withdraw all funds if they call it, bypassing the intended access control mechanism."
+        }
+      ],
+      "post_verificator": [
+        {
+          "title": "Insecure withdrawal function",
+          "swc": "SWC-107",
+          "severity": "CRITICAL",
+          "desc": "The withdrawAll function allows any address to withdraw all funds if they call it, bypassing the intended access control mechanism."
+        }
+      ]
+    }
+  },
+  {
+    "contract": "proxy.sol",
+    "on": {
+      "status": "success",
+      "rag_enhanced": true,
+      "retrieved_hits": [
+        {
+          "title": "",
+          "id": ""
+        },
+        {
+          "title": "",
+          "id": ""
+        },
+        {
+          "title": "",
+          "id": ""
+        },
+        {
+          "title": "",
+          "id": ""
+        },
+        {
+          "title": "",
+          "id": ""
+        }
+      ],
+      "pre_verificator": [
+        {
+          "title": "Delegatecall to untrusted callee",
+          "swc": "SWC-112",
+          "severity": "CRITICAL",
+          "desc": "The contract uses delegatecall to execute code in another contract without proper validation. This can lead to storage collisions and allow the attacker to modify the contract's storage, including the"
+        }
+      ],
+      "post_verificator": [
+        {
+          "title": "Delegatecall to untrusted callee",
+          "swc": "SWC-112",
+          "severity": "CRITICAL",
+          "desc": "The contract uses delegatecall to execute code in another contract without proper validation. This can lead to storage collisions and allow the attacker to modify the contract's storage, including the"
+        }
+      ]
+    },
+    "off": {
+      "status": "success",
+      "rag_enhanced": false,
+      "retrieved_hits": [],
+      "pre_verificator": [
+        {
+          "title": "Delegatecall to untrusted contract",
+          "swc": "SWC-112",
+          "severity": "CRITICAL",
+          "desc": "The contract uses delegatecall to an untrusted contract, which can lead to storage collision attacks (SWC-112)."
+        }
+      ],
+      "post_verificator": [
+        {
+          "title": "Delegatecall to untrusted contract",
+          "swc": "SWC-112",
+          "severity": "CRITICAL",
+          "desc": "The contract uses delegatecall to an untrusted contract, which can lead to storage collision attacks (SWC-112)."
+        }
+      ]
+    }
+  },
+  {
+    "contract": "rubixi.sol",
+    "on": {
+      "status": "success",
+      "rag_enhanced": true,
+      "retrieved_hits": [
+        {
+          "title": "",
+          "id": ""
+        },
+        {
+          "title": "",
+          "id": ""
+        },
+        {
+          "title": "",
+          "id": ""
+        },
+        {
+          "title": "",
+          "id": ""
+        },
+        {
+          "title": "",
+          "id": ""
+        }
+      ],
+      "pre_verificator": [
+        {
+          "title": "Unprotected Ether Withdrawal",
+          "swc": "SWC-105",
+          "severity": "CRITICAL",
+          "desc": "The contract has a function `collectAllFees()` that allows the contract creator to withdraw all collected fees without any authorization checks. This function can be exploited by any external account "
+        },
+        {
+          "title": "Integer Overflow/Underflow",
+          "swc": "SWC-101",
+          "severity": "HIGH",
+          "desc": "The contract has a function `addPayout(uint _fee)` that performs arithmetic operations on `balance` and `collectedFees`. There is a risk of integer overflow/underflow if the values exceed the maximum "
+        }
+      ],
+      "post_verificator": [
+        {
+          "title": "Unprotected Ether Withdrawal",
+          "swc": "SWC-105",
+          "severity": "CRITICAL",
+          "desc": "The contract has a function `collectAllFees()` that allows the contract creator to withdraw all collected fees without any authorization checks. This function can be exploited by any external account "
+        },
+        {
+          "title": "Integer Overflow/Underflow",
+          "swc": "SWC-101",
+          "severity": "HIGH",
+          "desc": "The contract has a function `addPayout(uint _fee)` that performs arithmetic operations on `balance` and `collectedFees`. There is a risk of integer overflow/underflow if the values exceed the maximum "
+        }
+      ]
+    },
+    "off": {
+      "status": "success",
+      "rag_enhanced": false,
+      "retrieved_hits": [],
+      "pre_verificator": [
+        {
+          "title": "Reentrancy in fallback function",
+          "swc": "SWC-107",
+          "severity": "CRITICAL",
+          "desc": "The fallback function calls the init() function, which processes transactions. If the fallback function is called with a value, it can be exploited to re-enter the contract during the execution of ini"
+        },
+        {
+          "title": "Integer overflow in balance calculation",
+          "swc": "SWC-101",
+          "severity": "HIGH",
+          "desc": "The balance is calculated by adding the value of the transaction to the existing balance. If the transaction value is very large, it could cause an integer overflow, leading to incorrect balance calcu"
+        }
+      ],
+      "post_verificator": [
+        {
+          "title": "Reentrancy in fallback function",
+          "swc": "SWC-107",
+          "severity": "CRITICAL",
+          "desc": "The fallback function calls the init() function, which processes transactions. If the fallback function is called with a value, it can be exploited to re-enter the contract during the execution of ini"
+        },
+        {
+          "title": "Integer overflow in balance calculation",
+          "swc": "SWC-101",
+          "severity": "HIGH",
+          "desc": "The balance is calculated by adding the value of the transaction to the existing balance. If the transaction value is very large, it could cause an integer overflow, leading to incorrect balance calcu"
+        }
+      ]
+    }
+  },
+  {
+    "contract": "unprotected0.sol",
+    "on": {
+      "status": "success",
+      "rag_enhanced": true,
+      "retrieved_hits": [
+        {
+          "title": "",
+          "id": ""
+        },
+        {
+          "title": "",
+          "id": ""
+        },
+        {
+          "title": "",
+          "id": ""
+        },
+        {
+          "title": "",
+          "id": ""
+        },
+        {
+          "title": "",
+          "id": ""
+        }
+      ],
+      "pre_verificator": [
+        {
+          "title": "Unprotected admin function",
+          "swc": "SWC-105",
+          "severity": "CRITICAL",
+          "desc": "The function `changeOwner` is not protected by any access control mechanism. Any external account can call this function to change the contract's owner."
+        }
+      ],
+      "post_verificator": [
+        {
+          "title": "Unprotected admin function",
+          "swc": "SWC-105",
+          "severity": "CRITICAL",
+          "desc": "The function `changeOwner` is not protected by any access control mechanism. Any external account can call this function to change the contract's owner."
+        }
+      ]
+    },
+    "off": {
+      "status": "success",
+      "rag_enhanced": false,
+      "retrieved_hits": [],
+      "pre_verificator": [
+        {
+          "title": "Unprotected function to change contract owner",
+          "swc": "SWC-107",
+          "severity": "CRITICAL",
+          "desc": "The function `changeOwner` allows any address to change the contract owner without any restrictions. This can lead to unauthorized changes and potential loss of control over the contract."
+        }
+      ],
+      "post_verificator": [
+        {
+          "title": "Unprotected function to change contract owner",
+          "swc": "SWC-107",
+          "severity": "CRITICAL",
+          "desc": "The function `changeOwner` allows any address to change the contract owner without any restrictions. This can lead to unauthorized changes and potential loss of control over the contract."
+        }
+      ]
+    }
+  },
+  {
+    "contract": "wallet_02_refund_nosub.sol",
+    "on": {
+      "status": "success",
+      "rag_enhanced": true,
+      "retrieved_hits": [
+        {
+          "title": "",
+          "id": ""
+        },
+        {
+          "title": "",
+          "id": ""
+        },
+        {
+          "title": "",
+          "id": ""
+        },
+        {
+          "title": "",
+          "id": ""
+        },
+        {
+          "title": "",
+          "id": ""
+        }
+      ],
+      "pre_verificator": [
+        {
+          "title": "Unprotected Ether Withdrawal",
+          "swc": "SWC-105",
+          "severity": "CRITICAL",
+          "desc": "The contract allows users to withdraw Ether without any access control checks. An attacker can repeatedly call the `refund()` function to empty the contract."
+        }
+      ],
+      "post_verificator": [
+        {
+          "title": "Unprotected Ether Withdrawal",
+          "swc": "SWC-105",
+          "severity": "CRITICAL",
+          "desc": "The contract allows users to withdraw Ether without any access control checks. An attacker can repeatedly call the `refund()` function to empty the contract."
+        }
+      ]
+    },
+    "off": {
+      "status": "success",
+      "rag_enhanced": false,
+      "retrieved_hits": [],
+      "pre_verificator": [
+        {
+          "title": "Reentrancy in refund function",
+          "swc": "SWC-107",
+          "severity": "CRITICAL",
+          "desc": "The refund function allows an attacker to repeatedly call it to empty the contract's balance. This can lead to a significant loss of funds."
+        }
+      ],
+      "post_verificator": [
+        {
+          "title": "Reentrancy in refund function",
+          "swc": "SWC-107",
+          "severity": "CRITICAL",
+          "desc": "The refund function allows an attacker to repeatedly call it to empty the contract's balance. This can lead to a significant loss of funds."
+        }
+      ]
+    }
+  },
+  {
+    "contract": "wallet_04_confused_sign.sol",
+    "on": {
+      "status": "success",
+      "rag_enhanced": true,
+      "retrieved_hits": [
+        {
+          "title": "",
+          "id": ""
+        },
+        {
+          "title": "",
+          "id": ""
+        },
+        {
+          "title": "",
+          "id": ""
+        },
+        {
+          "title": "",
+          "id": ""
+        },
+        {
+          "title": "",
+          "id": ""
+        }
+      ],
+      "pre_verificator": [
+        {
+          "title": "Unprotected Ether Withdrawal",
+          "swc": "SWC-105",
+          "severity": "CRITICAL",
+          "desc": "The 'withdraw' function does not have proper authorization checks, allowing anyone to withdraw arbitrary amounts of Ether from the contract."
+        }
+      ],
+      "post_verificator": [
+        {
+          "title": "Unprotected Ether Withdrawal",
+          "swc": "SWC-105",
+          "severity": "CRITICAL",
+          "desc": "The 'withdraw' function does not have proper authorization checks, allowing anyone to withdraw arbitrary amounts of Ether from the contract."
+        }
+      ]
+    },
+    "off": {
+      "status": "success",
+      "rag_enhanced": false,
+      "retrieved_hits": [],
+      "pre_verificator": [
+        {
+          "title": "Integer underflow in withdraw",
+          "swc": "SWC-101",
+          "severity": "CRITICAL",
+          "desc": "The 'withdraw' function subtracts 'amount' from 'balances[msg.sender]', which can lead to an underflow if 'amount' exceeds 'balances[msg.sender]'. This can result in the attacker withdrawing more Ethe"
+        }
+      ],
+      "post_verificator": [
+        {
+          "title": "Integer underflow in withdraw",
+          "swc": "SWC-101",
+          "severity": "CRITICAL",
+          "desc": "The 'withdraw' function subtracts 'amount' from 'balances[msg.sender]', which can lead to an underflow if 'amount' exceeds 'balances[msg.sender]'. This can result in the attacker withdrawing more Ethe"
+        }
+      ]
+    }
+  },
+  {
+    "contract": "simple_suicide.sol",
+    "on": {
+      "status": "success",
+      "rag_enhanced": true,
+      "retrieved_hits": [
+        {
+          "title": "",
+          "id": ""
+        },
+        {
+          "title": "",
+          "id": ""
+        },
+        {
+          "title": "",
+          "id": ""
+        },
+        {
+          "title": "",
+          "id": ""
+        },
+        {
+          "title": "",
+          "id": ""
+        }
+      ],
+      "pre_verificator": [
+        {
+          "title": "Unprotected SELFDESTRUCT Instruction",
+          "swc": "SWC-106",
+          "severity": "CRITICAL",
+          "desc": "The contract has a public function `sudicideAnyone()` that calls `selfdestruct(msg.sender)`. This function can be called by anyone, allowing them to destroy the contract and transfer all remaining ETH"
+        }
+      ],
+      "post_verificator": [
+        {
+          "title": "Unprotected SELFDESTRUCT Instruction",
+          "swc": "SWC-106",
+          "severity": "CRITICAL",
+          "desc": "The contract has a public function `sudicideAnyone()` that calls `selfdestruct(msg.sender)`. This function can be called by anyone, allowing them to destroy the contract and transfer all remaining ETH"
+        }
+      ]
+    },
+    "off": {
+      "status": "success",
+      "rag_enhanced": false,
+      "retrieved_hits": [],
+      "pre_verificator": [
+        {
+          "title": "Unauthorized contract destruction",
+          "swc": "SWC-106",
+          "severity": "CRITICAL",
+          "desc": "The contract allows anyone to call the 'sudicideAnyone' function, which will destroy the contract and transfer its funds to the caller. This can lead to loss of funds for users who have deposited toke"
+        }
+      ],
+      "post_verificator": [
+        {
+          "title": "Unauthorized contract destruction",
+          "swc": "SWC-106",
+          "severity": "CRITICAL",
+          "desc": "The contract allows anyone to call the 'sudicideAnyone' function, which will destroy the contract and transfer its funds to the caller. This can lead to loss of funds for users who have deposited toke"
+        }
+      ]
+    }
+  }
+]

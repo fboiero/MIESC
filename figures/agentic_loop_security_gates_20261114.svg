@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 540" font-family="'Segoe UI',system-ui,-apple-system,Roboto,sans-serif" role="img" aria-label="MIESC's agentic verify loop. A bounded loop selects a candidate finding, enriches it with RAG, and asks an LLM to confirm or refute it, iterating up to a cap. At the LLM boundary the project's existing security toolkit — prompt sanitizer and injection detector, Pydantic output validator with safe JSON parsing, and reproducibility seeds — should wrap the call but is not wired in, and the verifier currently fails open, defaulting to confirmed true when the reply cannot be parsed. The planned fix wraps the boundary with these gates, flips the default to fail closed, and seeds the entrypoint.">
+  <rect x="0" y="0" width="1040" height="540" rx="14" fill="#ffffff" stroke="#d0d7de" stroke-width="1.5"/>
+
+  <text x="520" y="38" text-anchor="middle" font-size="19" font-weight="700" fill="#0a3069">The agentic verify loop — sound structure, unguarded LLM boundary</text>
+  <text x="520" y="60" text-anchor="middle" font-size="12" fill="#57606a">the loop is bounded and advisory; the weakness is at the model call, and the toolkit to fix it already ships</text>
+
+  <!-- queue -->
+  <rect x="40" y="120" width="150" height="76" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.4"/>
+  <text x="115" y="150" text-anchor="middle" font-size="12.5" font-weight="700" fill="#0a3069">Candidate queue</text>
+  <text x="115" y="170" text-anchor="middle" font-size="11" fill="#0a3069">findings to verify</text>
+  <text x="115" y="187" text-anchor="middle" font-size="11" fill="#0a3069">bounded: max_iterations</text>
+
+  <!-- enrich -->
+  <rect x="230" y="120" width="150" height="76" rx="8" fill="#eafaf0" stroke="#2da44e" stroke-width="1.4"/>
+  <text x="305" y="150" text-anchor="middle" font-size="12.5" font-weight="700" fill="#1a7f37">Enrich (RAG)</text>
+  <text x="305" y="170" text-anchor="middle" font-size="11" fill="#1a7f37">grounding context</text>
+  <text x="305" y="187" text-anchor="middle" font-size="11" fill="#1a7f37">from knowledge base</text>
+
+  <!-- LLM boundary -->
+  <rect x="420" y="104" width="300" height="140" rx="9" fill="#f6f8fa" stroke="#afb8c1" stroke-width="1.6"/>
+  <text x="570" y="128" text-anchor="middle" font-size="13.5" font-weight="700" fill="#24292f">LLM verify (the boundary)</text>
+  <text x="570" y="147" text-anchor="middle" font-size="11" fill="#57606a">raw contract source → model</text>
+  <!-- gates (should-wrap) -->
+  <rect x="436" y="158" width="268" height="24" rx="5" fill="#ffffff" stroke="#8250df" stroke-width="1.3" stroke-dasharray="5 4"/>
+  <text x="570" y="175" text-anchor="middle" font-size="10.8" fill="#6639ba">① sanitize + injection detect (not wired)</text>
+  <rect x="436" y="186" width="268" height="24" rx="5" fill="#ffffff" stroke="#8250df" stroke-width="1.3" stroke-dasharray="5 4"/>
+  <text x="570" y="203" text-anchor="middle" font-size="10.8" fill="#6639ba">② validate output · safe JSON (not wired)</text>
+  <rect x="436" y="214" width="268" height="24" rx="5" fill="#ffffff" stroke="#8250df" stroke-width="1.3" stroke-dasharray="5 4"/>
+  <text x="570" y="231" text-anchor="middle" font-size="10.8" fill="#6639ba">③ seed for reproducibility (no caller)</text>
+
+  <!-- decision -->
+  <rect x="760" y="120" width="150" height="76" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.4"/>
+  <text x="835" y="150" text-anchor="middle" font-size="12.5" font-weight="700" fill="#0a3069">Confirm / refute</text>
+  <text x="835" y="170" text-anchor="middle" font-size="11" fill="#0a3069">advisory verdict</text>
+  <text x="835" y="187" text-anchor="middle" font-size="11" fill="#0a3069">→ report metadata</text>
+
+  <!-- arrows -->
+  <line x1="190" y1="158" x2="228" y2="158" stroke="#57606a" stroke-width="1.8"/>
+  <polygon points="228,158 216,153 216,163" fill="#57606a"/>
+  <line x1="380" y1="158" x2="418" y2="158" stroke="#57606a" stroke-width="1.8"/>
+  <polygon points="418,158 406,153 406,163" fill="#57606a"/>
+  <line x1="720" y1="158" x2="758" y2="158" stroke="#57606a" stroke-width="1.8"/>
+  <polygon points="758,158 746,153 746,163" fill="#57606a"/>
+  <!-- loop back -->
+  <path d="M835 196 L835 270 L115 270 L115 198" fill="none" stroke="#57606a" stroke-width="1.6" stroke-dasharray="5 4"/>
+  <polygon points="115,198 109,210 121,210" fill="#57606a"/>
+  <text x="475" y="286" text-anchor="middle" font-size="10.5" fill="#57606a">iterate until queue empty or cap reached</text>
+
+  <!-- fail open callout -->
+  <rect x="420" y="312" width="300" height="78" rx="8" fill="#ffebe9" stroke="#cf222e" stroke-width="1.7"/>
+  <text x="570" y="337" text-anchor="middle" font-size="13" font-weight="700" fill="#cf222e">Current: FAILS OPEN</text>
+  <text x="570" y="357" text-anchor="middle" font-size="11" fill="#cf222e">unparseable reply → defaults to</text>
+  <text x="570" y="373" text-anchor="middle" font-size="11" fill="#cf222e">confirmed: true (auto-confirm)</text>
+  <line x1="570" y1="244" x2="570" y2="310" stroke="#cf222e" stroke-width="1.4" stroke-dasharray="4 3"/>
+
+  <!-- toolkit exists -->
+  <rect x="40" y="420" width="430" height="84" rx="9" fill="#eafaf0" stroke="#2da44e" stroke-width="1.4"/>
+  <text x="255" y="446" text-anchor="middle" font-size="13" font-weight="700" fill="#1a7f37">Already ships — miesc/security/</text>
+  <text x="255" y="467" text-anchor="middle" font-size="11.2" fill="#1a7f37">prompt_sanitizer · llm_output_validator · reproducibility</text>
+  <text x="255" y="484" text-anchor="middle" font-size="11.2" fill="#1a7f37">tested code — the fix is wiring, not new machinery</text>
+
+  <!-- planned fix -->
+  <rect x="490" y="420" width="510" height="84" rx="9" fill="#ffffff" stroke="#8250df" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="745" y="446" text-anchor="middle" font-size="13" font-weight="700" fill="#6639ba">Planned (M2) — agentic safety</text>
+  <text x="745" y="467" text-anchor="middle" font-size="11.2" fill="#6639ba">wrap the boundary with gates ①②③ · flip default to FAIL CLOSED</text>
+  <text x="745" y="484" text-anchor="middle" font-size="11.2" fill="#6639ba">seed the entrypoint; record seed + model version in provenance</text>
+</svg>

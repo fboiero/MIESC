@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 500" font-family="'Segoe UI',system-ui,-apple-system,Roboto,sans-serif" role="img" aria-label="A detector decomposes into three parts that transfer across execution models independently: the class (the concept) transfers broadly; the mechanism (the concrete detection primitive) is substrate-specific and must be rebuilt; the calibration (false-positive and severity reasoning) mostly does not survive a change of primitive. Shown with arithmetic overflow as the worked example.">
+  <rect x="0" y="0" width="1040" height="500" rx="14" fill="#ffffff" stroke="#d0d7de" stroke-width="1.5"/>
+
+  <!-- left label: EVM detector -->
+  <text x="150" y="60" text-anchor="middle" font-size="14" font-weight="700" fill="#0a3069">An EVM detector</text>
+  <text x="150" y="80" text-anchor="middle" font-size="11" fill="#57606a">decomposes into three parts</text>
+
+  <!-- boundary -->
+  <line x1="650" y1="110" x2="650" y2="420" stroke="#8c959f" stroke-width="2" stroke-dasharray="6 5"/>
+  <text x="650" y="102" text-anchor="middle" font-size="11.5" font-weight="700" fill="#57606a">execution-model boundary</text>
+
+  <text x="846" y="60" text-anchor="middle" font-size="14" font-weight="700" fill="#0a3069">A target model</text>
+  <text x="846" y="80" text-anchor="middle" font-size="11" fill="#57606a">what actually carries over</text>
+
+  <!-- Layer 1: CLASS -->
+  <rect x="40" y="122" width="300" height="72" rx="9" fill="#eafaf0" stroke="#2da44e" stroke-width="1.5"/>
+  <text x="56" y="148" font-size="14" font-weight="700" fill="#1a7f37">1 · Class</text>
+  <text x="56" y="167" font-size="11" fill="#1f2328">the concept — &#8220;integer/field arithmetic</text>
+  <text x="56" y="182" font-size="11" fill="#1f2328">can overflow&#8221;</text>
+  <!-- arrow strong -->
+  <line x1="340" y1="158" x2="700" y2="158" stroke="#2da44e" stroke-width="7" marker-end="url(#ah_green)"/>
+  <rect x="712" y="122" width="288" height="72" rx="9" fill="#eafaf0" stroke="#2da44e" stroke-width="1.5"/>
+  <text x="728" y="150" font-size="12.5" font-weight="700" fill="#1a7f37">Transfers as a class</text>
+  <text x="728" y="169" font-size="10.5" fill="#1f2328">every model with arithmetic has the</text>
+  <text x="728" y="183" font-size="10.5" fill="#1f2328">concept — the taxonomy is shared</text>
+
+  <!-- Layer 2: MECHANISM -->
+  <rect x="40" y="214" width="300" height="72" rx="9" fill="#fff8e6" stroke="#bf8700" stroke-width="1.5"/>
+  <text x="56" y="240" font-size="14" font-weight="700" fill="#9a6700">2 · Mechanism</text>
+  <text x="56" y="259" font-size="11" fill="#1f2328">the detection primitive — check</text>
+  <text x="56" y="274" font-size="11" fill="#1f2328">solc-0.8 wrap on uint256</text>
+  <!-- arrow dashed amber -->
+  <line x1="340" y1="250" x2="700" y2="250" stroke="#bf8700" stroke-width="3.5" stroke-dasharray="9 6" marker-end="url(#ah_amber)"/>
+  <rect x="712" y="214" width="288" height="72" rx="9" fill="#fff8e6" stroke="#bf8700" stroke-width="1.5"/>
+  <text x="728" y="242" font-size="12.5" font-weight="700" fill="#9a6700">Must be rebuilt</text>
+  <text x="728" y="261" font-size="10.5" fill="#1f2328">a 252-bit Cairo felt is not uint256 —</text>
+  <text x="728" y="275" font-size="10.5" fill="#1f2328">the primitive is substrate-specific</text>
+
+  <!-- Layer 3: CALIBRATION -->
+  <rect x="40" y="306" width="300" height="72" rx="9" fill="#f6f8fa" stroke="#8c959f" stroke-width="1.5"/>
+  <text x="56" y="332" font-size="14" font-weight="700" fill="#57606a">3 · Calibration</text>
+  <text x="56" y="351" font-size="11" fill="#1f2328">false-positive &#38; severity reasoning —</text>
+  <text x="56" y="366" font-size="11" fill="#1f2328">which overflows actually matter</text>
+  <!-- arrow faint gray -->
+  <line x1="340" y1="342" x2="700" y2="342" stroke="#8c959f" stroke-width="2" stroke-dasharray="3 5" marker-end="url(#ah_gray)"/>
+  <rect x="712" y="306" width="288" height="72" rx="9" fill="#f6f8fa" stroke="#8c959f" stroke-width="1.5"/>
+  <text x="728" y="334" font-size="12.5" font-weight="700" fill="#57606a">Predicted not to survive</text>
+  <text x="728" y="353" font-size="10.5" fill="#1f2328">EVM-learned FP priors assume EVM</text>
+  <text x="728" y="367" font-size="10.5" fill="#1f2328">idioms; predicted to misfire (T3)</text>
+
+  <!-- takeaway -->
+  <rect x="40" y="406" width="960" height="60" rx="10" fill="#f3f8ff" stroke="#0969da" stroke-width="1.4"/>
+  <text x="56" y="430" font-size="12" font-weight="700" fill="#0a3069">&#8220;Class transfers, mechanism does not&#8221; — the predicted rule, not the exception.</text>
+  <text x="56" y="451" font-size="11" fill="#1f2328">Transfer is a property of the invariant, not the tool: identify the invariant, then ask whether the target model can host it — rather than porting the detector.</text>
+
+  <defs>
+    <marker id="ah_green" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#2da44e"/></marker>
+    <marker id="ah_amber" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#bf8700"/></marker>
+    <marker id="ah_gray" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#8c959f"/></marker>
+  </defs>
+</svg>

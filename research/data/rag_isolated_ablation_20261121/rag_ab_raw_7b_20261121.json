@@ -1,0 +1,6579 @@
+{
+  "meta": {
+    "experiment": "isolated EmbeddingRAG A/B (mechanism 1) \u2014 7B off-ceiling follow-up",
+    "git_sha": "deea9b7d",
+    "model": "qwen2.5-coder:7b",
+    "model_digest": "dae161e27b0e",
+    "kb_version": "2026-11-15-chain-provenance-v5",
+    "embedding_model": "all-MiniLM-L6-v2 (EmbeddingRAG default)",
+    "adapter": "smartllm",
+    "arms": {
+      "on": "RAG on (default)",
+      "off": "MIESC_DISABLE_RAG=1"
+    },
+    "runs_per_arm": 3,
+    "timeout_s": 180,
+    "cache_disabled": true,
+    "categories": [
+      "reentrancy",
+      "access_control",
+      "arithmetic"
+    ],
+    "dataset": "SmartBugs-curated",
+    "scorer": "category-level (classify_finding); contract is a hit if its true category is among detected categories",
+    "note": "Companion to the 32B run (rag_ab_raw_20261121.json). Inline @vulnerable_at_lines annotations are present in both arms and cancel in the on-vs-off delta. The comparison of interest is delta_7B vs delta_32B.",
+    "companion_32b": "rag_ab_raw_20261121.json",
+    "total_contracts": 64,
+    "started": "2026-11-21 23:35:00",
+    "finished": "2026-11-22 02:35:23",
+    "elapsed_min": 180.4
+  },
+  "results": [
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x01f8c4e3fa3edeb29e514cba738d87ce8c091d3f.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 40.2
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x01f8c4e3fa3edeb29e514cba738d87ce8c091d3f.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 36.2
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x01f8c4e3fa3edeb29e514cba738d87ce8c091d3f.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 41.2
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x01f8c4e3fa3edeb29e514cba738d87ce8c091d3f.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 30.0
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x01f8c4e3fa3edeb29e514cba738d87ce8c091d3f.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 32.1
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x01f8c4e3fa3edeb29e514cba738d87ce8c091d3f.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 26.5
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x23a91059fdc9579a9fbd0edc5f2ea0bfdb70deb4.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 23.7
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x23a91059fdc9579a9fbd0edc5f2ea0bfdb70deb4.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 22.2
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x23a91059fdc9579a9fbd0edc5f2ea0bfdb70deb4.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 23.9
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x23a91059fdc9579a9fbd0edc5f2ea0bfdb70deb4.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 19.1
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x23a91059fdc9579a9fbd0edc5f2ea0bfdb70deb4.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 25.1
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x23a91059fdc9579a9fbd0edc5f2ea0bfdb70deb4.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 22.8
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x4320e6f8c05b27ab4707cd1f6d5ce6f3e4b3a5a1.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 27.7
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x4320e6f8c05b27ab4707cd1f6d5ce6f3e4b3a5a1.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 28.2
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x4320e6f8c05b27ab4707cd1f6d5ce6f3e4b3a5a1.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 32.2
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x4320e6f8c05b27ab4707cd1f6d5ce6f3e4b3a5a1.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 24.9
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x4320e6f8c05b27ab4707cd1f6d5ce6f3e4b3a5a1.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 32.1
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x4320e6f8c05b27ab4707cd1f6d5ce6f3e4b3a5a1.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 26.9
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x4e73b32ed6c35f570686b89848e5f39f20ecc106.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 32.4
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x4e73b32ed6c35f570686b89848e5f39f20ecc106.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 27.5
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x4e73b32ed6c35f570686b89848e5f39f20ecc106.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 35.1
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x4e73b32ed6c35f570686b89848e5f39f20ecc106.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 28.9
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x4e73b32ed6c35f570686b89848e5f39f20ecc106.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 28.4
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x4e73b32ed6c35f570686b89848e5f39f20ecc106.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 27.0
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x561eac93c92360949ab1f1403323e6db345cbf31.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 32.8
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x561eac93c92360949ab1f1403323e6db345cbf31.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 29.3
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x561eac93c92360949ab1f1403323e6db345cbf31.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 30.4
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x561eac93c92360949ab1f1403323e6db345cbf31.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 31.5
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x561eac93c92360949ab1f1403323e6db345cbf31.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 32.7
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x561eac93c92360949ab1f1403323e6db345cbf31.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 27.6
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x627fa62ccbb1c1b04ffaecd72a53e37fc0e17839.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 12.6
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x627fa62ccbb1c1b04ffaecd72a53e37fc0e17839.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 7.9
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x627fa62ccbb1c1b04ffaecd72a53e37fc0e17839.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 9.1
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x627fa62ccbb1c1b04ffaecd72a53e37fc0e17839.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 7.9
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x627fa62ccbb1c1b04ffaecd72a53e37fc0e17839.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 9.1
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x627fa62ccbb1c1b04ffaecd72a53e37fc0e17839.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 8.1
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x7541b76cb60f4c60af330c208b0623b7f54bf615.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 28.7
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x7541b76cb60f4c60af330c208b0623b7f54bf615.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 28.8
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x7541b76cb60f4c60af330c208b0623b7f54bf615.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 28.9
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x7541b76cb60f4c60af330c208b0623b7f54bf615.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 31.2
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x7541b76cb60f4c60af330c208b0623b7f54bf615.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 29.4
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x7541b76cb60f4c60af330c208b0623b7f54bf615.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 33.1
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x7a8721a9d64c74da899424c1b52acbf58ddc9782.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 34.8
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x7a8721a9d64c74da899424c1b52acbf58ddc9782.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 36.3
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x7a8721a9d64c74da899424c1b52acbf58ddc9782.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 29.8
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x7a8721a9d64c74da899424c1b52acbf58ddc9782.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 30.3
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x7a8721a9d64c74da899424c1b52acbf58ddc9782.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 30.2
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x7a8721a9d64c74da899424c1b52acbf58ddc9782.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 30.3
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x7b368c4e805c3870b6c49a3f1f49f69af8662cf3.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 27.4
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x7b368c4e805c3870b6c49a3f1f49f69af8662cf3.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 29.0
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x7b368c4e805c3870b6c49a3f1f49f69af8662cf3.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 28.8
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x7b368c4e805c3870b6c49a3f1f49f69af8662cf3.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 27.2
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x7b368c4e805c3870b6c49a3f1f49f69af8662cf3.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 28.5
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x7b368c4e805c3870b6c49a3f1f49f69af8662cf3.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 35.6
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x8c7777c45481dba411450c228cb692ac3d550344.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 30.7
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x8c7777c45481dba411450c228cb692ac3d550344.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 27.0
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x8c7777c45481dba411450c228cb692ac3d550344.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 33.4
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x8c7777c45481dba411450c228cb692ac3d550344.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 33.5
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x8c7777c45481dba411450c228cb692ac3d550344.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 29.8
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x8c7777c45481dba411450c228cb692ac3d550344.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 30.7
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x93c32845fae42c83a70e5f06214c8433665c2ab5.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 34.6
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x93c32845fae42c83a70e5f06214c8433665c2ab5.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 38.9
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x93c32845fae42c83a70e5f06214c8433665c2ab5.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 36.6
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x93c32845fae42c83a70e5f06214c8433665c2ab5.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 25.3
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x93c32845fae42c83a70e5f06214c8433665c2ab5.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 23.6
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x93c32845fae42c83a70e5f06214c8433665c2ab5.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 24.8
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x941d225236464a25eb18076df7da6a91d0f95e9e.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 24.1
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x941d225236464a25eb18076df7da6a91d0f95e9e.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 26.9
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x941d225236464a25eb18076df7da6a91d0f95e9e.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 26.4
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x941d225236464a25eb18076df7da6a91d0f95e9e.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 21.0
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x941d225236464a25eb18076df7da6a91d0f95e9e.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 25.7
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x941d225236464a25eb18076df7da6a91d0f95e9e.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 23.6
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x96edbe868531bd23a6c05e9d0c424ea64fb1b78b.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 27.4
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x96edbe868531bd23a6c05e9d0c424ea64fb1b78b.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 26.0
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x96edbe868531bd23a6c05e9d0c424ea64fb1b78b.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 33.2
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x96edbe868531bd23a6c05e9d0c424ea64fb1b78b.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 26.3
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x96edbe868531bd23a6c05e9d0c424ea64fb1b78b.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 30.6
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x96edbe868531bd23a6c05e9d0c424ea64fb1b78b.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 21.7
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0xaae1f51cf3339f18b6d3f3bdc75a5facd744b0b8.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 29.4
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0xaae1f51cf3339f18b6d3f3bdc75a5facd744b0b8.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 22.5
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0xaae1f51cf3339f18b6d3f3bdc75a5facd744b0b8.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 25.1
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0xaae1f51cf3339f18b6d3f3bdc75a5facd744b0b8.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 24.0
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0xaae1f51cf3339f18b6d3f3bdc75a5facd744b0b8.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 27.6
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0xaae1f51cf3339f18b6d3f3bdc75a5facd744b0b8.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 23.0
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0xb5e1b1ee15c6fa0e48fce100125569d430f1bd12.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 22.5
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0xb5e1b1ee15c6fa0e48fce100125569d430f1bd12.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 25.0
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0xb5e1b1ee15c6fa0e48fce100125569d430f1bd12.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 27.5
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0xb5e1b1ee15c6fa0e48fce100125569d430f1bd12.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 25.5
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0xb5e1b1ee15c6fa0e48fce100125569d430f1bd12.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 23.6
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0xb5e1b1ee15c6fa0e48fce100125569d430f1bd12.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 23.5
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0xb93430ce38ac4a6bb47fb1fc085ea669353fd89e.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 22.6
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0xb93430ce38ac4a6bb47fb1fc085ea669353fd89e.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 23.1
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0xb93430ce38ac4a6bb47fb1fc085ea669353fd89e.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 25.5
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0xb93430ce38ac4a6bb47fb1fc085ea669353fd89e.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 20.4
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0xb93430ce38ac4a6bb47fb1fc085ea669353fd89e.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 23.8
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0xb93430ce38ac4a6bb47fb1fc085ea669353fd89e.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 25.0
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0xbaf51e761510c1a11bf48dd87c0307ac8a8c8a4f.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 27.4
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0xbaf51e761510c1a11bf48dd87c0307ac8a8c8a4f.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 24.0
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0xbaf51e761510c1a11bf48dd87c0307ac8a8c8a4f.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 24.3
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0xbaf51e761510c1a11bf48dd87c0307ac8a8c8a4f.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 22.1
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0xbaf51e761510c1a11bf48dd87c0307ac8a8c8a4f.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 23.4
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0xbaf51e761510c1a11bf48dd87c0307ac8a8c8a4f.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 21.1
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0xbe4041d55db380c5ae9d4a9b9703f1ed4e7e3888.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 26.6
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0xbe4041d55db380c5ae9d4a9b9703f1ed4e7e3888.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 25.2
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0xbe4041d55db380c5ae9d4a9b9703f1ed4e7e3888.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 21.8
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0xbe4041d55db380c5ae9d4a9b9703f1ed4e7e3888.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 25.3
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0xbe4041d55db380c5ae9d4a9b9703f1ed4e7e3888.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 22.0
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0xbe4041d55db380c5ae9d4a9b9703f1ed4e7e3888.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 23.2
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0xcead721ef5b11f1a7b530171aab69b16c5e66b6e.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 31.5
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0xcead721ef5b11f1a7b530171aab69b16c5e66b6e.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 28.4
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0xcead721ef5b11f1a7b530171aab69b16c5e66b6e.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 27.9
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0xcead721ef5b11f1a7b530171aab69b16c5e66b6e.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 27.6
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0xcead721ef5b11f1a7b530171aab69b16c5e66b6e.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 28.1
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0xcead721ef5b11f1a7b530171aab69b16c5e66b6e.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 23.1
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0xf015c35649c82f5467c9c74b7f28ee67665aad68.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 26.7
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0xf015c35649c82f5467c9c74b7f28ee67665aad68.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 24.4
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0xf015c35649c82f5467c9c74b7f28ee67665aad68.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 25.7
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0xf015c35649c82f5467c9c74b7f28ee67665aad68.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 28.7
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0xf015c35649c82f5467c9c74b7f28ee67665aad68.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 25.4
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0xf015c35649c82f5467c9c74b7f28ee67665aad68.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 22.9
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/etherbank.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 28.1
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/etherbank.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 23.7
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/etherbank.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 24.6
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/etherbank.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 22.1
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/etherbank.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 25.2
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/etherbank.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 21.7
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/etherstore.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 28.8
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/etherstore.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 24.0
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/etherstore.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 25.8
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/etherstore.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 26.9
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/etherstore.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 25.3
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/etherstore.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 21.5
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/modifier_reentrancy.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 27.8
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/modifier_reentrancy.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 28.7
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/modifier_reentrancy.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 25.4
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/modifier_reentrancy.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 25.0
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/modifier_reentrancy.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 25.4
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/modifier_reentrancy.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 23.6
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/reentrance.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 28.7
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/reentrance.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 20.9
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/reentrance.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 23.9
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/reentrance.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 23.2
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/reentrance.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 28.2
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/reentrance.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 19.6
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/reentrancy_bonus.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": false,
+      "time_s": 33.2
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/reentrancy_bonus.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 24.0
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/reentrancy_bonus.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": false,
+      "time_s": 33.5
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/reentrancy_bonus.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 23.0
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/reentrancy_bonus.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": false,
+      "time_s": 36.3
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/reentrancy_bonus.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 25.7
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/reentrancy_cross_function.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 24.0
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/reentrancy_cross_function.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 28.7
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/reentrancy_cross_function.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 25.1
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/reentrancy_cross_function.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 31.9
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/reentrancy_cross_function.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 23.7
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/reentrancy_cross_function.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 29.2
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/reentrancy_dao.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "access_control"
+      ],
+      "hit": false,
+      "time_s": 29.4
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/reentrancy_dao.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 23.0
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/reentrancy_dao.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "access_control"
+      ],
+      "hit": false,
+      "time_s": 27.0
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/reentrancy_dao.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 22.3
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/reentrancy_dao.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "access_control"
+      ],
+      "hit": false,
+      "time_s": 29.6
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/reentrancy_dao.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 29.2
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/reentrancy_insecure.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 30.6
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/reentrancy_insecure.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 37.6
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/reentrancy_insecure.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 28.5
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/reentrancy_insecure.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 32.5
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/reentrancy_insecure.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 31.1
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/reentrancy_insecure.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 31.1
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/reentrancy_simple.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 25.5
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/reentrancy_simple.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 24.3
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/reentrancy_simple.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 23.1
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/reentrancy_simple.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 26.7
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/reentrancy_simple.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 27.2
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/reentrancy_simple.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 21.6
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/simple_dao.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 27.3
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/simple_dao.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 24.3
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/simple_dao.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 24.5
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/simple_dao.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 22.3
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/simple_dao.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 29.6
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/simple_dao.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 23.4
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/spank_chain_payment.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 2,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 23.9
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/spank_chain_payment.sol",
+      "true_category": "reentrancy",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 2,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 15.0
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/spank_chain_payment.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 2,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 14.1
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/spank_chain_payment.sol",
+      "true_category": "reentrancy",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 2,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 14.9
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/spank_chain_payment.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 2,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 14.4
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/reentrancy/spank_chain_payment.sol",
+      "true_category": "reentrancy",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 2,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 14.7
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/FibonacciBalance.sol",
+      "true_category": "access_control",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "other"
+      ],
+      "hit": false,
+      "time_s": 25.1
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/FibonacciBalance.sol",
+      "true_category": "access_control",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": false,
+      "time_s": 24.9
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/FibonacciBalance.sol",
+      "true_category": "access_control",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "other"
+      ],
+      "hit": false,
+      "time_s": 25.7
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/FibonacciBalance.sol",
+      "true_category": "access_control",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": false,
+      "time_s": 23.7
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/FibonacciBalance.sol",
+      "true_category": "access_control",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "other"
+      ],
+      "hit": false,
+      "time_s": 28.0
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/FibonacciBalance.sol",
+      "true_category": "access_control",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": false,
+      "time_s": 25.5
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/arbitrary_location_write_simple.sol",
+      "true_category": "access_control",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": false,
+      "time_s": 31.2
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/arbitrary_location_write_simple.sol",
+      "true_category": "access_control",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": false,
+      "time_s": 31.0
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/arbitrary_location_write_simple.sol",
+      "true_category": "access_control",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": false,
+      "time_s": 28.6
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/arbitrary_location_write_simple.sol",
+      "true_category": "access_control",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": false,
+      "time_s": 25.9
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/arbitrary_location_write_simple.sol",
+      "true_category": "access_control",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": false,
+      "time_s": 32.1
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/arbitrary_location_write_simple.sol",
+      "true_category": "access_control",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": false,
+      "time_s": 25.1
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/incorrect_constructor_name1.sol",
+      "true_category": "access_control",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "access_control"
+      ],
+      "hit": true,
+      "time_s": 22.7
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/incorrect_constructor_name1.sol",
+      "true_category": "access_control",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "access_control"
+      ],
+      "hit": true,
+      "time_s": 22.7
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/incorrect_constructor_name1.sol",
+      "true_category": "access_control",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "access_control"
+      ],
+      "hit": true,
+      "time_s": 27.9
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/incorrect_constructor_name1.sol",
+      "true_category": "access_control",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "access_control"
+      ],
+      "hit": true,
+      "time_s": 23.9
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/incorrect_constructor_name1.sol",
+      "true_category": "access_control",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "access_control"
+      ],
+      "hit": true,
+      "time_s": 25.8
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/incorrect_constructor_name1.sol",
+      "true_category": "access_control",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "access_control"
+      ],
+      "hit": true,
+      "time_s": 31.0
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/incorrect_constructor_name2.sol",
+      "true_category": "access_control",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "access_control"
+      ],
+      "hit": true,
+      "time_s": 31.7
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/incorrect_constructor_name2.sol",
+      "true_category": "access_control",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 2,
+      "detected_categories": [
+        "access_control",
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 52.7
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/incorrect_constructor_name2.sol",
+      "true_category": "access_control",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "access_control"
+      ],
+      "hit": true,
+      "time_s": 28.4
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/incorrect_constructor_name2.sol",
+      "true_category": "access_control",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 2,
+      "detected_categories": [
+        "access_control",
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 47.6
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/incorrect_constructor_name2.sol",
+      "true_category": "access_control",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "access_control"
+      ],
+      "hit": true,
+      "time_s": 30.4
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/incorrect_constructor_name2.sol",
+      "true_category": "access_control",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 2,
+      "detected_categories": [
+        "access_control",
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 44.7
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/incorrect_constructor_name3.sol",
+      "true_category": "access_control",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "access_control"
+      ],
+      "hit": true,
+      "time_s": 32.0
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/incorrect_constructor_name3.sol",
+      "true_category": "access_control",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 2,
+      "detected_categories": [
+        "other",
+        "reentrancy"
+      ],
+      "hit": false,
+      "time_s": 44.1
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/incorrect_constructor_name3.sol",
+      "true_category": "access_control",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "access_control"
+      ],
+      "hit": true,
+      "time_s": 26.9
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/incorrect_constructor_name3.sol",
+      "true_category": "access_control",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 2,
+      "detected_categories": [
+        "other",
+        "reentrancy"
+      ],
+      "hit": false,
+      "time_s": 41.1
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/incorrect_constructor_name3.sol",
+      "true_category": "access_control",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "access_control"
+      ],
+      "hit": true,
+      "time_s": 33.7
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/incorrect_constructor_name3.sol",
+      "true_category": "access_control",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 2,
+      "detected_categories": [
+        "other",
+        "reentrancy"
+      ],
+      "hit": false,
+      "time_s": 49.9
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/mapping_write.sol",
+      "true_category": "access_control",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "access_control"
+      ],
+      "hit": true,
+      "time_s": 29.1
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/mapping_write.sol",
+      "true_category": "access_control",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": false,
+      "time_s": 28.1
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/mapping_write.sol",
+      "true_category": "access_control",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "access_control"
+      ],
+      "hit": true,
+      "time_s": 29.0
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/mapping_write.sol",
+      "true_category": "access_control",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": false,
+      "time_s": 29.4
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/mapping_write.sol",
+      "true_category": "access_control",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "access_control"
+      ],
+      "hit": true,
+      "time_s": 28.5
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/mapping_write.sol",
+      "true_category": "access_control",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": false,
+      "time_s": 26.2
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/multiowned_vulnerable.sol",
+      "true_category": "access_control",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "access_control"
+      ],
+      "hit": true,
+      "time_s": 33.0
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/multiowned_vulnerable.sol",
+      "true_category": "access_control",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": false,
+      "time_s": 27.6
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/multiowned_vulnerable.sol",
+      "true_category": "access_control",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "access_control"
+      ],
+      "hit": true,
+      "time_s": 32.8
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/multiowned_vulnerable.sol",
+      "true_category": "access_control",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": false,
+      "time_s": 31.4
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/multiowned_vulnerable.sol",
+      "true_category": "access_control",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "access_control"
+      ],
+      "hit": true,
+      "time_s": 30.6
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/multiowned_vulnerable.sol",
+      "true_category": "access_control",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": false,
+      "time_s": 27.7
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/mycontract.sol",
+      "true_category": "access_control",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": false,
+      "time_s": 32.7
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/mycontract.sol",
+      "true_category": "access_control",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": false,
+      "time_s": 24.9
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/mycontract.sol",
+      "true_category": "access_control",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": false,
+      "time_s": 28.5
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/mycontract.sol",
+      "true_category": "access_control",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": false,
+      "time_s": 20.7
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/mycontract.sol",
+      "true_category": "access_control",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": false,
+      "time_s": 27.1
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/mycontract.sol",
+      "true_category": "access_control",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": false,
+      "time_s": 24.3
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/parity_wallet_bug_1.sol",
+      "true_category": "access_control",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "other"
+      ],
+      "hit": false,
+      "time_s": 44.4
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/parity_wallet_bug_1.sol",
+      "true_category": "access_control",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": false,
+      "time_s": 41.8
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/parity_wallet_bug_1.sol",
+      "true_category": "access_control",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "other"
+      ],
+      "hit": false,
+      "time_s": 36.1
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/parity_wallet_bug_1.sol",
+      "true_category": "access_control",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": false,
+      "time_s": 36.8
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/parity_wallet_bug_1.sol",
+      "true_category": "access_control",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "other"
+      ],
+      "hit": false,
+      "time_s": 38.1
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/parity_wallet_bug_1.sol",
+      "true_category": "access_control",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": false,
+      "time_s": 30.3
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/parity_wallet_bug_2.sol",
+      "true_category": "access_control",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "access_control"
+      ],
+      "hit": true,
+      "time_s": 34.0
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/parity_wallet_bug_2.sol",
+      "true_category": "access_control",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": false,
+      "time_s": 34.8
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/parity_wallet_bug_2.sol",
+      "true_category": "access_control",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "access_control"
+      ],
+      "hit": true,
+      "time_s": 29.2
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/parity_wallet_bug_2.sol",
+      "true_category": "access_control",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": false,
+      "time_s": 34.7
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/parity_wallet_bug_2.sol",
+      "true_category": "access_control",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "access_control"
+      ],
+      "hit": true,
+      "time_s": 36.5
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/parity_wallet_bug_2.sol",
+      "true_category": "access_control",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": false,
+      "time_s": 31.6
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/phishable.sol",
+      "true_category": "access_control",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "access_control"
+      ],
+      "hit": true,
+      "time_s": 24.9
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/phishable.sol",
+      "true_category": "access_control",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": false,
+      "time_s": 23.3
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/phishable.sol",
+      "true_category": "access_control",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "access_control"
+      ],
+      "hit": true,
+      "time_s": 26.3
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/phishable.sol",
+      "true_category": "access_control",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": false,
+      "time_s": 25.6
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/phishable.sol",
+      "true_category": "access_control",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "access_control"
+      ],
+      "hit": true,
+      "time_s": 25.8
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/phishable.sol",
+      "true_category": "access_control",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": false,
+      "time_s": 23.3
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/proxy.sol",
+      "true_category": "access_control",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "access_control"
+      ],
+      "hit": true,
+      "time_s": 28.0
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/proxy.sol",
+      "true_category": "access_control",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "other"
+      ],
+      "hit": false,
+      "time_s": 22.0
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/proxy.sol",
+      "true_category": "access_control",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "access_control"
+      ],
+      "hit": true,
+      "time_s": 26.9
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/proxy.sol",
+      "true_category": "access_control",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "other"
+      ],
+      "hit": false,
+      "time_s": 24.7
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/proxy.sol",
+      "true_category": "access_control",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "access_control"
+      ],
+      "hit": true,
+      "time_s": 27.6
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/proxy.sol",
+      "true_category": "access_control",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "other"
+      ],
+      "hit": false,
+      "time_s": 23.4
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/rubixi.sol",
+      "true_category": "access_control",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 2,
+      "detected_categories": [
+        "access_control",
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 45.1
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/rubixi.sol",
+      "true_category": "access_control",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 2,
+      "detected_categories": [
+        "arithmetic",
+        "reentrancy"
+      ],
+      "hit": false,
+      "time_s": 48.3
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/rubixi.sol",
+      "true_category": "access_control",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 2,
+      "detected_categories": [
+        "access_control",
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 47.2
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/rubixi.sol",
+      "true_category": "access_control",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 2,
+      "detected_categories": [
+        "arithmetic",
+        "reentrancy"
+      ],
+      "hit": false,
+      "time_s": 55.3
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/rubixi.sol",
+      "true_category": "access_control",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 2,
+      "detected_categories": [
+        "access_control",
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 46.1
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/rubixi.sol",
+      "true_category": "access_control",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 2,
+      "detected_categories": [
+        "arithmetic",
+        "reentrancy"
+      ],
+      "hit": false,
+      "time_s": 52.7
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/simple_suicide.sol",
+      "true_category": "access_control",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "other"
+      ],
+      "hit": false,
+      "time_s": 27.4
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/simple_suicide.sol",
+      "true_category": "access_control",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "access_control"
+      ],
+      "hit": true,
+      "time_s": 21.9
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/simple_suicide.sol",
+      "true_category": "access_control",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "other"
+      ],
+      "hit": false,
+      "time_s": 27.2
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/simple_suicide.sol",
+      "true_category": "access_control",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "access_control"
+      ],
+      "hit": true,
+      "time_s": 24.4
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/simple_suicide.sol",
+      "true_category": "access_control",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "other"
+      ],
+      "hit": false,
+      "time_s": 28.0
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/simple_suicide.sol",
+      "true_category": "access_control",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "access_control"
+      ],
+      "hit": true,
+      "time_s": 28.5
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/unprotected0.sol",
+      "true_category": "access_control",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "access_control"
+      ],
+      "hit": true,
+      "time_s": 26.2
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/unprotected0.sol",
+      "true_category": "access_control",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": false,
+      "time_s": 26.1
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/unprotected0.sol",
+      "true_category": "access_control",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "access_control"
+      ],
+      "hit": true,
+      "time_s": 24.9
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/unprotected0.sol",
+      "true_category": "access_control",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": false,
+      "time_s": 22.8
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/unprotected0.sol",
+      "true_category": "access_control",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "access_control"
+      ],
+      "hit": true,
+      "time_s": 26.8
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/unprotected0.sol",
+      "true_category": "access_control",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": false,
+      "time_s": 23.3
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/wallet_02_refund_nosub.sol",
+      "true_category": "access_control",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "access_control"
+      ],
+      "hit": true,
+      "time_s": 24.9
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/wallet_02_refund_nosub.sol",
+      "true_category": "access_control",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": false,
+      "time_s": 22.6
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/wallet_02_refund_nosub.sol",
+      "true_category": "access_control",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "access_control"
+      ],
+      "hit": true,
+      "time_s": 25.0
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/wallet_02_refund_nosub.sol",
+      "true_category": "access_control",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": false,
+      "time_s": 25.5
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/wallet_02_refund_nosub.sol",
+      "true_category": "access_control",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "access_control"
+      ],
+      "hit": true,
+      "time_s": 25.6
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/wallet_02_refund_nosub.sol",
+      "true_category": "access_control",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": false,
+      "time_s": 23.0
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/wallet_03_wrong_constructor.sol",
+      "true_category": "access_control",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "access_control"
+      ],
+      "hit": true,
+      "time_s": 21.5
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/wallet_03_wrong_constructor.sol",
+      "true_category": "access_control",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 3,
+      "detected_categories": [
+        "access_control",
+        "arithmetic",
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 58.8
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/wallet_03_wrong_constructor.sol",
+      "true_category": "access_control",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "access_control"
+      ],
+      "hit": true,
+      "time_s": 29.0
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/wallet_03_wrong_constructor.sol",
+      "true_category": "access_control",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 3,
+      "detected_categories": [
+        "access_control",
+        "arithmetic",
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 66.6
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/wallet_03_wrong_constructor.sol",
+      "true_category": "access_control",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "access_control"
+      ],
+      "hit": true,
+      "time_s": 29.7
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/wallet_03_wrong_constructor.sol",
+      "true_category": "access_control",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 3,
+      "detected_categories": [
+        "access_control",
+        "arithmetic",
+        "reentrancy"
+      ],
+      "hit": true,
+      "time_s": 73.1
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/wallet_04_confused_sign.sol",
+      "true_category": "access_control",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "access_control"
+      ],
+      "hit": true,
+      "time_s": 28.7
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/wallet_04_confused_sign.sol",
+      "true_category": "access_control",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": false,
+      "time_s": 29.2
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/wallet_04_confused_sign.sol",
+      "true_category": "access_control",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "access_control"
+      ],
+      "hit": true,
+      "time_s": 24.7
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/wallet_04_confused_sign.sol",
+      "true_category": "access_control",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": false,
+      "time_s": 28.4
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/wallet_04_confused_sign.sol",
+      "true_category": "access_control",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "access_control"
+      ],
+      "hit": true,
+      "time_s": 26.1
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/access_control/wallet_04_confused_sign.sol",
+      "true_category": "access_control",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": false,
+      "time_s": 31.7
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/BECToken.sol",
+      "true_category": "arithmetic",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 29.5
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/BECToken.sol",
+      "true_category": "arithmetic",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": false,
+      "time_s": 23.7
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/BECToken.sol",
+      "true_category": "arithmetic",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 37.0
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/BECToken.sol",
+      "true_category": "arithmetic",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": false,
+      "time_s": 25.0
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/BECToken.sol",
+      "true_category": "arithmetic",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 27.7
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/BECToken.sol",
+      "true_category": "arithmetic",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": false,
+      "time_s": 30.5
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/insecure_transfer.sol",
+      "true_category": "arithmetic",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 25.4
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/insecure_transfer.sol",
+      "true_category": "arithmetic",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 25.5
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/insecure_transfer.sol",
+      "true_category": "arithmetic",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 27.8
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/insecure_transfer.sol",
+      "true_category": "arithmetic",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 26.2
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/insecure_transfer.sol",
+      "true_category": "arithmetic",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 26.8
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/insecure_transfer.sol",
+      "true_category": "arithmetic",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 32.4
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_1.sol",
+      "true_category": "arithmetic",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 27.3
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_1.sol",
+      "true_category": "arithmetic",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 33.1
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_1.sol",
+      "true_category": "arithmetic",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 29.9
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_1.sol",
+      "true_category": "arithmetic",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 26.1
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_1.sol",
+      "true_category": "arithmetic",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 27.4
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_1.sol",
+      "true_category": "arithmetic",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 31.9
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_add.sol",
+      "true_category": "arithmetic",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 28.6
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_add.sol",
+      "true_category": "arithmetic",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 28.8
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_add.sol",
+      "true_category": "arithmetic",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 28.2
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_add.sol",
+      "true_category": "arithmetic",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 27.3
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_add.sol",
+      "true_category": "arithmetic",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 28.5
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_add.sol",
+      "true_category": "arithmetic",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 26.8
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_benign_1.sol",
+      "true_category": "arithmetic",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 32.5
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_benign_1.sol",
+      "true_category": "arithmetic",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 26.7
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_benign_1.sol",
+      "true_category": "arithmetic",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 21.3
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_benign_1.sol",
+      "true_category": "arithmetic",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 24.0
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_benign_1.sol",
+      "true_category": "arithmetic",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 22.5
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_benign_1.sol",
+      "true_category": "arithmetic",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 20.3
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_mapping_sym_1.sol",
+      "true_category": "arithmetic",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 22.8
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_mapping_sym_1.sol",
+      "true_category": "arithmetic",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 20.4
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_mapping_sym_1.sol",
+      "true_category": "arithmetic",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 23.0
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_mapping_sym_1.sol",
+      "true_category": "arithmetic",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 20.9
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_mapping_sym_1.sol",
+      "true_category": "arithmetic",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 23.4
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_mapping_sym_1.sol",
+      "true_category": "arithmetic",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 23.8
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_minimal.sol",
+      "true_category": "arithmetic",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 21.8
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_minimal.sol",
+      "true_category": "arithmetic",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 24.3
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_minimal.sol",
+      "true_category": "arithmetic",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 25.0
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_minimal.sol",
+      "true_category": "arithmetic",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 21.6
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_minimal.sol",
+      "true_category": "arithmetic",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 25.1
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_minimal.sol",
+      "true_category": "arithmetic",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 22.0
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_mul.sol",
+      "true_category": "arithmetic",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 23.3
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_mul.sol",
+      "true_category": "arithmetic",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 24.7
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_mul.sol",
+      "true_category": "arithmetic",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 27.7
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_mul.sol",
+      "true_category": "arithmetic",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 23.2
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_mul.sol",
+      "true_category": "arithmetic",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 27.2
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_mul.sol",
+      "true_category": "arithmetic",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 24.5
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_multitx_multifunc_feasible.sol",
+      "true_category": "arithmetic",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 24.1
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_multitx_multifunc_feasible.sol",
+      "true_category": "arithmetic",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 25.0
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_multitx_multifunc_feasible.sol",
+      "true_category": "arithmetic",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 29.6
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_multitx_multifunc_feasible.sol",
+      "true_category": "arithmetic",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 27.5
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_multitx_multifunc_feasible.sol",
+      "true_category": "arithmetic",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 28.7
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_multitx_multifunc_feasible.sol",
+      "true_category": "arithmetic",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 25.1
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_multitx_onefunc_feasible.sol",
+      "true_category": "arithmetic",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 23.8
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_multitx_onefunc_feasible.sol",
+      "true_category": "arithmetic",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 24.3
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_multitx_onefunc_feasible.sol",
+      "true_category": "arithmetic",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 25.6
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_multitx_onefunc_feasible.sol",
+      "true_category": "arithmetic",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 29.5
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_multitx_onefunc_feasible.sol",
+      "true_category": "arithmetic",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 30.4
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_multitx_onefunc_feasible.sol",
+      "true_category": "arithmetic",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 28.4
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/overflow_simple_add.sol",
+      "true_category": "arithmetic",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 26.1
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/overflow_simple_add.sol",
+      "true_category": "arithmetic",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 25.4
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/overflow_simple_add.sol",
+      "true_category": "arithmetic",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 31.9
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/overflow_simple_add.sol",
+      "true_category": "arithmetic",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 24.7
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/overflow_simple_add.sol",
+      "true_category": "arithmetic",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 27.4
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/overflow_simple_add.sol",
+      "true_category": "arithmetic",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 26.7
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/overflow_single_tx.sol",
+      "true_category": "arithmetic",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 29.6
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/overflow_single_tx.sol",
+      "true_category": "arithmetic",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 2,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 50.6
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/overflow_single_tx.sol",
+      "true_category": "arithmetic",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 30.5
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/overflow_single_tx.sol",
+      "true_category": "arithmetic",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 2,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 54.8
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/overflow_single_tx.sol",
+      "true_category": "arithmetic",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 30.3
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/overflow_single_tx.sol",
+      "true_category": "arithmetic",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 2,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 49.1
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/timelock.sol",
+      "true_category": "arithmetic",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": false,
+      "time_s": 30.0
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/timelock.sol",
+      "true_category": "arithmetic",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 24.6
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/timelock.sol",
+      "true_category": "arithmetic",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": false,
+      "time_s": 27.0
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/timelock.sol",
+      "true_category": "arithmetic",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 32.1
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/timelock.sol",
+      "true_category": "arithmetic",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "reentrancy"
+      ],
+      "hit": false,
+      "time_s": 34.1
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/timelock.sol",
+      "true_category": "arithmetic",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 26.7
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/token.sol",
+      "true_category": "arithmetic",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 34.9
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/token.sol",
+      "true_category": "arithmetic",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 26.2
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/token.sol",
+      "true_category": "arithmetic",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 27.6
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/token.sol",
+      "true_category": "arithmetic",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 24.0
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/token.sol",
+      "true_category": "arithmetic",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 33.1
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/token.sol",
+      "true_category": "arithmetic",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 26.0
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/tokensalechallenge.sol",
+      "true_category": "arithmetic",
+      "run": 1,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 32.0
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/tokensalechallenge.sol",
+      "true_category": "arithmetic",
+      "run": 1,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 35.8
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/tokensalechallenge.sol",
+      "true_category": "arithmetic",
+      "run": 2,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 37.7
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/tokensalechallenge.sol",
+      "true_category": "arithmetic",
+      "run": 2,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 36.5
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/tokensalechallenge.sol",
+      "true_category": "arithmetic",
+      "run": 3,
+      "arm": "on",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": true,
+      "rag_hits": 5,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 36.0
+    },
+    {
+      "contract": "benchmarks/datasets/smartbugs-curated/dataset/arithmetic/tokensalechallenge.sol",
+      "true_category": "arithmetic",
+      "run": 3,
+      "arm": "off",
+      "status": "success",
+      "from_cache": false,
+      "model": "qwen2.5-coder:7b",
+      "rag_enhanced": false,
+      "rag_hits": 0,
+      "n_findings": 1,
+      "detected_categories": [
+        "arithmetic"
+      ],
+      "hit": true,
+      "time_s": 37.7
+    }
+  ]
+}

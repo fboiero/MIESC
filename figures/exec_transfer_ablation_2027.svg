@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 446" font-family="'Segoe UI',system-ui,-apple-system,Roboto,sans-serif" role="img" aria-label="The falsification test as a controlled ablation. On an independent corpus for a target non-EVM chain that has cleared Track T4, the same detector is run in two arms: with the EVM-derived knowledge base and calibration, and without them against a per-chain-only baseline. The difference is measured with Wilson 95% confidence intervals on contested-middle classes (reentrancy, access control, oracle) where H1 predicts a gain, and on invariant-absent classes (resource linearity, eUTXO) which act as a control where no gain is expected. Arithmetic is deliberately not pitted against eUTXO because that gap is true by construction.">
+  <rect x="0" y="0" width="1040" height="446" rx="14" fill="#ffffff" stroke="#d0d7de" stroke-width="1.5"/>
+
+  <!-- corpus -->
+  <rect x="34" y="96" width="196" height="150" rx="10" fill="#f3f8ff" stroke="#0969da" stroke-width="1.8"/>
+  <text x="132" y="124" text-anchor="middle" font-size="12.5" font-weight="700" fill="#0a3069">Independent corpus</text>
+  <text x="132" y="142" text-anchor="middle" font-size="11" fill="#1f2328">one target non-EVM chain</text>
+  <rect x="52" y="156" width="160" height="22" rx="11" fill="#0a3069"/>
+  <text x="132" y="171" text-anchor="middle" font-size="10" font-weight="700" fill="#ffffff">cleared T4</text>
+  <text x="132" y="196" text-anchor="middle" font-size="9.5" fill="#57606a">provenance · patched negatives</text>
+  <text x="132" y="210" text-anchor="middle" font-size="9.5" fill="#57606a">pre-registered effect &amp; sample size</text>
+  <text x="132" y="232" text-anchor="middle" font-size="9.5" font-style="italic" fill="#8c959f">same inputs to both arms</text>
+
+  <!-- arm A -->
+  <rect x="286" y="80" width="300" height="72" rx="10" fill="#eafaf0" stroke="#2da44e" stroke-width="1.5"/>
+  <text x="300" y="104" font-size="12.5" font-weight="700" fill="#1a7f37">Arm A — with EVM intelligence</text>
+  <text x="300" y="123" font-size="10.5" fill="#1f2328">detector + EVM-derived knowledge base</text>
+  <text x="300" y="138" font-size="10.5" fill="#1f2328">+ EVM-learned calibration</text>
+
+  <!-- arm B -->
+  <rect x="286" y="192" width="300" height="72" rx="10" fill="#f6f8fa" stroke="#8c959f" stroke-width="1.5"/>
+  <text x="300" y="216" font-size="12.5" font-weight="700" fill="#57606a">Arm B — per-chain baseline</text>
+  <text x="300" y="235" font-size="10.5" fill="#1f2328">same detector, per-chain only</text>
+  <text x="300" y="250" font-size="10.5" fill="#1f2328">no EVM knowledge base or calibration</text>
+
+  <!-- corpus -> arms -->
+  <path d="M230,150 C258,150 258,116 284,116" fill="none" stroke="#8c959f" stroke-width="2" marker-end="url(#ah_g)"/>
+  <path d="M230,180 C258,180 258,228 284,228" fill="none" stroke="#8c959f" stroke-width="2" marker-end="url(#ah_g)"/>
+
+  <!-- compare -->
+  <rect x="632" y="140" width="128" height="64" rx="10" fill="#0a3069"/>
+  <text x="696" y="166" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">&#916; = A &#8722; B</text>
+  <text x="696" y="185" text-anchor="middle" font-size="9.5" fill="#cfe0ff">Wilson 95% CI</text>
+  <text x="696" y="197" text-anchor="middle" font-size="9.5" fill="#cfe0ff">one pre-registered metric</text>
+
+  <!-- arms -> compare -->
+  <path d="M586,116 C610,116 612,160 630,166" fill="none" stroke="#2da44e" stroke-width="2.4" marker-end="url(#ah_b)"/>
+  <path d="M586,228 C610,228 612,184 630,178" fill="none" stroke="#8c959f" stroke-width="2.4" marker-end="url(#ah_b)"/>
+
+  <!-- outcome: contested middle -->
+  <rect x="792" y="80" width="214" height="86" rx="10" fill="#eafaf0" stroke="#2da44e" stroke-width="1.5"/>
+  <text x="804" y="102" font-size="11.5" font-weight="700" fill="#1a7f37">Contested middle</text>
+  <text x="804" y="119" font-size="10" fill="#1f2328">reentrancy · access control · oracle</text>
+  <text x="804" y="139" font-size="10.5" font-weight="700" fill="#0a3069">H1: &#916; &gt; 0</text>
+  <text x="804" y="155" font-size="9.5" fill="#57606a">class transfers; EVM intelligence helps</text>
+
+  <!-- outcome: invariant-absent control -->
+  <rect x="792" y="178" width="214" height="86" rx="10" fill="#fbf7ff" stroke="#8250df" stroke-width="1.5"/>
+  <text x="804" y="200" font-size="11.5" font-weight="700" fill="#6639ba">Invariant-absent (control)</text>
+  <text x="804" y="217" font-size="10" fill="#1f2328">resource / linearity · eUTXO</text>
+  <text x="804" y="237" font-size="10.5" font-weight="700" fill="#0a3069">H1: &#916; &#8776; 0</text>
+  <text x="804" y="253" font-size="9.5" fill="#57606a">no analog to transfer into</text>
+
+  <!-- compare -> outcomes -->
+  <path d="M760,160 C778,150 778,118 790,118" fill="none" stroke="#0969da" stroke-width="2" marker-end="url(#ah_bl)"/>
+  <path d="M760,184 C778,196 778,216 790,216" fill="none" stroke="#0969da" stroke-width="2" marker-end="url(#ah_bl)"/>
+
+  <!-- hypotheses strip -->
+  <rect x="34" y="296" width="972" height="76" rx="10" fill="#f6f8fa" stroke="#d0d7de" stroke-width="1.2"/>
+  <text x="50" y="320" font-size="12" font-weight="700" fill="#1f2328">Null H0:</text>
+  <text x="140" y="320" font-size="12" fill="#1f2328">EVM-derived intelligence yields no recall or precision gain on the contested-middle classes.</text>
+  <text x="50" y="342" font-size="12" font-weight="700" fill="#1f2328">Bet H1:</text>
+  <text x="140" y="342" font-size="12" fill="#1f2328">a measurable gain there, and none for invariant-absent classes. A well-powered failure to reject H0 undercuts &#8220;detection generalizes.&#8221;</text>
+  <text x="50" y="363" font-size="10.5" font-style="italic" fill="#9a6700">Guard: arithmetic is never pitted against eUTXO — that gap is true by construction and could not fail. Recall is preserved throughout (the off preset never filters).</text>
+
+  <!-- footer caption-ish removed; keep a thin reading line -->
+  <rect x="34" y="388" width="972" height="40" rx="9" fill="#0a3069"/>
+  <text x="520" y="413" text-anchor="middle" font-size="11.5" fill="#ffffff">The object under test is the transfer itself — not the tool — isolated by holding the corpus, detector and metric fixed and toggling only the EVM-derived intelligence.</text>
+
+  <defs>
+    <marker id="ah_g" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#8c959f"/></marker>
+    <marker id="ah_b" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#57606a"/></marker>
+    <marker id="ah_bl" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#0969da"/></marker>
+  </defs>
+</svg>

@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 460" font-family="'Segoe UI',system-ui,-apple-system,Roboto,sans-serif" role="img" aria-label="The MCP, RAG and agentic hardening plan as six dependency-ordered milestones. M0, honesty and correctness, is done. M1, surface the capability through documentation and figures, is this note. M1 enables M2, agentic safety, and M3, RAG provenance. M3 enables M4, MCP consumption. M0 enables M5, remote transport. Each milestone is additive and leaves the production EVM path untouched.">
+  <rect x="0" y="0" width="1040" height="460" rx="14" fill="#ffffff" stroke="#d0d7de" stroke-width="1.5"/>
+
+  <text x="520" y="38" text-anchor="middle" font-size="19" font-weight="700" fill="#0a3069">The hardening plan — six additive milestones</text>
+  <text x="520" y="60" text-anchor="middle" font-size="12" fill="#57606a">each leaves the production EVM path untouched and respects the paper freeze; no milestone pre-commits a number</text>
+
+  <!-- edges (drawn first, under boxes) -->
+  <line x1="262" y1="235" x2="306" y2="235" stroke="#1a7f37" stroke-width="2"/>
+  <polygon points="306,235 294,230 294,240" fill="#1a7f37"/>
+  <line x1="512" y1="220" x2="556" y2="150" stroke="#8250df" stroke-width="1.8" stroke-dasharray="5 4"/>
+  <polygon points="556,150 544,150 550,160" fill="#8250df"/>
+  <line x1="512" y1="248" x2="556" y2="258" stroke="#8250df" stroke-width="1.8" stroke-dasharray="5 4"/>
+  <polygon points="556,258 544,252 545,263" fill="#8250df"/>
+  <line x1="762" y1="258" x2="806" y2="258" stroke="#8250df" stroke-width="1.8" stroke-dasharray="5 4"/>
+  <polygon points="806,258 794,253 794,263" fill="#8250df"/>
+  <line x1="160" y1="280" x2="160" y2="352" stroke="#8250df" stroke-width="1.8" stroke-dasharray="5 4"/>
+  <line x1="160" y1="352" x2="806" y2="352" stroke="#8250df" stroke-width="1.8" stroke-dasharray="5 4"/>
+  <polygon points="806,352 794,347 794,357" fill="#8250df"/>
+
+  <!-- M0 done -->
+  <rect x="60" y="190" width="202" height="90" rx="9" fill="#eafaf0" stroke="#2da44e" stroke-width="1.7"/>
+  <text x="161" y="218" text-anchor="middle" font-size="13.5" font-weight="700" fill="#1a7f37">M0 · Honesty &amp; correctness ✓</text>
+  <text x="161" y="240" text-anchor="middle" font-size="11" fill="#1a7f37">MCP-server defects fixed;</text>
+  <text x="161" y="256" text-anchor="middle" font-size="11" fill="#1a7f37">false protocol claims removed</text>
+  <text x="161" y="272" text-anchor="middle" font-size="10.5" fill="#1a7f37">(first implementable slice)</text>
+
+  <!-- M1 done -->
+  <rect x="310" y="190" width="202" height="90" rx="9" fill="#eafaf0" stroke="#2da44e" stroke-width="1.7"/>
+  <text x="411" y="218" text-anchor="middle" font-size="13.5" font-weight="700" fill="#1a7f37">M1 · Surface it ✓</text>
+  <text x="411" y="240" text-anchor="middle" font-size="11" fill="#1a7f37">this note + four figures;</text>
+  <text x="411" y="256" text-anchor="middle" font-size="11" fill="#1a7f37">expose plan miners &amp;</text>
+  <text x="411" y="272" text-anchor="middle" font-size="11" fill="#1a7f37">non-EVM paths via MCP</text>
+
+  <!-- M2 -->
+  <rect x="560" y="106" width="202" height="84" rx="9" fill="#ffffff" stroke="#8250df" stroke-width="1.6" stroke-dasharray="5 4"/>
+  <text x="661" y="134" text-anchor="middle" font-size="13.5" font-weight="700" fill="#6639ba">M2 · Agentic safety</text>
+  <text x="661" y="156" text-anchor="middle" font-size="11" fill="#6639ba">sanitizer + validator + seeds;</text>
+  <text x="661" y="172" text-anchor="middle" font-size="11" fill="#6639ba">fail-closed verifier</text>
+
+  <!-- M3 -->
+  <rect x="560" y="216" width="202" height="84" rx="9" fill="#ffffff" stroke="#8250df" stroke-width="1.6" stroke-dasharray="5 4"/>
+  <text x="661" y="244" text-anchor="middle" font-size="13.5" font-weight="700" fill="#6639ba">M3 · RAG provenance</text>
+  <text x="661" y="266" text-anchor="middle" font-size="11" fill="#6639ba">chain + invariant metadata;</text>
+  <text x="661" y="282" text-anchor="middle" font-size="11" fill="#6639ba">FP model shipped or documented</text>
+
+  <!-- M4 -->
+  <rect x="810" y="216" width="202" height="84" rx="9" fill="#ffffff" stroke="#8250df" stroke-width="1.6" stroke-dasharray="5 4"/>
+  <text x="911" y="244" text-anchor="middle" font-size="13.5" font-weight="700" fill="#6639ba">M4 · MCP consumption</text>
+  <text x="911" y="266" text-anchor="middle" font-size="11" fill="#6639ba">allowlist external-MCP client;</text>
+  <text x="911" y="282" text-anchor="middle" font-size="11" fill="#6639ba">untrusted-data trust model</text>
+
+  <!-- M5 -->
+  <rect x="810" y="326" width="202" height="84" rx="9" fill="#ffffff" stroke="#8250df" stroke-width="1.6" stroke-dasharray="5 4"/>
+  <text x="911" y="354" text-anchor="middle" font-size="13.5" font-weight="700" fill="#6639ba">M5 · Remote transport</text>
+  <text x="911" y="376" text-anchor="middle" font-size="11" fill="#6639ba">MCP Streamable HTTP</text>
+  <text x="911" y="392" text-anchor="middle" font-size="11" fill="#6639ba">+ bearer auth</text>
+
+  <!-- legend -->
+  <rect x="60" y="400" width="14" height="14" rx="3" fill="#eafaf0" stroke="#2da44e"/>
+  <text x="80" y="412" font-size="11" fill="#57606a">done</text>
+  <rect x="140" y="400" width="14" height="14" rx="3" fill="#ffffff" stroke="#8250df" stroke-dasharray="3 2"/>
+  <text x="160" y="412" font-size="11" fill="#57606a">planned (no pre-committed numbers)</text>
+</svg>

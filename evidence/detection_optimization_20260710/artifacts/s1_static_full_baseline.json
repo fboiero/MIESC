@@ -1,0 +1,5792 @@
+{
+  "experiment_card": {
+    "tool": "MIESC",
+    "version": "5.4.3",
+    "timestamp": "2026-07-10T01:51:16.511282",
+    "corpus": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset",
+    "corpus_size": 143,
+    "layers_evaluated": [
+      1
+    ],
+    "layer_names": {
+      "1": "Static Analysis"
+    },
+    "timeout_per_tool_s": 45,
+    "skip_unavailable": true,
+    "total_duration_s": 1473.2,
+    "python_version": "3.12.6",
+    "platform": "darwin"
+  },
+  "reproducibility": {
+    "command": "miesc evaluate /Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset --layers 1 --timeout 45",
+    "seed": "not_set",
+    "llm_provider": "not_set",
+    "llm_model": "qwen2.5-coder:14b"
+  },
+  "aggregate": {
+    "tp": 122,
+    "fp": 290,
+    "fn": 21,
+    "precision": 0.2961,
+    "recall": 0.8531,
+    "f1": 0.4396,
+    "contracts_evaluated": 143,
+    "total_time_s": 1473.2,
+    "avg_time_per_contract_s": 10.3,
+    "hit_rate": 0.8531
+  },
+  "per_category": {
+    "access_control": {
+      "tp": 7,
+      "fp": 40,
+      "fn": 11,
+      "precision": 0.1489,
+      "recall": 0.3889,
+      "f1": 0.2154
+    },
+    "arithmetic": {
+      "tp": 15,
+      "fp": 95,
+      "fn": 0,
+      "precision": 0.1364,
+      "recall": 1.0,
+      "f1": 0.24
+    },
+    "bad_randomness": {
+      "tp": 8,
+      "fp": 27,
+      "fn": 0,
+      "precision": 0.2286,
+      "recall": 1.0,
+      "f1": 0.3721
+    },
+    "denial_of_service": {
+      "tp": 3,
+      "fp": 2,
+      "fn": 3,
+      "precision": 0.6,
+      "recall": 0.5,
+      "f1": 0.5455
+    },
+    "front_running": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 4,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "other": {
+      "tp": 3,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "reentrancy": {
+      "tp": 29,
+      "fp": 31,
+      "fn": 2,
+      "precision": 0.4833,
+      "recall": 0.9355,
+      "f1": 0.6374
+    },
+    "short_addresses": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "time_manipulation": {
+      "tp": 5,
+      "fp": 35,
+      "fn": 0,
+      "precision": 0.125,
+      "recall": 1.0,
+      "f1": 0.2222
+    },
+    "unchecked_low_level_calls": {
+      "tp": 52,
+      "fp": 60,
+      "fn": 0,
+      "precision": 0.4643,
+      "recall": 1.0,
+      "f1": 0.6341
+    }
+  },
+  "per_contract": [
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/bad_randomness/random_number_generator.sol",
+      "ground_truth": [
+        "bad_randomness"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 8,
+          "detected_categories": [
+            "arithmetic",
+            "time_manipulation",
+            "bad_randomness"
+          ],
+          "tools_run": 6,
+          "time_seconds": 17.516
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "arithmetic",
+          "time_manipulation",
+          "bad_randomness"
+        ],
+        "findings_count": 8
+      },
+      "timing": {
+        "layer_1": 17.516
+      },
+      "match": {
+        "tp": [
+          "bad_randomness"
+        ],
+        "fp": [
+          "arithmetic",
+          "time_manipulation"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/bad_randomness/lottery.sol",
+      "ground_truth": [
+        "bad_randomness"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 11,
+          "detected_categories": [
+            "access_control",
+            "arithmetic",
+            "bad_randomness"
+          ],
+          "tools_run": 6,
+          "time_seconds": 12.307
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "access_control",
+          "arithmetic",
+          "bad_randomness"
+        ],
+        "findings_count": 11
+      },
+      "timing": {
+        "layer_1": 12.307
+      },
+      "match": {
+        "tp": [
+          "bad_randomness"
+        ],
+        "fp": [
+          "access_control",
+          "arithmetic"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/bad_randomness/old_blockhash.sol",
+      "ground_truth": [
+        "bad_randomness"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 13,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "arithmetic",
+            "bad_randomness"
+          ],
+          "tools_run": 6,
+          "time_seconds": 7.055
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "arithmetic",
+          "bad_randomness"
+        ],
+        "findings_count": 13
+      },
+      "timing": {
+        "layer_1": 7.055
+      },
+      "match": {
+        "tp": [
+          "bad_randomness"
+        ],
+        "fp": [
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/bad_randomness/etheraffle.sol",
+      "ground_truth": [
+        "bad_randomness"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 35,
+          "detected_categories": [
+            "access_control",
+            "unchecked_low_level_calls",
+            "arithmetic",
+            "reentrancy",
+            "bad_randomness"
+          ],
+          "tools_run": 6,
+          "time_seconds": 12.587
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "arithmetic",
+          "reentrancy",
+          "bad_randomness"
+        ],
+        "findings_count": 35
+      },
+      "timing": {
+        "layer_1": 12.587
+      },
+      "match": {
+        "tp": [
+          "bad_randomness"
+        ],
+        "fp": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "arithmetic",
+          "reentrancy"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/bad_randomness/blackjack.sol",
+      "ground_truth": [
+        "bad_randomness"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 31,
+          "detected_categories": [
+            "arithmetic",
+            "time_manipulation",
+            "bad_randomness",
+            "reentrancy"
+          ],
+          "tools_run": 6,
+          "time_seconds": 7.658
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "arithmetic",
+          "time_manipulation",
+          "bad_randomness",
+          "reentrancy"
+        ],
+        "findings_count": 31
+      },
+      "timing": {
+        "layer_1": 7.658
+      },
+      "match": {
+        "tp": [
+          "bad_randomness"
+        ],
+        "fp": [
+          "arithmetic",
+          "time_manipulation",
+          "reentrancy"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/bad_randomness/lucky_doubler.sol",
+      "ground_truth": [
+        "bad_randomness"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 22,
+          "detected_categories": [
+            "access_control",
+            "unchecked_low_level_calls",
+            "arithmetic",
+            "reentrancy",
+            "bad_randomness"
+          ],
+          "tools_run": 6,
+          "time_seconds": 21.888
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "arithmetic",
+          "reentrancy",
+          "bad_randomness"
+        ],
+        "findings_count": 22
+      },
+      "timing": {
+        "layer_1": 21.888
+      },
+      "match": {
+        "tp": [
+          "bad_randomness"
+        ],
+        "fp": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "arithmetic",
+          "reentrancy"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/bad_randomness/smart_billions.sol",
+      "ground_truth": [
+        "bad_randomness"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 249,
+          "detected_categories": [
+            "arithmetic",
+            "unchecked_low_level_calls",
+            "bad_randomness",
+            "reentrancy"
+          ],
+          "tools_run": 6,
+          "time_seconds": 22.158
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "arithmetic",
+          "unchecked_low_level_calls",
+          "bad_randomness",
+          "reentrancy"
+        ],
+        "findings_count": 249
+      },
+      "timing": {
+        "layer_1": 22.158
+      },
+      "match": {
+        "tp": [
+          "bad_randomness"
+        ],
+        "fp": [
+          "unchecked_low_level_calls",
+          "arithmetic",
+          "reentrancy"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/bad_randomness/guess_the_random_number.sol",
+      "ground_truth": [
+        "bad_randomness"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 17,
+          "detected_categories": [
+            "access_control",
+            "unchecked_low_level_calls",
+            "time_manipulation",
+            "arithmetic",
+            "bad_randomness"
+          ],
+          "tools_run": 6,
+          "time_seconds": 8.112
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "arithmetic",
+          "time_manipulation",
+          "bad_randomness"
+        ],
+        "findings_count": 17
+      },
+      "timing": {
+        "layer_1": 8.112
+      },
+      "match": {
+        "tp": [
+          "bad_randomness"
+        ],
+        "fp": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "arithmetic",
+          "time_manipulation"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/reentrancy/reentrancy_bonus.sol",
+      "ground_truth": [
+        "reentrancy"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 6,
+          "detected_categories": [],
+          "tools_run": 6,
+          "time_seconds": 12.762
+        }
+      },
+      "aggregate": {
+        "detected_categories": [],
+        "findings_count": 6
+      },
+      "timing": {
+        "layer_1": 12.762
+      },
+      "match": {
+        "tp": [],
+        "fp": [],
+        "fn": [
+          "reentrancy"
+        ],
+        "hit": false
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0xb93430ce38ac4a6bb47fb1fc085ea669353fd89e.sol",
+      "ground_truth": [
+        "reentrancy"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 27,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "time_manipulation",
+            "reentrancy"
+          ],
+          "tools_run": 6,
+          "time_seconds": 22.684
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "time_manipulation",
+          "reentrancy"
+        ],
+        "findings_count": 27
+      },
+      "timing": {
+        "layer_1": 22.684
+      },
+      "match": {
+        "tp": [
+          "reentrancy"
+        ],
+        "fp": [
+          "unchecked_low_level_calls",
+          "time_manipulation"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x8c7777c45481dba411450c228cb692ac3d550344.sol",
+      "ground_truth": [
+        "reentrancy"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 28,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "time_manipulation",
+            "reentrancy"
+          ],
+          "tools_run": 6,
+          "time_seconds": 5.742
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "time_manipulation",
+          "reentrancy"
+        ],
+        "findings_count": 28
+      },
+      "timing": {
+        "layer_1": 5.742
+      },
+      "match": {
+        "tp": [
+          "reentrancy"
+        ],
+        "fp": [
+          "unchecked_low_level_calls",
+          "time_manipulation"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0xbaf51e761510c1a11bf48dd87c0307ac8a8c8a4f.sol",
+      "ground_truth": [
+        "reentrancy"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 28,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "time_manipulation",
+            "reentrancy"
+          ],
+          "tools_run": 6,
+          "time_seconds": 9.316
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "time_manipulation",
+          "reentrancy"
+        ],
+        "findings_count": 28
+      },
+      "timing": {
+        "layer_1": 9.316
+      },
+      "match": {
+        "tp": [
+          "reentrancy"
+        ],
+        "fp": [
+          "unchecked_low_level_calls",
+          "time_manipulation"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0xcead721ef5b11f1a7b530171aab69b16c5e66b6e.sol",
+      "ground_truth": [
+        "reentrancy"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 32,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "time_manipulation",
+            "bad_randomness",
+            "reentrancy"
+          ],
+          "tools_run": 6,
+          "time_seconds": 8.474
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "time_manipulation",
+          "bad_randomness",
+          "reentrancy"
+        ],
+        "findings_count": 32
+      },
+      "timing": {
+        "layer_1": 8.474
+      },
+      "match": {
+        "tp": [
+          "reentrancy"
+        ],
+        "fp": [
+          "unchecked_low_level_calls",
+          "time_manipulation",
+          "bad_randomness"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x627fa62ccbb1c1b04ffaecd72a53e37fc0e17839.sol",
+      "ground_truth": [
+        "reentrancy"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 44,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "reentrancy"
+          ],
+          "tools_run": 6,
+          "time_seconds": 11.978
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "reentrancy"
+        ],
+        "findings_count": 44
+      },
+      "timing": {
+        "layer_1": 11.978
+      },
+      "match": {
+        "tp": [
+          "reentrancy"
+        ],
+        "fp": [
+          "unchecked_low_level_calls"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/reentrancy/reentrance.sol",
+      "ground_truth": [
+        "reentrancy"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 18,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "reentrancy"
+          ],
+          "tools_run": 6,
+          "time_seconds": 6.456
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "reentrancy"
+        ],
+        "findings_count": 18
+      },
+      "timing": {
+        "layer_1": 6.456
+      },
+      "match": {
+        "tp": [
+          "reentrancy"
+        ],
+        "fp": [
+          "unchecked_low_level_calls"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/reentrancy/reentrancy_dao.sol",
+      "ground_truth": [
+        "reentrancy"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 9,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "reentrancy"
+          ],
+          "tools_run": 6,
+          "time_seconds": 14.119
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "reentrancy"
+        ],
+        "findings_count": 9
+      },
+      "timing": {
+        "layer_1": 14.119
+      },
+      "match": {
+        "tp": [
+          "reentrancy"
+        ],
+        "fp": [
+          "unchecked_low_level_calls"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/reentrancy/modifier_reentrancy.sol",
+      "ground_truth": [
+        "reentrancy"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 13,
+          "detected_categories": [
+            "reentrancy"
+          ],
+          "tools_run": 6,
+          "time_seconds": 8.131
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "reentrancy"
+        ],
+        "findings_count": 13
+      },
+      "timing": {
+        "layer_1": 8.131
+      },
+      "match": {
+        "tp": [
+          "reentrancy"
+        ],
+        "fp": [],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x7a8721a9d64c74da899424c1b52acbf58ddc9782.sol",
+      "ground_truth": [
+        "reentrancy"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 35,
+          "detected_categories": [
+            "access_control",
+            "unchecked_low_level_calls",
+            "time_manipulation",
+            "reentrancy"
+          ],
+          "tools_run": 6,
+          "time_seconds": 6.82
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "time_manipulation",
+          "reentrancy"
+        ],
+        "findings_count": 35
+      },
+      "timing": {
+        "layer_1": 6.82
+      },
+      "match": {
+        "tp": [
+          "reentrancy"
+        ],
+        "fp": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "time_manipulation"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/reentrancy/reentrancy_cross_function.sol",
+      "ground_truth": [
+        "reentrancy"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 4,
+          "detected_categories": [],
+          "tools_run": 6,
+          "time_seconds": 12.862
+        }
+      },
+      "aggregate": {
+        "detected_categories": [],
+        "findings_count": 4
+      },
+      "timing": {
+        "layer_1": 12.862
+      },
+      "match": {
+        "tp": [],
+        "fp": [],
+        "fn": [
+          "reentrancy"
+        ],
+        "hit": false
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/reentrancy/reentrancy_simple.sol",
+      "ground_truth": [
+        "reentrancy"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 5,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "reentrancy"
+          ],
+          "tools_run": 6,
+          "time_seconds": 9.108
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "reentrancy"
+        ],
+        "findings_count": 5
+      },
+      "timing": {
+        "layer_1": 9.108
+      },
+      "match": {
+        "tp": [
+          "reentrancy"
+        ],
+        "fp": [
+          "unchecked_low_level_calls"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x941d225236464a25eb18076df7da6a91d0f95e9e.sol",
+      "ground_truth": [
+        "reentrancy"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 29,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "time_manipulation",
+            "reentrancy"
+          ],
+          "tools_run": 6,
+          "time_seconds": 8.105
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "time_manipulation",
+          "reentrancy"
+        ],
+        "findings_count": 29
+      },
+      "timing": {
+        "layer_1": 8.105
+      },
+      "match": {
+        "tp": [
+          "reentrancy"
+        ],
+        "fp": [
+          "unchecked_low_level_calls",
+          "time_manipulation"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/reentrancy/etherstore.sol",
+      "ground_truth": [
+        "reentrancy"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 17,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "time_manipulation",
+            "bad_randomness",
+            "reentrancy"
+          ],
+          "tools_run": 6,
+          "time_seconds": 13.08
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "time_manipulation",
+          "bad_randomness",
+          "reentrancy"
+        ],
+        "findings_count": 17
+      },
+      "timing": {
+        "layer_1": 13.08
+      },
+      "match": {
+        "tp": [
+          "reentrancy"
+        ],
+        "fp": [
+          "unchecked_low_level_calls",
+          "time_manipulation",
+          "bad_randomness"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x7b368c4e805c3870b6c49a3f1f49f69af8662cf3.sol",
+      "ground_truth": [
+        "reentrancy"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 33,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "time_manipulation",
+            "bad_randomness",
+            "reentrancy"
+          ],
+          "tools_run": 6,
+          "time_seconds": 7.369
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "time_manipulation",
+          "bad_randomness",
+          "reentrancy"
+        ],
+        "findings_count": 33
+      },
+      "timing": {
+        "layer_1": 7.369
+      },
+      "match": {
+        "tp": [
+          "reentrancy"
+        ],
+        "fp": [
+          "unchecked_low_level_calls",
+          "time_manipulation",
+          "bad_randomness"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/reentrancy/spank_chain_payment.sol",
+      "ground_truth": [
+        "reentrancy"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 284,
+          "detected_categories": [
+            "access_control",
+            "unchecked_low_level_calls",
+            "time_manipulation",
+            "denial_of_service",
+            "reentrancy",
+            "bad_randomness"
+          ],
+          "tools_run": 6,
+          "time_seconds": 14.266
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "access_control",
+          "denial_of_service",
+          "unchecked_low_level_calls",
+          "reentrancy",
+          "time_manipulation",
+          "bad_randomness"
+        ],
+        "findings_count": 284
+      },
+      "timing": {
+        "layer_1": 14.266
+      },
+      "match": {
+        "tp": [
+          "reentrancy"
+        ],
+        "fp": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "time_manipulation",
+          "denial_of_service",
+          "bad_randomness"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0xb5e1b1ee15c6fa0e48fce100125569d430f1bd12.sol",
+      "ground_truth": [
+        "reentrancy"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 28,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "time_manipulation",
+            "reentrancy"
+          ],
+          "tools_run": 6,
+          "time_seconds": 8.304
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "time_manipulation",
+          "reentrancy"
+        ],
+        "findings_count": 28
+      },
+      "timing": {
+        "layer_1": 8.304
+      },
+      "match": {
+        "tp": [
+          "reentrancy"
+        ],
+        "fp": [
+          "unchecked_low_level_calls",
+          "time_manipulation"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0xbe4041d55db380c5ae9d4a9b9703f1ed4e7e3888.sol",
+      "ground_truth": [
+        "reentrancy"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 32,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "time_manipulation",
+            "bad_randomness",
+            "reentrancy"
+          ],
+          "tools_run": 6,
+          "time_seconds": 13.123
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "time_manipulation",
+          "bad_randomness",
+          "reentrancy"
+        ],
+        "findings_count": 32
+      },
+      "timing": {
+        "layer_1": 13.123
+      },
+      "match": {
+        "tp": [
+          "reentrancy"
+        ],
+        "fp": [
+          "unchecked_low_level_calls",
+          "time_manipulation",
+          "bad_randomness"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x01f8c4e3fa3edeb29e514cba738d87ce8c091d3f.sol",
+      "ground_truth": [
+        "reentrancy"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 39,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "time_manipulation",
+            "reentrancy"
+          ],
+          "tools_run": 6,
+          "time_seconds": 7.814
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "time_manipulation",
+          "reentrancy"
+        ],
+        "findings_count": 39
+      },
+      "timing": {
+        "layer_1": 7.814
+      },
+      "match": {
+        "tp": [
+          "reentrancy"
+        ],
+        "fp": [
+          "unchecked_low_level_calls",
+          "time_manipulation"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x4320e6f8c05b27ab4707cd1f6d5ce6f3e4b3a5a1.sol",
+      "ground_truth": [
+        "reentrancy"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 39,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "time_manipulation",
+            "reentrancy"
+          ],
+          "tools_run": 6,
+          "time_seconds": 7.403
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "time_manipulation",
+          "reentrancy"
+        ],
+        "findings_count": 39
+      },
+      "timing": {
+        "layer_1": 7.403
+      },
+      "match": {
+        "tp": [
+          "reentrancy"
+        ],
+        "fp": [
+          "unchecked_low_level_calls",
+          "time_manipulation"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x7541b76cb60f4c60af330c208b0623b7f54bf615.sol",
+      "ground_truth": [
+        "reentrancy"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 33,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "time_manipulation",
+            "bad_randomness",
+            "reentrancy"
+          ],
+          "tools_run": 6,
+          "time_seconds": 14.258
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "time_manipulation",
+          "bad_randomness",
+          "reentrancy"
+        ],
+        "findings_count": 33
+      },
+      "timing": {
+        "layer_1": 14.258
+      },
+      "match": {
+        "tp": [
+          "reentrancy"
+        ],
+        "fp": [
+          "unchecked_low_level_calls",
+          "time_manipulation",
+          "bad_randomness"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x96edbe868531bd23a6c05e9d0c424ea64fb1b78b.sol",
+      "ground_truth": [
+        "reentrancy"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 32,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "time_manipulation",
+            "bad_randomness",
+            "reentrancy"
+          ],
+          "tools_run": 6,
+          "time_seconds": 9.318
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "time_manipulation",
+          "bad_randomness",
+          "reentrancy"
+        ],
+        "findings_count": 32
+      },
+      "timing": {
+        "layer_1": 9.318
+      },
+      "match": {
+        "tp": [
+          "reentrancy"
+        ],
+        "fp": [
+          "unchecked_low_level_calls",
+          "time_manipulation",
+          "bad_randomness"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x561eac93c92360949ab1f1403323e6db345cbf31.sol",
+      "ground_truth": [
+        "reentrancy"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 26,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "time_manipulation",
+            "reentrancy"
+          ],
+          "tools_run": 6,
+          "time_seconds": 12.293
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "time_manipulation",
+          "reentrancy"
+        ],
+        "findings_count": 26
+      },
+      "timing": {
+        "layer_1": 12.293
+      },
+      "match": {
+        "tp": [
+          "reentrancy"
+        ],
+        "fp": [
+          "unchecked_low_level_calls",
+          "time_manipulation"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x23a91059fdc9579a9fbd0edc5f2ea0bfdb70deb4.sol",
+      "ground_truth": [
+        "reentrancy"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 27,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "time_manipulation",
+            "reentrancy"
+          ],
+          "tools_run": 6,
+          "time_seconds": 7.267
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "time_manipulation",
+          "reentrancy"
+        ],
+        "findings_count": 27
+      },
+      "timing": {
+        "layer_1": 7.267
+      },
+      "match": {
+        "tp": [
+          "reentrancy"
+        ],
+        "fp": [
+          "unchecked_low_level_calls",
+          "time_manipulation"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x4e73b32ed6c35f570686b89848e5f39f20ecc106.sol",
+      "ground_truth": [
+        "reentrancy"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 39,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "time_manipulation",
+            "reentrancy"
+          ],
+          "tools_run": 6,
+          "time_seconds": 12.82
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "time_manipulation",
+          "reentrancy"
+        ],
+        "findings_count": 39
+      },
+      "timing": {
+        "layer_1": 12.82
+      },
+      "match": {
+        "tp": [
+          "reentrancy"
+        ],
+        "fp": [
+          "unchecked_low_level_calls",
+          "time_manipulation"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/reentrancy/reentrancy_insecure.sol",
+      "ground_truth": [
+        "reentrancy"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 8,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "reentrancy"
+          ],
+          "tools_run": 6,
+          "time_seconds": 7.496
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "reentrancy"
+        ],
+        "findings_count": 8
+      },
+      "timing": {
+        "layer_1": 7.496
+      },
+      "match": {
+        "tp": [
+          "reentrancy"
+        ],
+        "fp": [
+          "unchecked_low_level_calls"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/reentrancy/etherbank.sol",
+      "ground_truth": [
+        "reentrancy"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 5,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "reentrancy"
+          ],
+          "tools_run": 6,
+          "time_seconds": 5.53
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "reentrancy"
+        ],
+        "findings_count": 5
+      },
+      "timing": {
+        "layer_1": 5.53
+      },
+      "match": {
+        "tp": [
+          "reentrancy"
+        ],
+        "fp": [
+          "unchecked_low_level_calls"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/reentrancy/simple_dao.sol",
+      "ground_truth": [
+        "reentrancy"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 9,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "reentrancy"
+          ],
+          "tools_run": 6,
+          "time_seconds": 13.642
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "reentrancy"
+        ],
+        "findings_count": 9
+      },
+      "timing": {
+        "layer_1": 13.642
+      },
+      "match": {
+        "tp": [
+          "reentrancy"
+        ],
+        "fp": [
+          "unchecked_low_level_calls"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0xaae1f51cf3339f18b6d3f3bdc75a5facd744b0b8.sol",
+      "ground_truth": [
+        "reentrancy"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 26,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "time_manipulation",
+            "reentrancy"
+          ],
+          "tools_run": 6,
+          "time_seconds": 8.692
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "time_manipulation",
+          "reentrancy"
+        ],
+        "findings_count": 26
+      },
+      "timing": {
+        "layer_1": 8.692
+      },
+      "match": {
+        "tp": [
+          "reentrancy"
+        ],
+        "fp": [
+          "unchecked_low_level_calls",
+          "time_manipulation"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0x93c32845fae42c83a70e5f06214c8433665c2ab5.sol",
+      "ground_truth": [
+        "reentrancy"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 33,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "time_manipulation",
+            "bad_randomness",
+            "reentrancy"
+          ],
+          "tools_run": 6,
+          "time_seconds": 14.562
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "time_manipulation",
+          "bad_randomness",
+          "reentrancy"
+        ],
+        "findings_count": 33
+      },
+      "timing": {
+        "layer_1": 14.562
+      },
+      "match": {
+        "tp": [
+          "reentrancy"
+        ],
+        "fp": [
+          "unchecked_low_level_calls",
+          "time_manipulation",
+          "bad_randomness"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/reentrancy/0xf015c35649c82f5467c9c74b7f28ee67665aad68.sol",
+      "ground_truth": [
+        "reentrancy"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 33,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "time_manipulation",
+            "bad_randomness",
+            "reentrancy"
+          ],
+          "tools_run": 6,
+          "time_seconds": 8.988
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "time_manipulation",
+          "bad_randomness",
+          "reentrancy"
+        ],
+        "findings_count": 33
+      },
+      "timing": {
+        "layer_1": 8.988
+      },
+      "match": {
+        "tp": [
+          "reentrancy"
+        ],
+        "fp": [
+          "unchecked_low_level_calls",
+          "time_manipulation",
+          "bad_randomness"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0xb11b2fed6c9354f7aa2f658d3b4d7b31d8a13b77.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 35,
+          "detected_categories": [
+            "access_control",
+            "unchecked_low_level_calls",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 17.164
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "findings_count": 35
+      },
+      "timing": {
+        "layer_1": 17.164
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "access_control",
+          "arithmetic"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0x78c2a1e91b52bca4130b6ed9edd9fbcfd4671c37.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 26,
+          "detected_categories": [
+            "access_control",
+            "unchecked_low_level_calls",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 5.097
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "findings_count": 26
+      },
+      "timing": {
+        "layer_1": 5.097
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "access_control",
+          "arithmetic"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0x3a0e9acd953ffc0dd18d63603488846a6b8b2b01.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 45,
+          "detected_categories": [
+            "access_control",
+            "unchecked_low_level_calls",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 7.398
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "findings_count": 45
+      },
+      "timing": {
+        "layer_1": 7.398
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "access_control",
+          "arithmetic"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0x4051334adc52057aca763453820cb0e045076ef3.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 15,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 12.643
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "findings_count": 15
+      },
+      "timing": {
+        "layer_1": 12.643
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "arithmetic"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0x7d09edb07d23acb532a82be3da5c17d9d85806b4.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 73,
+          "detected_categories": [
+            "access_control",
+            "unchecked_low_level_calls",
+            "arithmetic",
+            "reentrancy",
+            "bad_randomness"
+          ],
+          "tools_run": 6,
+          "time_seconds": 7.258
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "arithmetic",
+          "reentrancy",
+          "bad_randomness"
+        ],
+        "findings_count": 73
+      },
+      "timing": {
+        "layer_1": 7.258
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "access_control",
+          "bad_randomness",
+          "arithmetic",
+          "reentrancy"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0x0cbe050f75bc8f8c2d6c0d249fea125fd6e1acc9.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 7,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 7.529
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "findings_count": 7
+      },
+      "timing": {
+        "layer_1": 7.529
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "arithmetic"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0xa46edd6a9a93feec36576ee5048146870ea2c3ae.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 14,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 7.705
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "findings_count": 14
+      },
+      "timing": {
+        "layer_1": 7.705
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "arithmetic"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0x52d2e0f9b01101a59b38a3d05c80b7618aeed984.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 22,
+          "detected_categories": [
+            "access_control",
+            "unchecked_low_level_calls",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 8.384
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "findings_count": 22
+      },
+      "timing": {
+        "layer_1": 8.384
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "access_control",
+          "arithmetic"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0x627fa62ccbb1c1b04ffaecd72a53e37fc0e17839.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 44,
+          "detected_categories": [
+            "access_control",
+            "unchecked_low_level_calls",
+            "arithmetic",
+            "reentrancy"
+          ],
+          "tools_run": 6,
+          "time_seconds": 14.223
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "arithmetic",
+          "reentrancy"
+        ],
+        "findings_count": 44
+      },
+      "timing": {
+        "layer_1": 14.223
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "access_control",
+          "arithmetic",
+          "reentrancy"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0x3e013fc32a54c4c5b6991ba539dcd0ec4355c859.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 22,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 8.019
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "findings_count": 22
+      },
+      "timing": {
+        "layer_1": 8.019
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "arithmetic"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0x19cf8481ea15427a98ba3cdd6d9e14690011ab10.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 106,
+          "detected_categories": [
+            "access_control",
+            "unchecked_low_level_calls",
+            "arithmetic",
+            "reentrancy"
+          ],
+          "tools_run": 6,
+          "time_seconds": 12.555
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "arithmetic",
+          "reentrancy"
+        ],
+        "findings_count": 106
+      },
+      "timing": {
+        "layer_1": 12.555
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "access_control",
+          "arithmetic",
+          "reentrancy"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0x4b71ad9c1a84b9b643aa54fdd66e2dec96e8b152.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 15,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 7.48
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "findings_count": 15
+      },
+      "timing": {
+        "layer_1": 7.48
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "arithmetic"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0xe09b1ab8111c2729a76f16de96bc86a7af837928.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 137,
+          "detected_categories": [
+            "access_control",
+            "unchecked_low_level_calls",
+            "arithmetic",
+            "reentrancy",
+            "bad_randomness"
+          ],
+          "tools_run": 6,
+          "time_seconds": 12.791
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "arithmetic",
+          "reentrancy",
+          "bad_randomness"
+        ],
+        "findings_count": 137
+      },
+      "timing": {
+        "layer_1": 12.791
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "access_control",
+          "bad_randomness",
+          "arithmetic",
+          "reentrancy"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0x84d9ec85c9c568eb332b7226a8f826d897e0a4a8.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 46,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "time_manipulation",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 7.285
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "time_manipulation",
+          "arithmetic"
+        ],
+        "findings_count": 46
+      },
+      "timing": {
+        "layer_1": 7.285
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "time_manipulation",
+          "arithmetic"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0x524960d55174d912768678d8c606b4d50b79d7b1.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 6,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 12.438
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "findings_count": 6
+      },
+      "timing": {
+        "layer_1": 12.438
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "arithmetic"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/etherpot_lotto.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 26,
+          "detected_categories": [
+            "arithmetic",
+            "unchecked_low_level_calls",
+            "bad_randomness",
+            "reentrancy"
+          ],
+          "tools_run": 6,
+          "time_seconds": 8.312
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "arithmetic",
+          "unchecked_low_level_calls",
+          "bad_randomness",
+          "reentrancy"
+        ],
+        "findings_count": 26
+      },
+      "timing": {
+        "layer_1": 8.312
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "bad_randomness",
+          "arithmetic",
+          "reentrancy"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0x07f7ecb66d788ab01dc93b9b71a88401de7d0f2e.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 74,
+          "detected_categories": [
+            "access_control",
+            "unchecked_low_level_calls",
+            "arithmetic",
+            "reentrancy",
+            "bad_randomness"
+          ],
+          "tools_run": 6,
+          "time_seconds": 12.742
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "arithmetic",
+          "reentrancy",
+          "bad_randomness"
+        ],
+        "findings_count": 74
+      },
+      "timing": {
+        "layer_1": 12.742
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "access_control",
+          "bad_randomness",
+          "arithmetic",
+          "reentrancy"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0x8fd1e427396ddb511533cf9abdbebd0a7e08da35.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 45,
+          "detected_categories": [
+            "access_control",
+            "unchecked_low_level_calls",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 8.796
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "findings_count": 45
+      },
+      "timing": {
+        "layer_1": 8.796
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "access_control",
+          "arithmetic"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0xb620cee6b52f96f3c6b253e6eea556aa2d214a99.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 66,
+          "detected_categories": [
+            "arithmetic",
+            "unchecked_low_level_calls",
+            "bad_randomness"
+          ],
+          "tools_run": 6,
+          "time_seconds": 12.723
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "arithmetic",
+          "unchecked_low_level_calls",
+          "bad_randomness"
+        ],
+        "findings_count": 66
+      },
+      "timing": {
+        "layer_1": 12.723
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "arithmetic",
+          "bad_randomness"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0xe82f0742a71a02b9e9ffc142fdcb6eb1ed06fb87.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 27,
+          "detected_categories": [
+            "access_control",
+            "unchecked_low_level_calls",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 8.059
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "findings_count": 27
+      },
+      "timing": {
+        "layer_1": 8.059
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "access_control",
+          "arithmetic"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0x2972d548497286d18e92b5fa1f8f9139e5653fd2.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 15,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 20.734
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "findings_count": 15
+      },
+      "timing": {
+        "layer_1": 20.734
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "arithmetic"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0xd5967fed03e85d1cce44cab284695b41bc675b5c.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 15,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 12.444
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "findings_count": 15
+      },
+      "timing": {
+        "layer_1": 12.444
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "arithmetic"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0xdb1c55f6926e7d847ddf8678905ad871a68199d2.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 27,
+          "detected_categories": [
+            "access_control",
+            "unchecked_low_level_calls",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 7.415
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "findings_count": 27
+      },
+      "timing": {
+        "layer_1": 7.415
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "access_control",
+          "arithmetic"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/lotto.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 22,
+          "detected_categories": [
+            "access_control",
+            "unchecked_low_level_calls",
+            "arithmetic",
+            "reentrancy"
+          ],
+          "tools_run": 6,
+          "time_seconds": 5.526
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "arithmetic",
+          "reentrancy"
+        ],
+        "findings_count": 22
+      },
+      "timing": {
+        "layer_1": 5.526
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "access_control",
+          "arithmetic",
+          "reentrancy"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0x70f9eddb3931491aab1aeafbc1e7f1ca2a012db4.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 27,
+          "detected_categories": [
+            "access_control",
+            "unchecked_low_level_calls",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 12.407
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "findings_count": 27
+      },
+      "timing": {
+        "layer_1": 12.407
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "access_control",
+          "arithmetic"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0x4a66ad0bca2d700f11e1f2fc2c106f7d3264504c.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 16,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 7.154
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "findings_count": 16
+      },
+      "timing": {
+        "layer_1": 7.154
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "arithmetic"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0x958a8f594101d2c0485a52319f29b2647f2ebc06.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 58,
+          "detected_categories": [
+            "access_control",
+            "unchecked_low_level_calls",
+            "time_manipulation",
+            "arithmetic",
+            "reentrancy",
+            "bad_randomness"
+          ],
+          "tools_run": 6,
+          "time_seconds": 6.879
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "arithmetic",
+          "reentrancy",
+          "time_manipulation",
+          "bad_randomness"
+        ],
+        "findings_count": 58
+      },
+      "timing": {
+        "layer_1": 6.879
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "access_control",
+          "time_manipulation",
+          "arithmetic",
+          "reentrancy",
+          "bad_randomness"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0x39cfd754c85023648bf003bea2dd498c5612abfa.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 43,
+          "detected_categories": [
+            "access_control",
+            "unchecked_low_level_calls",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 17.103
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "findings_count": 43
+      },
+      "timing": {
+        "layer_1": 17.103
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "access_control",
+          "arithmetic"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0xf29ebe930a539a60279ace72c707cba851a57707.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 10,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 6.847
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "findings_count": 10
+      },
+      "timing": {
+        "layer_1": 6.847
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "arithmetic"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/mishandled.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 8,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 12.487
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "findings_count": 8
+      },
+      "timing": {
+        "layer_1": 12.487
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "arithmetic"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0x89c1b3807d4c67df034fffb62f3509561218d30b.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 4,
+          "detected_categories": [
+            "unchecked_low_level_calls"
+          ],
+          "tools_run": 6,
+          "time_seconds": 8.042
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls"
+        ],
+        "findings_count": 4
+      },
+      "timing": {
+        "layer_1": 8.042
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0xbebbfe5b549f5db6e6c78ca97cac19d1fb03082c.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 35,
+          "detected_categories": [
+            "access_control",
+            "unchecked_low_level_calls",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 16.425
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "findings_count": 35
+      },
+      "timing": {
+        "layer_1": 16.425
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "access_control",
+          "arithmetic"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0xbaa3de6504690efb064420d89e871c27065cdd52.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 35,
+          "detected_categories": [
+            "access_control",
+            "unchecked_low_level_calls",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 7.112
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "findings_count": 35
+      },
+      "timing": {
+        "layer_1": 7.112
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "access_control",
+          "arithmetic"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0x5aa88d2901c68fda244f1d0584400368d2c8e739.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 22,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 12.814
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "findings_count": 22
+      },
+      "timing": {
+        "layer_1": 12.814
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "arithmetic"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0x3f2ef511aa6e75231e4deafc7a3d2ecab3741de2.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 26,
+          "detected_categories": [
+            "access_control",
+            "unchecked_low_level_calls",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 6.672
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "findings_count": 26
+      },
+      "timing": {
+        "layer_1": 6.672
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "access_control",
+          "arithmetic"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0x610495793564aed0f9c7fc48dc4c7c9151d34fd6.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 28,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 5.031
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "findings_count": 28
+      },
+      "timing": {
+        "layer_1": 5.031
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "arithmetic"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0x7a4349a749e59a5736efb7826ee3496a2dfd5489.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 27,
+          "detected_categories": [
+            "access_control",
+            "unchecked_low_level_calls",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 14.118
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "findings_count": 27
+      },
+      "timing": {
+        "layer_1": 14.118
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "access_control",
+          "arithmetic"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0xb37f18af15bafb869a065b61fc83cfc44ed9cc27.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 26,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 7.505
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "findings_count": 26
+      },
+      "timing": {
+        "layer_1": 7.505
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "arithmetic"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0xe4eabdca81e31d9acbc4af76b30f532b6ed7f3bf.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 27,
+          "detected_categories": [
+            "access_control",
+            "unchecked_low_level_calls",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 13.854
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "findings_count": 27
+      },
+      "timing": {
+        "layer_1": 13.854
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "access_control",
+          "arithmetic"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/king_of_the_ether_throne.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 63,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "time_manipulation",
+            "arithmetic",
+            "reentrancy",
+            "bad_randomness"
+          ],
+          "tools_run": 6,
+          "time_seconds": 6.056
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "arithmetic",
+          "reentrancy",
+          "time_manipulation",
+          "bad_randomness"
+        ],
+        "findings_count": 63
+      },
+      "timing": {
+        "layer_1": 6.056
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "arithmetic",
+          "bad_randomness",
+          "time_manipulation",
+          "reentrancy"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0xb0510d68f210b7db66e8c7c814f22680f2b8d1d6.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 57,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 16.953
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "findings_count": 57
+      },
+      "timing": {
+        "layer_1": 16.953
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "arithmetic"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0x663e4229142a27f00bafb5d087e1e730648314c3.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 525,
+          "detected_categories": [
+            "access_control",
+            "unchecked_low_level_calls",
+            "time_manipulation",
+            "denial_of_service",
+            "arithmetic",
+            "reentrancy",
+            "bad_randomness"
+          ],
+          "tools_run": 6,
+          "time_seconds": 13.996
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "access_control",
+          "denial_of_service",
+          "unchecked_low_level_calls",
+          "arithmetic",
+          "reentrancy",
+          "time_manipulation",
+          "bad_randomness"
+        ],
+        "findings_count": 525
+      },
+      "timing": {
+        "layer_1": 13.996
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "access_control",
+          "time_manipulation",
+          "denial_of_service",
+          "arithmetic",
+          "reentrancy",
+          "bad_randomness"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0xf70d589d76eebdd7c12cc5eec99f8f6fa4233b9e.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 27,
+          "detected_categories": [
+            "access_control",
+            "unchecked_low_level_calls",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 9.299
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "findings_count": 27
+      },
+      "timing": {
+        "layer_1": 9.299
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "access_control",
+          "arithmetic"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0xb7c5c5aa4d42967efe906e1b66cb8df9cebf04f7.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 10,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "arithmetic",
+            "reentrancy"
+          ],
+          "tools_run": 6,
+          "time_seconds": 7.398
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "arithmetic",
+          "reentrancy"
+        ],
+        "findings_count": 10
+      },
+      "timing": {
+        "layer_1": 7.398
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "arithmetic",
+          "reentrancy"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0xec329ffc97d75fe03428ae155fc7793431487f63.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 31,
+          "detected_categories": [
+            "access_control",
+            "unchecked_low_level_calls",
+            "arithmetic",
+            "reentrancy"
+          ],
+          "tools_run": 6,
+          "time_seconds": 22.114
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "arithmetic",
+          "reentrancy"
+        ],
+        "findings_count": 31
+      },
+      "timing": {
+        "layer_1": 22.114
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "access_control",
+          "arithmetic",
+          "reentrancy"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0xf2570186500a46986f3139f65afedc2afe4f445d.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 9,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 4.74
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "findings_count": 9
+      },
+      "timing": {
+        "layer_1": 4.74
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "arithmetic"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/unchecked_return_value.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 11,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 6.474
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "findings_count": 11
+      },
+      "timing": {
+        "layer_1": 6.474
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "arithmetic"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0xd2018bfaa266a9ec0a1a84b061640faa009def76.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 27,
+          "detected_categories": [
+            "access_control",
+            "unchecked_low_level_calls",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 12.656
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "findings_count": 27
+      },
+      "timing": {
+        "layer_1": 12.656
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "access_control",
+          "arithmetic"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0xa1fceeff3acc57d257b917e30c4df661401d6431.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 16,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 8.283
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "findings_count": 16
+      },
+      "timing": {
+        "layer_1": 8.283
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "arithmetic"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0x9d06cbafa865037a01d322d3f4222fa3e04e5488.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 26,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 5.943
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "findings_count": 26
+      },
+      "timing": {
+        "layer_1": 5.943
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "arithmetic"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0xe894d54dca59cb53fe9cbc5155093605c7068220.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 16,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 12.643
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "findings_count": 16
+      },
+      "timing": {
+        "layer_1": 12.643
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "arithmetic"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/unchecked_low_level_calls/0x806a6bd219f162442d992bdc4ee6eba1f2c5a707.sol",
+      "ground_truth": [
+        "unchecked_low_level_calls"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 27,
+          "detected_categories": [
+            "access_control",
+            "unchecked_low_level_calls",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 8.855
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "findings_count": 27
+      },
+      "timing": {
+        "layer_1": 8.855
+      },
+      "match": {
+        "tp": [
+          "unchecked_low_level_calls"
+        ],
+        "fp": [
+          "access_control",
+          "arithmetic"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/other/crypto_roulette.sol",
+      "ground_truth": [
+        "other"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 24,
+          "detected_categories": [
+            "access_control",
+            "unchecked_low_level_calls",
+            "time_manipulation",
+            "arithmetic",
+            "reentrancy",
+            "bad_randomness",
+            "other"
+          ],
+          "tools_run": 6,
+          "time_seconds": 18.978
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "other",
+          "arithmetic",
+          "reentrancy",
+          "time_manipulation",
+          "bad_randomness"
+        ],
+        "findings_count": 24
+      },
+      "timing": {
+        "layer_1": 18.978
+      },
+      "match": {
+        "tp": [
+          "other"
+        ],
+        "fp": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "time_manipulation",
+          "arithmetic",
+          "reentrancy",
+          "bad_randomness"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/other/name_registrar.sol",
+      "ground_truth": [
+        "other"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 10,
+          "detected_categories": [
+            "arithmetic",
+            "other"
+          ],
+          "tools_run": 6,
+          "time_seconds": 8.752
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "arithmetic",
+          "other"
+        ],
+        "findings_count": 10
+      },
+      "timing": {
+        "layer_1": 8.752
+      },
+      "match": {
+        "tp": [
+          "other"
+        ],
+        "fp": [
+          "arithmetic"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/other/open_address_lottery.sol",
+      "ground_truth": [
+        "other"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 32,
+          "detected_categories": [
+            "access_control",
+            "unchecked_low_level_calls",
+            "time_manipulation",
+            "arithmetic",
+            "reentrancy",
+            "bad_randomness",
+            "other"
+          ],
+          "tools_run": 6,
+          "time_seconds": 12.978
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "other",
+          "arithmetic",
+          "reentrancy",
+          "time_manipulation",
+          "bad_randomness"
+        ],
+        "findings_count": 32
+      },
+      "timing": {
+        "layer_1": 12.978
+      },
+      "match": {
+        "tp": [
+          "other"
+        ],
+        "fp": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "time_manipulation",
+          "arithmetic",
+          "reentrancy",
+          "bad_randomness"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/short_addresses/short_address_example.sol",
+      "ground_truth": [
+        "short_addresses"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 10,
+          "detected_categories": [
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 9.408
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "arithmetic"
+        ],
+        "findings_count": 10
+      },
+      "timing": {
+        "layer_1": 9.408
+      },
+      "match": {
+        "tp": [],
+        "fp": [
+          "arithmetic"
+        ],
+        "fn": [
+          "short_addresses"
+        ],
+        "hit": false
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/denial_of_service/dos_address.sol",
+      "ground_truth": [
+        "denial_of_service"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 10,
+          "detected_categories": [
+            "denial_of_service",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 12.665
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "denial_of_service",
+          "arithmetic"
+        ],
+        "findings_count": 10
+      },
+      "timing": {
+        "layer_1": 12.665
+      },
+      "match": {
+        "tp": [
+          "denial_of_service"
+        ],
+        "fp": [
+          "arithmetic"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/denial_of_service/dos_number.sol",
+      "ground_truth": [
+        "denial_of_service"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 17,
+          "detected_categories": [
+            "denial_of_service",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 8.477
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "denial_of_service",
+          "arithmetic"
+        ],
+        "findings_count": 17
+      },
+      "timing": {
+        "layer_1": 8.477
+      },
+      "match": {
+        "tp": [
+          "denial_of_service"
+        ],
+        "fp": [
+          "arithmetic"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/denial_of_service/send_loop.sol",
+      "ground_truth": [
+        "denial_of_service"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 11,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "time_manipulation",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 12.61
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "time_manipulation",
+          "arithmetic"
+        ],
+        "findings_count": 11
+      },
+      "timing": {
+        "layer_1": 12.61
+      },
+      "match": {
+        "tp": [],
+        "fp": [
+          "unchecked_low_level_calls",
+          "time_manipulation",
+          "arithmetic"
+        ],
+        "fn": [
+          "denial_of_service"
+        ],
+        "hit": false
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/denial_of_service/list_dos.sol",
+      "ground_truth": [
+        "denial_of_service"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 63,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "time_manipulation",
+            "denial_of_service",
+            "arithmetic",
+            "reentrancy",
+            "bad_randomness"
+          ],
+          "tools_run": 6,
+          "time_seconds": 9.074
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "denial_of_service",
+          "unchecked_low_level_calls",
+          "arithmetic",
+          "reentrancy",
+          "time_manipulation",
+          "bad_randomness"
+        ],
+        "findings_count": 63
+      },
+      "timing": {
+        "layer_1": 9.074
+      },
+      "match": {
+        "tp": [
+          "denial_of_service"
+        ],
+        "fp": [
+          "unchecked_low_level_calls",
+          "time_manipulation",
+          "arithmetic",
+          "reentrancy",
+          "bad_randomness"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/denial_of_service/auction.sol",
+      "ground_truth": [
+        "denial_of_service"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 8,
+          "detected_categories": [
+            "arithmetic",
+            "reentrancy"
+          ],
+          "tools_run": 6,
+          "time_seconds": 16.804
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "arithmetic",
+          "reentrancy"
+        ],
+        "findings_count": 8
+      },
+      "timing": {
+        "layer_1": 16.804
+      },
+      "match": {
+        "tp": [],
+        "fp": [
+          "arithmetic",
+          "reentrancy"
+        ],
+        "fn": [
+          "denial_of_service"
+        ],
+        "hit": false
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/denial_of_service/dos_simple.sol",
+      "ground_truth": [
+        "denial_of_service"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 6,
+          "detected_categories": [
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 14.26
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "arithmetic"
+        ],
+        "findings_count": 6
+      },
+      "timing": {
+        "layer_1": 14.26
+      },
+      "match": {
+        "tp": [],
+        "fp": [
+          "arithmetic"
+        ],
+        "fn": [
+          "denial_of_service"
+        ],
+        "hit": false
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/front_running/ERC20.sol",
+      "ground_truth": [
+        "front_running"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 28,
+          "detected_categories": [
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 7.135
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "arithmetic"
+        ],
+        "findings_count": 28
+      },
+      "timing": {
+        "layer_1": 7.135
+      },
+      "match": {
+        "tp": [],
+        "fp": [
+          "arithmetic"
+        ],
+        "fn": [
+          "front_running"
+        ],
+        "hit": false
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/front_running/FindThisHash.sol",
+      "ground_truth": [
+        "front_running"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 11,
+          "detected_categories": [
+            "access_control",
+            "unchecked_low_level_calls",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 12.548
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "findings_count": 11
+      },
+      "timing": {
+        "layer_1": 12.548
+      },
+      "match": {
+        "tp": [],
+        "fp": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "fn": [
+          "front_running"
+        ],
+        "hit": false
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/front_running/eth_tx_order_dependence_minimal.sol",
+      "ground_truth": [
+        "front_running"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 22,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "arithmetic",
+            "reentrancy"
+          ],
+          "tools_run": 6,
+          "time_seconds": 7.25
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "arithmetic",
+          "reentrancy"
+        ],
+        "findings_count": 22
+      },
+      "timing": {
+        "layer_1": 7.25
+      },
+      "match": {
+        "tp": [],
+        "fp": [
+          "unchecked_low_level_calls",
+          "arithmetic",
+          "reentrancy"
+        ],
+        "fn": [
+          "front_running"
+        ],
+        "hit": false
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/front_running/odds_and_evens.sol",
+      "ground_truth": [
+        "front_running"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 6,
+          "detected_categories": [
+            "access_control",
+            "arithmetic",
+            "reentrancy"
+          ],
+          "tools_run": 6,
+          "time_seconds": 12.18
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "access_control",
+          "arithmetic",
+          "reentrancy"
+        ],
+        "findings_count": 6
+      },
+      "timing": {
+        "layer_1": 12.18
+      },
+      "match": {
+        "tp": [],
+        "fp": [
+          "access_control",
+          "arithmetic",
+          "reentrancy"
+        ],
+        "fn": [
+          "front_running"
+        ],
+        "hit": false
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/access_control/multiowned_vulnerable.sol",
+      "ground_truth": [
+        "access_control"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 20,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 8.227
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "findings_count": 20
+      },
+      "timing": {
+        "layer_1": 8.227
+      },
+      "match": {
+        "tp": [],
+        "fp": [
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "fn": [
+          "access_control"
+        ],
+        "hit": false
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/access_control/phishable.sol",
+      "ground_truth": [
+        "access_control"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 18,
+          "detected_categories": [
+            "access_control",
+            "unchecked_low_level_calls",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 14.114
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "findings_count": 18
+      },
+      "timing": {
+        "layer_1": 14.114
+      },
+      "match": {
+        "tp": [
+          "access_control"
+        ],
+        "fp": [
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/access_control/incorrect_constructor_name1.sol",
+      "ground_truth": [
+        "access_control"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 13,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 8.4
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "findings_count": 13
+      },
+      "timing": {
+        "layer_1": 8.4
+      },
+      "match": {
+        "tp": [],
+        "fp": [
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "fn": [
+          "access_control"
+        ],
+        "hit": false
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/access_control/wallet_03_wrong_constructor.sol",
+      "ground_truth": [
+        "access_control"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 18,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "arithmetic",
+            "reentrancy"
+          ],
+          "tools_run": 6,
+          "time_seconds": 19.077
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "arithmetic",
+          "reentrancy"
+        ],
+        "findings_count": 18
+      },
+      "timing": {
+        "layer_1": 19.077
+      },
+      "match": {
+        "tp": [],
+        "fp": [
+          "unchecked_low_level_calls",
+          "arithmetic",
+          "reentrancy"
+        ],
+        "fn": [
+          "access_control"
+        ],
+        "hit": false
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/access_control/incorrect_constructor_name2.sol",
+      "ground_truth": [
+        "access_control"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 12,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 22.772
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "findings_count": 12
+      },
+      "timing": {
+        "layer_1": 22.772
+      },
+      "match": {
+        "tp": [],
+        "fp": [
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "fn": [
+          "access_control"
+        ],
+        "hit": false
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/access_control/incorrect_constructor_name3.sol",
+      "ground_truth": [
+        "access_control"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 13,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 8.662
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "findings_count": 13
+      },
+      "timing": {
+        "layer_1": 8.662
+      },
+      "match": {
+        "tp": [],
+        "fp": [
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "fn": [
+          "access_control"
+        ],
+        "hit": false
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/access_control/proxy.sol",
+      "ground_truth": [
+        "access_control"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 11,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "arithmetic",
+            "reentrancy"
+          ],
+          "tools_run": 6,
+          "time_seconds": 12.37
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "arithmetic",
+          "reentrancy"
+        ],
+        "findings_count": 11
+      },
+      "timing": {
+        "layer_1": 12.37
+      },
+      "match": {
+        "tp": [],
+        "fp": [
+          "unchecked_low_level_calls",
+          "arithmetic",
+          "reentrancy"
+        ],
+        "fn": [
+          "access_control"
+        ],
+        "hit": false
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/access_control/parity_wallet_bug_1.sol",
+      "ground_truth": [
+        "access_control"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 13,
+          "detected_categories": [
+            "time_manipulation"
+          ],
+          "tools_run": 6,
+          "time_seconds": 7.363
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "time_manipulation"
+        ],
+        "findings_count": 13
+      },
+      "timing": {
+        "layer_1": 7.363
+      },
+      "match": {
+        "tp": [],
+        "fp": [
+          "time_manipulation"
+        ],
+        "fn": [
+          "access_control"
+        ],
+        "hit": false
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/access_control/parity_wallet_bug_2.sol",
+      "ground_truth": [
+        "access_control"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 76,
+          "detected_categories": [
+            "access_control",
+            "unchecked_low_level_calls",
+            "time_manipulation",
+            "arithmetic",
+            "reentrancy",
+            "bad_randomness"
+          ],
+          "tools_run": 6,
+          "time_seconds": 5.899
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "arithmetic",
+          "reentrancy",
+          "time_manipulation",
+          "bad_randomness"
+        ],
+        "findings_count": 76
+      },
+      "timing": {
+        "layer_1": 5.899
+      },
+      "match": {
+        "tp": [
+          "access_control"
+        ],
+        "fp": [
+          "unchecked_low_level_calls",
+          "time_manipulation",
+          "arithmetic",
+          "reentrancy",
+          "bad_randomness"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/access_control/wallet_04_confused_sign.sol",
+      "ground_truth": [
+        "access_control"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 16,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "arithmetic",
+            "reentrancy"
+          ],
+          "tools_run": 6,
+          "time_seconds": 14.732
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "arithmetic",
+          "reentrancy"
+        ],
+        "findings_count": 16
+      },
+      "timing": {
+        "layer_1": 14.732
+      },
+      "match": {
+        "tp": [],
+        "fp": [
+          "unchecked_low_level_calls",
+          "arithmetic",
+          "reentrancy"
+        ],
+        "fn": [
+          "access_control"
+        ],
+        "hit": false
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/access_control/FibonacciBalance.sol",
+      "ground_truth": [
+        "access_control"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 29,
+          "detected_categories": [
+            "access_control",
+            "unchecked_low_level_calls",
+            "arithmetic",
+            "reentrancy"
+          ],
+          "tools_run": 6,
+          "time_seconds": 8.396
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "arithmetic",
+          "reentrancy"
+        ],
+        "findings_count": 29
+      },
+      "timing": {
+        "layer_1": 8.396
+      },
+      "match": {
+        "tp": [
+          "access_control"
+        ],
+        "fp": [
+          "unchecked_low_level_calls",
+          "arithmetic",
+          "reentrancy"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/access_control/unprotected0.sol",
+      "ground_truth": [
+        "access_control"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 9,
+          "detected_categories": [
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 7.257
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "arithmetic"
+        ],
+        "findings_count": 9
+      },
+      "timing": {
+        "layer_1": 7.257
+      },
+      "match": {
+        "tp": [],
+        "fp": [
+          "arithmetic"
+        ],
+        "fn": [
+          "access_control"
+        ],
+        "hit": false
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/access_control/rubixi.sol",
+      "ground_truth": [
+        "access_control"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 38,
+          "detected_categories": [
+            "access_control",
+            "unchecked_low_level_calls",
+            "arithmetic",
+            "reentrancy"
+          ],
+          "tools_run": 6,
+          "time_seconds": 14.293
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "arithmetic",
+          "reentrancy"
+        ],
+        "findings_count": 38
+      },
+      "timing": {
+        "layer_1": 14.293
+      },
+      "match": {
+        "tp": [
+          "access_control"
+        ],
+        "fp": [
+          "unchecked_low_level_calls",
+          "arithmetic",
+          "reentrancy"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/access_control/arbitrary_location_write_simple.sol",
+      "ground_truth": [
+        "access_control"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 23,
+          "detected_categories": [
+            "access_control",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 7.129
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "access_control",
+          "arithmetic"
+        ],
+        "findings_count": 23
+      },
+      "timing": {
+        "layer_1": 7.129
+      },
+      "match": {
+        "tp": [
+          "access_control"
+        ],
+        "fp": [
+          "arithmetic"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/access_control/mycontract.sol",
+      "ground_truth": [
+        "access_control"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 14,
+          "detected_categories": [
+            "access_control",
+            "unchecked_low_level_calls",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 12.902
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "findings_count": 14
+      },
+      "timing": {
+        "layer_1": 12.902
+      },
+      "match": {
+        "tp": [
+          "access_control"
+        ],
+        "fp": [
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/access_control/wallet_02_refund_nosub.sol",
+      "ground_truth": [
+        "access_control"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 20,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "arithmetic",
+            "reentrancy"
+          ],
+          "tools_run": 6,
+          "time_seconds": 7.499
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "arithmetic",
+          "reentrancy"
+        ],
+        "findings_count": 20
+      },
+      "timing": {
+        "layer_1": 7.499
+      },
+      "match": {
+        "tp": [],
+        "fp": [
+          "unchecked_low_level_calls",
+          "arithmetic",
+          "reentrancy"
+        ],
+        "fn": [
+          "access_control"
+        ],
+        "hit": false
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/access_control/simple_suicide.sol",
+      "ground_truth": [
+        "access_control"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 6,
+          "detected_categories": [
+            "access_control",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 3.747
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "access_control",
+          "arithmetic"
+        ],
+        "findings_count": 6
+      },
+      "timing": {
+        "layer_1": 3.747
+      },
+      "match": {
+        "tp": [
+          "access_control"
+        ],
+        "fp": [
+          "arithmetic"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/access_control/mapping_write.sol",
+      "ground_truth": [
+        "access_control"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 14,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 3.691
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "findings_count": 14
+      },
+      "timing": {
+        "layer_1": 3.691
+      },
+      "match": {
+        "tp": [],
+        "fp": [
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "fn": [
+          "access_control"
+        ],
+        "hit": false
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/arithmetic/token.sol",
+      "ground_truth": [
+        "arithmetic"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 13,
+          "detected_categories": [
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 4.514
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "arithmetic"
+        ],
+        "findings_count": 13
+      },
+      "timing": {
+        "layer_1": 4.514
+      },
+      "match": {
+        "tp": [
+          "arithmetic"
+        ],
+        "fp": [],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/arithmetic/overflow_single_tx.sol",
+      "ground_truth": [
+        "arithmetic"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 13,
+          "detected_categories": [
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 5.914
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "arithmetic"
+        ],
+        "findings_count": 13
+      },
+      "timing": {
+        "layer_1": 5.914
+      },
+      "match": {
+        "tp": [
+          "arithmetic"
+        ],
+        "fp": [],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_minimal.sol",
+      "ground_truth": [
+        "arithmetic"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 5,
+          "detected_categories": [
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 13.091
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "arithmetic"
+        ],
+        "findings_count": 5
+      },
+      "timing": {
+        "layer_1": 13.091
+      },
+      "match": {
+        "tp": [
+          "arithmetic"
+        ],
+        "fp": [],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_add.sol",
+      "ground_truth": [
+        "arithmetic"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 5,
+          "detected_categories": [
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 8.955
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "arithmetic"
+        ],
+        "findings_count": 5
+      },
+      "timing": {
+        "layer_1": 8.955
+      },
+      "match": {
+        "tp": [
+          "arithmetic"
+        ],
+        "fp": [],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/arithmetic/insecure_transfer.sol",
+      "ground_truth": [
+        "arithmetic"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 9,
+          "detected_categories": [
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 4.081
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "arithmetic"
+        ],
+        "findings_count": 9
+      },
+      "timing": {
+        "layer_1": 4.081
+      },
+      "match": {
+        "tp": [
+          "arithmetic"
+        ],
+        "fp": [],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_benign_1.sol",
+      "ground_truth": [
+        "arithmetic"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 7,
+          "detected_categories": [
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 4.121
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "arithmetic"
+        ],
+        "findings_count": 7
+      },
+      "timing": {
+        "layer_1": 4.121
+      },
+      "match": {
+        "tp": [
+          "arithmetic"
+        ],
+        "fp": [],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/arithmetic/timelock.sol",
+      "ground_truth": [
+        "arithmetic"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 15,
+          "detected_categories": [
+            "time_manipulation",
+            "arithmetic",
+            "unchecked_low_level_calls",
+            "bad_randomness"
+          ],
+          "tools_run": 6,
+          "time_seconds": 14.54
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "time_manipulation",
+          "arithmetic",
+          "unchecked_low_level_calls",
+          "bad_randomness"
+        ],
+        "findings_count": 15
+      },
+      "timing": {
+        "layer_1": 14.54
+      },
+      "match": {
+        "tp": [
+          "arithmetic"
+        ],
+        "fp": [
+          "unchecked_low_level_calls",
+          "time_manipulation",
+          "bad_randomness"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_1.sol",
+      "ground_truth": [
+        "arithmetic"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 4,
+          "detected_categories": [
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 10.202
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "arithmetic"
+        ],
+        "findings_count": 4
+      },
+      "timing": {
+        "layer_1": 10.202
+      },
+      "match": {
+        "tp": [
+          "arithmetic"
+        ],
+        "fp": [],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_mapping_sym_1.sol",
+      "ground_truth": [
+        "arithmetic"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 5,
+          "detected_categories": [
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 12.483
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "arithmetic"
+        ],
+        "findings_count": 5
+      },
+      "timing": {
+        "layer_1": 12.483
+      },
+      "match": {
+        "tp": [
+          "arithmetic"
+        ],
+        "fp": [],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/arithmetic/overflow_simple_add.sol",
+      "ground_truth": [
+        "arithmetic"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 5,
+          "detected_categories": [
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 8.69
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "arithmetic"
+        ],
+        "findings_count": 5
+      },
+      "timing": {
+        "layer_1": 8.69
+      },
+      "match": {
+        "tp": [
+          "arithmetic"
+        ],
+        "fp": [],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_mul.sol",
+      "ground_truth": [
+        "arithmetic"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 5,
+          "detected_categories": [
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 4.192
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "arithmetic"
+        ],
+        "findings_count": 5
+      },
+      "timing": {
+        "layer_1": 4.192
+      },
+      "match": {
+        "tp": [
+          "arithmetic"
+        ],
+        "fp": [],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/arithmetic/tokensalechallenge.sol",
+      "ground_truth": [
+        "arithmetic"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 12,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 4.531
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "findings_count": 12
+      },
+      "timing": {
+        "layer_1": 4.531
+      },
+      "match": {
+        "tp": [
+          "arithmetic"
+        ],
+        "fp": [
+          "unchecked_low_level_calls"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_multitx_multifunc_feasible.sol",
+      "ground_truth": [
+        "arithmetic"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 6,
+          "detected_categories": [
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 8.263
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "arithmetic"
+        ],
+        "findings_count": 6
+      },
+      "timing": {
+        "layer_1": 8.263
+      },
+      "match": {
+        "tp": [
+          "arithmetic"
+        ],
+        "fp": [],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/arithmetic/BECToken.sol",
+      "ground_truth": [
+        "arithmetic"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 93,
+          "detected_categories": [
+            "unchecked_low_level_calls",
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 7.147
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "unchecked_low_level_calls",
+          "arithmetic"
+        ],
+        "findings_count": 93
+      },
+      "timing": {
+        "layer_1": 7.147
+      },
+      "match": {
+        "tp": [
+          "arithmetic"
+        ],
+        "fp": [
+          "unchecked_low_level_calls"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/arithmetic/integer_overflow_multitx_onefunc_feasible.sol",
+      "ground_truth": [
+        "arithmetic"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 4,
+          "detected_categories": [
+            "arithmetic"
+          ],
+          "tools_run": 6,
+          "time_seconds": 8.256
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "arithmetic"
+        ],
+        "findings_count": 4
+      },
+      "timing": {
+        "layer_1": 8.256
+      },
+      "match": {
+        "tp": [
+          "arithmetic"
+        ],
+        "fp": [],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/time_manipulation/ether_lotto.sol",
+      "ground_truth": [
+        "time_manipulation"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 17,
+          "detected_categories": [
+            "access_control",
+            "unchecked_low_level_calls",
+            "time_manipulation",
+            "arithmetic",
+            "reentrancy",
+            "bad_randomness"
+          ],
+          "tools_run": 6,
+          "time_seconds": 12.424
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "arithmetic",
+          "reentrancy",
+          "time_manipulation",
+          "bad_randomness"
+        ],
+        "findings_count": 17
+      },
+      "timing": {
+        "layer_1": 12.424
+      },
+      "match": {
+        "tp": [
+          "time_manipulation"
+        ],
+        "fp": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "arithmetic",
+          "reentrancy",
+          "bad_randomness"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/time_manipulation/roulette.sol",
+      "ground_truth": [
+        "time_manipulation"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 16,
+          "detected_categories": [
+            "access_control",
+            "unchecked_low_level_calls",
+            "time_manipulation",
+            "arithmetic",
+            "bad_randomness"
+          ],
+          "tools_run": 6,
+          "time_seconds": 8.33
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "arithmetic",
+          "time_manipulation",
+          "bad_randomness"
+        ],
+        "findings_count": 16
+      },
+      "timing": {
+        "layer_1": 8.33
+      },
+      "match": {
+        "tp": [
+          "time_manipulation"
+        ],
+        "fp": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "arithmetic",
+          "bad_randomness"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/time_manipulation/lottopollo.sol",
+      "ground_truth": [
+        "time_manipulation"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 15,
+          "detected_categories": [
+            "access_control",
+            "unchecked_low_level_calls",
+            "time_manipulation",
+            "arithmetic",
+            "bad_randomness"
+          ],
+          "tools_run": 6,
+          "time_seconds": 3.968
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "arithmetic",
+          "time_manipulation",
+          "bad_randomness"
+        ],
+        "findings_count": 15
+      },
+      "timing": {
+        "layer_1": 3.968
+      },
+      "match": {
+        "tp": [
+          "time_manipulation"
+        ],
+        "fp": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "arithmetic",
+          "bad_randomness"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/time_manipulation/governmental_survey.sol",
+      "ground_truth": [
+        "time_manipulation"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 18,
+          "detected_categories": [
+            "access_control",
+            "unchecked_low_level_calls",
+            "time_manipulation",
+            "arithmetic",
+            "reentrancy",
+            "bad_randomness"
+          ],
+          "tools_run": 6,
+          "time_seconds": 3.993
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "arithmetic",
+          "reentrancy",
+          "time_manipulation",
+          "bad_randomness"
+        ],
+        "findings_count": 18
+      },
+      "timing": {
+        "layer_1": 3.993
+      },
+      "match": {
+        "tp": [
+          "time_manipulation"
+        ],
+        "fp": [
+          "access_control",
+          "unchecked_low_level_calls",
+          "arithmetic",
+          "reentrancy",
+          "bad_randomness"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    },
+    {
+      "contract": "/Users/fboiero/Documents/GitHub/MIESC/benchmarks/datasets/smartbugs-curated/dataset/time_manipulation/timed_crowdsale.sol",
+      "ground_truth": [
+        "time_manipulation"
+      ],
+      "layers": {
+        "1": {
+          "findings_count": 6,
+          "detected_categories": [
+            "arithmetic",
+            "time_manipulation",
+            "bad_randomness"
+          ],
+          "tools_run": 6,
+          "time_seconds": 8.902
+        }
+      },
+      "aggregate": {
+        "detected_categories": [
+          "arithmetic",
+          "time_manipulation",
+          "bad_randomness"
+        ],
+        "findings_count": 6
+      },
+      "timing": {
+        "layer_1": 8.902
+      },
+      "match": {
+        "tp": [
+          "time_manipulation"
+        ],
+        "fp": [
+          "arithmetic",
+          "bad_randomness"
+        ],
+        "fn": [],
+        "hit": true
+      }
+    }
+  ]
+}
