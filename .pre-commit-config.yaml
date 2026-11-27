@@ -41,7 +41,8 @@ repos:
     hooks:
       - id: bandit
         name: Bandit Security Scanner
-        args: ['-r', 'miesc/', '-ll']  # Medium severity or higher
+        args: ['-r', 'miesc/', '-ll']  # Medium+ severity, same target as Makefile/CI
+        pass_filenames: false
         exclude: ^tests/
 
   # Secret Scanning
