@@ -1,8 +1,10 @@
 """
-SmartBugs-ML Adapter - Layer 6: ML-Based Detection
+SmartBugs-ML Adapter - Layer 6: rule-based heuristics (ML fallback)
 
-Provides machine learning-based vulnerability detection using pattern recognition
-trained on historical smart contract vulnerabilities.
+No pre-trained models are shipped or loaded. At runtime this adapter always runs
+a rule-based heuristic fallback over extracted code features; results are
+approximate and are marked with ``detection_mode = "rule_based_fallback"``.
+The model names (random_forest, svm, neural_network) are config placeholders only.
 
 Author: Fernando Boiero
 License: AGPL-3.0
@@ -23,6 +25,12 @@ from miesc.detectors.chain_attribute_flow import has_weak_randomness
 
 logger = logging.getLogger(__name__)
 
+DETECTION_MODE_FALLBACK = "rule_based_fallback"
+FALLBACK_NOTE = (
+    "Pre-trained ML models are not loaded; results come from rule-based "
+    "heuristics and are approximate."
+)
+
 
 def _rules_fingerprint() -> str:
     """Hash of the modules that define the fallback rules (this one and the data flow)."""
@@ -42,17 +50,16 @@ _RULES_FINGERPRINT = _rules_fingerprint()
 
 class SmartBugsMLAdapter:
     """
-    Adapter for SmartBugs-ML: ML-based vulnerability detection
+    Adapter for SmartBugs-ML: rule-based heuristic detection (ML fallback)
 
-    SmartBugs-ML uses machine learning models trained on thousands of
-    smart contracts to detect vulnerability patterns without relying on
-    traditional static analysis rules.
+    NOTE: no trained ML models (Random Forest / SVM / Neural Network) are
+    loaded. Inference is a rule-based fallback over extracted features, so
+    results are approximate. Every result reports ``detection_mode`` and
+    ``models_loaded`` so consumers can tell; findings carry the same marker.
 
     Features:
-    - Pattern-based ML detection
-    - Multiple ML models (Random Forest, SVM, Neural Networks)
-    - Trained on SmartBugs dataset
-    - Low false positive rate
+    - Rule-based feature heuristics (fallback; no trained model in use)
+    - ``model`` config is accepted but only echoed back (``model_used``)
     - Fast inference time
 
     DPGA Compliance: 100% PASS
@@ -65,7 +72,9 @@ class SmartBugsMLAdapter:
         "name": "smartbugs_ml",
         "version": "1.0.0",
         "category": "ml-based",
-        "description": "ML-based vulnerability detection using pattern recognition",
+        "description": "Rule-based heuristic vulnerability detection (ML models not loaded; fallback mode)",
+        "detection_mode": DETECTION_MODE_FALLBACK,
+        "models_loaded": False,
         "is_optional": True,
         "requires": ["python", "scikit-learn", "numpy"],
         "supported_languages": ["solidity"],
@@ -77,8 +86,9 @@ class SmartBugsMLAdapter:
             "bad_randomness",
             "time_manipulation",
         ],
-        "ml_models": ["random_forest", "svm", "neural_network"],
-        "training_dataset": "SmartBugs (47k contracts)",
+        "ml_models": [],  # none loaded; configurable names are placeholders
+        "planned_ml_models": ["random_forest", "svm", "neural_network"],
+        "training_dataset": None,
     }
 
     def __init__(self, config: Optional[Dict[str, Any]] = None):
@@ -117,8 +127,8 @@ class SmartBugsMLAdapter:
             installation_cmd="pip install scikit-learn numpy",
             capabilities=[
                 ToolCapability(
-                    name="ml_vulnerability_detection",
-                    description="ML-based vulnerability detection using pattern recognition",
+                    name="rule_based_vulnerability_detection",
+                    description="Rule-based heuristic detection (ML models not loaded; fallback mode)",
                     supported_languages=["solidity"],
                     detection_types=[
                         "reentrancy",
@@ -208,6 +218,9 @@ class SmartBugsMLAdapter:
                 "success": True,
                 "findings": predictions,
                 "model_used": self.model,
+                "detection_mode": DETECTION_MODE_FALLBACK,
+                "models_loaded": False,
+                "note": FALLBACK_NOTE,
                 "confidence_threshold": self.confidence_threshold,
                 "features_extracted": len(features),
                 "analysis_duration": round(duration, 2),
@@ -356,8 +369,8 @@ class SmartBugsMLAdapter:
         """
         Run ML model inference on extracted features
 
-        Note: This is a simplified implementation. In production, this would
-        load pre-trained models and run actual ML inference.
+        Note: no pre-trained models are loaded; this is a rule-based fallback and
+        every finding is tagged ``detection_mode = "rule_based_fallback"``.
 
         Args:
             features: Extracted feature dict
@@ -382,7 +395,7 @@ class SmartBugsMLAdapter:
                         "type": "reentrancy",
                         "severity": "high",
                         "confidence": round(confidence, 3),
-                        "description": "ML model detected potential reentrancy pattern",
+                        "description": "Rule-based heuristic (ML fallback) detected potential reentrancy pattern",
                         "ml_features_used": ["external_calls", "state_changes_after_call"],
                         "recommendation": "Use checks-effects-interactions pattern or reentrancy guard",
                     }
@@ -397,7 +410,7 @@ class SmartBugsMLAdapter:
                         "type": "delegatecall",
                         "severity": "high",
                         "confidence": confidence,
-                        "description": "ML model detected delegatecall usage without proper validation",
+                        "description": "Rule-based heuristic (ML fallback) detected delegatecall usage without proper validation",
                         "ml_features_used": ["has_delegatecall"],
                         "recommendation": "Ensure delegatecall targets are whitelisted and validated",
                     }
@@ -415,7 +428,7 @@ class SmartBugsMLAdapter:
                         "type": "bad_randomness",
                         "severity": "medium",
                         "confidence": confidence,
-                        "description": "ML model detected weak randomness source (block.timestamp or blockhash)",
+                        "description": "Rule-based heuristic (ML fallback) detected weak randomness source (block.timestamp or blockhash)",
                         "ml_features_used": ["uses_blockhash", "uses_timestamp"],
                         "recommendation": "Use Chainlink VRF or commit-reveal scheme for randomness",
                     }
@@ -433,7 +446,7 @@ class SmartBugsMLAdapter:
                         "type": "integer_overflow",
                         "severity": "high",
                         "confidence": confidence,
-                        "description": "ML model detected unchecked arithmetic operations",
+                        "description": "Rule-based heuristic (ML fallback) detected unchecked arithmetic operations",
                         "ml_features_used": ["has_unchecked_math", "uses_safe_math"],
                         "recommendation": "Use Solidity 0.8+ or SafeMath library for arithmetic",
                     }
@@ -448,12 +461,14 @@ class SmartBugsMLAdapter:
                         "type": "unprotected_selfdestruct",
                         "severity": "critical",
                         "confidence": confidence,
-                        "description": "ML model detected selfdestruct without access control",
+                        "description": "Rule-based heuristic (ML fallback) detected selfdestruct without access control",
                         "ml_features_used": ["has_selfdestruct", "has_access_control"],
                         "recommendation": "Add access control modifiers (e.g., onlyOwner) to selfdestruct",
                     }
                 )
 
+        for finding in findings:
+            finding["detection_mode"] = DETECTION_MODE_FALLBACK
         return findings
 
     def _check_cache(self, contract_path: str) -> Optional[Dict[str, Any]]:
