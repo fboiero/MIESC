@@ -508,6 +508,25 @@ class TestMCPCorrectnessSlice:
         out = asyncio.run(miesc_generate_report(json.dumps(legacy), format="markdown"))
         assert "legacy finding" in out
 
+    def test_generate_report_markdown_raw_findings_shape(self):
+        """F5: ML-audit output with only 'raw_findings' yields findings."""
+        data = {
+            "contract": "/tmp/Token.sol",
+            "raw_findings": [{"tool": "slither", "severity": "High", "message": "raw finding msg"}],
+        }
+        out = asyncio.run(miesc_generate_report(json.dumps(data), format="markdown"))
+        assert "raw finding msg" in out
+        assert "slither (1 findings)" in out
+
+    def test_generate_report_markdown_ml_enhanced_shape(self):
+        """F5: ML-audit output with 'ml_enhanced' yields findings."""
+        data = {
+            "contract": "/tmp/Token.sol",
+            "ml_enhanced": [{"tool": "mythril", "severity": "High", "message": "ml enhanced msg"}],
+        }
+        out = asyncio.run(miesc_generate_report(json.dumps(data), format="markdown"))
+        assert "ml enhanced msg" in out
+
     def test_generate_report_json_passthrough_unchanged(self):
         """JSON format must still return the input verbatim."""
         payload = {"results": [], "summary": {}}
