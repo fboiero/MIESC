@@ -443,8 +443,13 @@ class TestMCPCorrectnessSlice:
 
         def fake(tool, *a, **k):
             if tool == "mev_detector":
-                return {"tool": tool, "status": "skipped", "reason": "no_adapter",
-                        "error": f"No adapter found for {tool}", "findings": []}
+                return {
+                    "tool": tool,
+                    "status": "skipped",
+                    "reason": "no_adapter",
+                    "error": f"No adapter found for {tool}",
+                    "findings": [],
+                }
             return {"tool": tool, "status": "success", "findings": []}
 
         with patch("miesc.mcp_server._run_tool_internal", side_effect=fake):
